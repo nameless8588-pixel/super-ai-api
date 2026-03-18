@@ -26,7 +26,6 @@ pypiwin32==223
 python-dotenv==1.2.2
 python-jose==3.5.0
 pyttsx3==2.99
-pywin32==311
 requests==2.32.5
 rsa==4.9.1
 six==1.17.0
