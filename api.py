@@ -3,7 +3,7 @@ from fastapi.security import APIKeyHeader
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from cachetools import TTLCache
-import ollama
+from groq import Groq
 import sys
 import os
 import time
@@ -11,8 +11,11 @@ import time
 # --- Load .env ---
 load_dotenv()
 
-# --- Cache Setup (1 ghante tak same jawab store rahega) ---
+# --- Cache Setup ---
 cache = TTLCache(maxsize=100, ttl=3600)
+
+# --- Groq Client ---
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # --- Path Setup ---
 base_path = os.path.dirname(os.path.abspath(__file__))
@@ -53,14 +56,13 @@ def home():
 def status():
     return {
         "api": "✅ Online",
-        "ai_model": "gemma3:1b",
+        "ai_model": "gemma2-9b-it",
         "internet": "✅ Active",
         "time": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
 @app.get("/ask")
 def ask(q: str, key: str = Depends(verify_key)):
-    # Cache check --- same sawal ka jawab turant milega
     if q in cache:
         return {
             "sawal": q,
@@ -72,26 +74,25 @@ def ask(q: str, key: str = Depends(verify_key)):
 
     start = time.time()
 
-    # Internet check
     try:
-        check = ollama.chat(model='gemma3:1b', messages=[
-            {'role': 'user', 'content': f"Is '{q}' a greeting or simple chat? If yes say NO. Does it need internet search? YES/NO only"}
-        ])
         context = ""
-        if "YES" in check['message']['content'].upper():
-            context = f"\nInternet Data: {search_internet(q)}"
+        result = search_internet(q)
+        if result and result != "Search error.":
+            context = f"\nInternet Data: {result}"
     except:
         context = ""
 
-    # AI Jawab
-    response = ollama.chat(model='gemma3:1b', messages=[
-        {'role': 'user', 'content': "Tu ek smart Indian dost hai. Sirf 1-2 line mein Hinglish mein jawab de. Koi explanation mat de."},
-        {'role': 'assistant', 'content': "Haan bhai!"},
-        {'role': 'user', 'content': f"{q} {context}"}
-    ])
+    response = client.chat.completions.create(
+        model="gemma2-9b-it",
+        messages=[
+            {"role": "user", "content": "Tu ek smart Indian dost hai. Sirf 1-2 line mein Hinglish mein jawab de."},
+            {"role": "assistant", "content": "Haan bhai!"},
+            {"role": "user", "content": f"{q} {context}"}
+        ]
+    )
 
-    reply = response['message']['content']
-    cache[q] = reply  # Cache mein save karo
+    reply = response.choices[0].message.content
+    cache[q] = reply
 
     return {
         "sawal": q,
@@ -114,9 +115,15 @@ def search(q: str, key: str = Depends(verify_key)):
 @app.get("/stream")
 def stream(q: str, key: str = Depends(verify_key)):
     def generate():
-        for chunk in ollama.chat(model='gemma3:1b', messages=[
-            {'role': 'user', 'content': "Hinglish mein jawab de."},
-            {'role': 'user', 'content': q}
-        ], stream=True):
-            yield chunk['message']['content']
+        response = client.chat.completions.create(
+            model="gemma2-9b-it",
+            messages=[
+                {"role": "user", "content": "Hinglish mein jawab de."},
+                {"role": "user", "content": q}
+            ],
+            stream=True
+        )
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
     return StreamingResponse(generate(), media_type="text/plain")
