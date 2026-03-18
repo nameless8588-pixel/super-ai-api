@@ -96,10 +96,15 @@ def create(task: str, filename: str = "ai_generated.py", key: str = Depends(veri
     push_to_github(filename, code)
     return {"task": task, "filename": filename, "code": code, "test_result": test_result, "attempts": attempts, "response_time": f"{round(time.time()-start, 2)}s"}
 
-@app.get("/webapp", response_class=HTMLResponse)
+@app.get("/webapp")
 def webapp(task: str, key: str = Depends(verify_key)):
     start = time.time()
     html = generate_web_app(task)
-    filename = task[:20].replace(" ", "_") + ".html"
+    filename = "apps/" + task[:30].replace(" ", "_").replace("/", "") + ".html"
     push_to_github(filename, html)
-    return HTMLResponse(content=html)
+    live_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO}/{filename}"
+    return {
+        "task": task,
+        "live_url": live_url,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
