@@ -20,7 +20,11 @@ sys.path.insert(0, os.path.join(base_path, 'tools'))
 try:
     from internet import search_internet
 except:
-    def search_internet(q): return "Search error."
+    def search_internet(q): return ""
+try:
+    from executor import run_code
+except:
+    def run_code(code): return {"success": False, "output": "", "error": "Executor nahi mila!"}
 
 app = FastAPI(title="Super AI API", version="3.0")
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
@@ -30,6 +34,15 @@ def verify_key(key: str = Depends(api_key_header)):
     if key not in VALID_KEYS:
         raise HTTPException(status_code=403, detail="Invalid API Key!")
     return key
+
+def push_to_github(filename, code):
+    url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/{filename}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    check = requests.get(url, headers=headers)
+    data = {"message": f"AI ne banaya: {filename}", "content": base64.b64encode(code.encode()).decode()}
+    if check.status_code == 200:
+        data["sha"] = check.json()["sha"]
+    requests.put(url, json=data, headers=headers)
 
 @app.get("/")
 def home():
@@ -59,19 +72,35 @@ def ask(q: str, key: str = Depends(verify_key)):
 @app.get("/create")
 def create(task: str, filename: str = "ai_generated.py", key: str = Depends(verify_key)):
     start = time.time()
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": "Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Code ko ```python ``` mein mat wrap kar."},
-            {"role": "user", "content": f"Yeh banao: {task}"}
-        ]
-    )
-    code = response.choices[0].message.content
-    url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/{filename}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    check = requests.get(url, headers=headers)
-    data = {"message": f"AI ne banaya: {filename}", "content": base64.b64encode(code.encode()).decode()}
-    if check.status_code == 200:
-        data["sha"] = check.json()["sha"]
-    requests.put(url, json=data, headers=headers)
-    return {"task": task, "filename": filename, "code": code, "response_time": f"{round(time.time()-start, 2)}s"}
+    attempts = 0
+    max_attempts = 3
+    code = ""
+    test_result = {}
+
+    while attempts < max_attempts:
+        attempts += 1
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Code ko markdown mein wrap mat kar."},
+                {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nPehle try mein yeh error aaya: {test_result.get('error', '')} — fix karke dobara likh!"}
+            ]
+        )
+        code = response.choices[0].message.content
+        code = code.replace("```python", "").replace("```", "").strip()
+
+        test_result = run_code(code)
+
+        if test_result["success"]:
+            break
+
+    push_to_github(filename, code)
+
+    return {
+        "task": task,
+        "filename": filename,
+        "code": code,
+        "test_result": test_result,
+        "attempts": attempts,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
