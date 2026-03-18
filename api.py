@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import HTMLResponse
 from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
 from cachetools import TTLCache
@@ -25,8 +26,12 @@ try:
     from executor import run_code
 except:
     def run_code(code): return {"success": False, "output": "", "error": "Executor nahi mila!"}
+try:
+    from webgen import generate_web_app
+except:
+    def generate_web_app(task): return "<h1>Error</h1>"
 
-app = FastAPI(title="Super AI API", version="3.0")
+app = FastAPI(title="Super AI API", version="4.0")
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
 api_key_header = APIKeyHeader(name="X-API-Key")
 
@@ -46,7 +51,7 @@ def push_to_github(filename, code):
 
 @app.get("/")
 def home():
-    return {"name": "Super AI API", "version": "3.0", "status": "Online"}
+    return {"name": "Super AI API", "version": "4.0", "status": "Online"}
 
 @app.get("/ask")
 def ask(q: str, key: str = Depends(verify_key)):
@@ -73,34 +78,28 @@ def ask(q: str, key: str = Depends(verify_key)):
 def create(task: str, filename: str = "ai_generated.py", key: str = Depends(verify_key)):
     start = time.time()
     attempts = 0
-    max_attempts = 3
     code = ""
     test_result = {}
-
-    while attempts < max_attempts:
+    while attempts < 3:
         attempts += 1
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Code ko markdown mein wrap mat kar."},
-                {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nPehle try mein yeh error aaya: {test_result.get('error', '')} — fix karke dobara likh!"}
+                {"role": "system", "content": "Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Markdown mat use kar."},
+                {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nError: {test_result.get('error', '')} — fix kar!"}
             ]
         )
-        code = response.choices[0].message.content
-        code = code.replace("```python", "").replace("```", "").strip()
-
+        code = response.choices[0].message.content.replace("```python", "").replace("```", "").strip()
         test_result = run_code(code)
-
         if test_result["success"]:
             break
-
     push_to_github(filename, code)
+    return {"task": task, "filename": filename, "code": code, "test_result": test_result, "attempts": attempts, "response_time": f"{round(time.time()-start, 2)}s"}
 
-    return {
-        "task": task,
-        "filename": filename,
-        "code": code,
-        "test_result": test_result,
-        "attempts": attempts,
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
+@app.get("/webapp", response_class=HTMLResponse)
+def webapp(task: str, key: str = Depends(verify_key)):
+    start = time.time()
+    html = generate_web_app(task)
+    filename = task[:20].replace(" ", "_") + ".html"
+    push_to_github(filename, html)
+    return HTMLResponse(content=html)
