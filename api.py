@@ -214,6 +214,10 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     test3 = run_code(code + "\n" + sql_lines)
     results.append(f"SQL Injection: {test3.get('output', '') or 'No breach found'}")
 
+    env_code = code + "\nimport os\nenv_names = [\"SECRET_PASS\", \"PASSWORD\", \"PASS\", \"SECRET\", \"KEY\", \"TOKEN\", \"AUTH\"]\nfor name in env_names:\n    val = os.getenv(name, \"\")\n    try:\n        r = login(val if val else \"\")\n        if \"success\" in str(r).lower():\n            print(\"HACKED via env: \" + name + \" = \" + (val or \"empty\"))\n    except:\n        pass"
+    test_env = run_code(env_code)
+    results.append(f"Env Attack: {test_env.get('output', '') or 'No leak found'}")
+
     prompt = f"Code:\n{code}\n\nResults:\n" + "\n".join(results) + "\n\nKya hack hua? Konsa password? Top 3 fixes? Hinglish mein short. No markdown."
     response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":prompt}], max_tokens=400)
     return {"test_results": results, "ai_analysis": response.choices[0].message.content.strip(), "response_time": f"{round(time.time()-start, 2)}s"}
