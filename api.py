@@ -199,15 +199,15 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     test1 = run_code(code)
     results.append(f"Normal run: {'OK' if test1['success'] else 'FAIL - ' + test1.get('error','')[:100]}")
 
-    brute_code = code + "\nattacks = ['', 'admin', '1234', 'password', 'root', '123456']\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print(f'HACKED with: {a}')\n    except:\n        pass\n"
+    brute_code = code + "\nattacks = ['', 'admin', '1234', 'password', 'root', '123456']\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print(f'HACKED with: [{a}] <- yeh password tha!')\n    except:\n        pass\n"
     test2 = run_code(brute_code)
     results.append(f"Brute force: {test2.get('output', '') or 'No breach found'}")
 
-    sql_code = code + "\ninjections = [\"' OR 1=1--\", \"admin'--\", \"1' OR '1'='1\"]\nfor i in injections:\n    try:\n        r = login(i)\n        if 'success' in str(r).lower():\n            print(f'SQL INJECTION WORKED: {i}')\n    except:\n        pass\n"
+    sql_code = code + "\ninjections = [\"' OR 1=1--\", \"admin'--\", \"1' OR '1'='1\"]\nfor i in injections:\n    try:\n        r = login(i)\n        if 'success' in str(r).lower():\n            print(f'SQL INJECTION WORKED: [{i}] <- yeh injection tha!')\n    except:\n        pass\n"
     test3 = run_code(sql_code)
     results.append(f"SQL Injection: {test3.get('output', '') or 'No breach found'}")
 
-    prompt = f"Code:\n{code}\n\nReal attack results:\n" + "\n".join(results) + "\n\nBatao: kya actually hack hua? Real vulnerabilities? Top 3 fixes? Hinglish mein short aur direct bolo."
+    prompt = f"Code:\n{code}\n\nReal attack results:\n" + "\n".join(results) + "\n\nBatao: kya actually hack hua? Konsa password ya injection kaam aaya? Top 3 fixes? Hinglish mein short aur direct bolo. No markdown."
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
