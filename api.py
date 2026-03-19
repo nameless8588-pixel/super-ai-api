@@ -138,3 +138,43 @@ def webapp(task: str, emoji: str = "rocket", key: str = Depends(verify_key)):
         "live_url": live_url,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+@app.get("/analyze")
+def analyze_code(code: str, key: str = Depends(verify_key)):
+    start = time.time()
+    attempts = 0
+    max_attempts = 3
+    
+    while attempts < max_attempts:
+        attempts += 1
+        test_result = run_code(code)
+        
+        if test_result["success"]:
+            return {
+                "status": "success",
+                "attempts": attempts,
+                "output": test_result.get("output", ""),
+                "response_time": f"{round(time.time()-start, 2)}s"
+            }
+        
+        # Bug mila - AI se fix karwao
+        fix_prompt = f"""Yeh code fix karo. Error: {test_result.get('error', '')}
+Code:
+{code}
+Sirf fixed code likho, koi explanation nahi."""
+        
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": fix_prompt}],
+            max_tokens=2000
+        )
+        code = response.choices[0].message.content.strip()
+        if "```python" in code:
+            code = code.split("```python")[1].split("```")[0].strip()
+    
+    return {
+        "status": "failed",
+        "attempts": attempts,
+        "last_error": test_result.get("error", ""),
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
