@@ -1,35 +1,33 @@
-import chromadb
+import json
 import os
 
-# Memory database setup
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-client = chromadb.PersistentClient(path=os.path.join(base_path, 'memory_db'))
-collection = client.get_or_create_collection("ai_memory")
+memory_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'memory.json')
 
-def save_memory(user_input, ai_response):
-    """Conversation yaad rakho"""
-    import time
-    memory_id = str(int(time.time()))
-    collection.add(
-        documents=[f"User: {user_input}\nAI: {ai_response}"],
-        ids=[memory_id]
-    )
-    print(f"✅ Memory saved!")
+def save_memory(task, code, success, error=""):
+    memories = load_all()
+    memories.append({
+        "task": task,
+        "code": code,
+        "success": success,
+        "error": error
+    })
+    with open(memory_file, 'w') as f:
+        json.dump(memories, f, indent=2)
 
-def get_memory(query, n=3):
-    """Related memories dhundo"""
-    try:
-        results = collection.query(
-            query_texts=[query],
-            n_results=n
-        )
-        if results['documents'][0]:
-            return "\n".join(results['documents'][0])
-    except:
-        pass
-    return ""
+def load_all():
+    if not os.path.exists(memory_file):
+        return []
+    with open(memory_file, 'r') as f:
+        return json.load(f)
 
-def clear_memory():
-    """Sari memory delete karo"""
-    collection.delete(where={"id": {"$ne": ""}})
-    print("🗑️ Memory cleared!")
+def get_similar(task, limit=3):
+    memories = load_all()
+    relevant = []
+    for m in memories:
+        if any(word in m['task'].lower() for word in task.lower().split()):
+            relevant.append(m)
+    return relevant[-limit:]
+
+def get_mistakes():
+    memories = load_all()
+    return [m for m in memories if not m['success']][-5:]

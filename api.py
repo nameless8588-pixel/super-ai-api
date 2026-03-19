@@ -33,6 +33,12 @@ try:
     from deployer import save_and_deploy
 except:
     def save_and_deploy(f, c, e, t): return ""
+try:
+    from memory import save_memory, get_similar, get_mistakes
+except:
+    def save_memory(t, c, s, e=""): pass
+    def get_similar(t): return []
+    def get_mistakes(): return []
 
 app = FastAPI(title="Super AI API", version="5.0")
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
@@ -65,16 +71,21 @@ def ask(q: str, key: str = Depends(verify_key)):
         context = search_internet(q)
     except:
         context = ""
+    similar = get_similar(q)
+    memory_context = ""
+    if similar:
+        memory_context = "Pehle yeh similar sawaal aaye the: " + str([m['task'] for m in similar])
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
-            {"role": "user", "content": "Tu ek smart Indian dost hai. Hinglish mein jawab de."},
+            {"role": "user", "content": f"Tu ek smart Indian dost hai. Hinglish mein jawab de. {memory_context}"},
             {"role": "assistant", "content": "Haan bhai!"},
             {"role": "user", "content": f"{q} {context}"}
         ]
     )
     reply = response.choices[0].message.content
     cache[q] = reply
+    save_memory(q, reply, True)
     return {"sawal": q, "jawab": reply, "response_time": f"{round(time.time()-start, 2)}s", "plan": VALID_KEYS[key]}
 
 @app.get("/create")
@@ -83,28 +94,43 @@ def create(task: str, filename: str = "ai_generated.py", key: str = Depends(veri
     attempts = 0
     code = ""
     test_result = {}
+    similar = get_similar(task)
+    mistakes = get_mistakes()
+    memory_hint = ""
+    if similar:
+        memory_hint += f"\nPehle similar task mein yeh code kaam aaya: {similar[-1]['code'][:200]}"
+    if mistakes:
+        memory_hint += f"\nYeh galtiyan pehle hui hain, inhe avoid karo: {[m['error'] for m in mistakes[-3:]]}"
     while attempts < 3:
         attempts += 1
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Markdown mat use kar."},
+                {"role": "system", "content": f"Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Markdown mat use kar. {memory_hint}"},
                 {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nError: {test_result.get('error', '')} â€” fix kar!"}
             ]
         )
         code = response.choices[0].message.content.replace("```python", "").replace("```", "").strip()
         test_result = run_code(code)
         if test_result["success"]:
+            save_memory(task, code, True)
             break
+        else:
+            save_memory(task, code, False, test_result.get('error', ''))
     push_to_github(filename, code)
     return {"task": task, "filename": filename, "code": code, "test_result": test_result, "attempts": attempts, "response_time": f"{round(time.time()-start, 2)}s"}
 
 @app.get("/webapp")
-def webapp(task: str, emoji: str = "ï¿½ï¿½ï¿½", key: str = Depends(verify_key)):
+def webapp(task: str, emoji: str = "íº€", key: str = Depends(verify_key)):
     start = time.time()
-    html = generate_web_app(task)
+    similar = get_similar(task)
+    memory_hint = ""
+    if similar:
+        memory_hint = f"\nPehle similar app mein yeh approach kaam aayi: {similar[-1]['code'][:300]}"
+    html = generate_web_app(task + memory_hint)
     filename = task[:30].replace(" ", "_").replace("/", "") + ".html"
     live_url = save_and_deploy(filename, html, emoji, task[:30].title())
+    save_memory(task, html, True)
     return {
         "task": task,
         "live_url": live_url,
