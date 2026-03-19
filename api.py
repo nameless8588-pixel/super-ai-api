@@ -199,18 +199,21 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     test1 = run_code(code)
     results.append(f"Normal run: {'OK' if test1['success'] else 'FAIL - ' + test1.get('error','')[:100]}")
 
-    brute_code = code + "\nattacks = ['', 'admin', '1234', 'password', 'root', '123456']\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print(f'HACKED with: [{a}] <- yeh password tha!')\n    except:\n        pass\n"
-    test2 = run_code(brute_code)
-    results.append(f"Brute force: {test2.get('output', '') or 'No breach found'}")
+    wordlist_prompt = f"Yeh code dekho aur 20 possible passwords generate karo jo hack kar sake.\nCode: {code}\nSirf passwords list karo ek per line."
+    wr = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":wordlist_prompt}], max_tokens=200)
+    ai_passwords = [p.strip() for p in wr.choices[0].message.content.strip().split("\n") if p.strip()]
+    
+    common = ["", "admin", "1234", "password", "root", "123456", "test", "abc123"]
+    all_attacks = common + ai_passwords
+    
+    brute_lines = "attacks = " + repr(all_attacks) + "\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print('HACKED with: [' + str(a) + '] <- yeh password tha!')\n    except:\n        pass"
+    test2 = run_code(code + "\n" + brute_lines)
+    results.append(f"Smart Brute force: {test2.get('output', '') or 'No breach found'}")
 
-    sql_code = code + "\ninjections = [\"' OR 1=1--\", \"admin'--\", \"1' OR '1'='1\"]\nfor i in injections:\n    try:\n        r = login(i)\n        if 'success' in str(r).lower():\n            print(f'SQL INJECTION WORKED: [{i}] <- yeh injection tha!')\n    except:\n        pass\n"
-    test3 = run_code(sql_code)
+    sql_lines = "injections = [\"\' OR 1=1--\", \"admin'--\", \"1' OR '1'='1\"]\nfor i in injections:\n    try:\n        r = login(i)\n        if 'success' in str(r).lower():\n            print('SQL INJECTION: [' + i + ']')\n    except:\n        pass"
+    test3 = run_code(code + "\n" + sql_lines)
     results.append(f"SQL Injection: {test3.get('output', '') or 'No breach found'}")
 
-    prompt = f"Code:\n{code}\n\nReal attack results:\n" + "\n".join(results) + "\n\nBatao: kya actually hack hua? Konsa password ya injection kaam aaya? Top 3 fixes? Hinglish mein short aur direct bolo. No markdown."
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=400
-    )
+    prompt = f"Code:\n{code}\n\nResults:\n" + "\n".join(results) + "\n\nKya hack hua? Konsa password? Top 3 fixes? Hinglish mein short. No markdown."
+    response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":prompt}], max_tokens=400)
     return {"test_results": results, "ai_analysis": response.choices[0].message.content.strip(), "response_time": f"{round(time.time()-start, 2)}s"}
