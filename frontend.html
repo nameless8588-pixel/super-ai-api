@@ -7,246 +7,211 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0a0a; color: white; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
-        
         .hero { text-align: center; padding: 60px 20px 40px; }
         .hero h1 { font-size: 3.5em; color: #00ff88; text-shadow: 0 0 30px #00ff8855; }
         .hero p { color: #888; margin-top: 10px; font-size: 1.1em; }
-
         .container { max-width: 700px; margin: 0 auto; padding: 20px; }
-
         .card { background: #111; border: 1px solid #222; border-radius: 16px; padding: 30px; margin-bottom: 25px; }
         .card h2 { color: #00ff88; margin-bottom: 20px; font-size: 1.3em; }
-
         .input-row { display: flex; gap: 10px; }
-        input[type="text"] {
-            flex: 1; padding: 14px 18px; border-radius: 10px;
-            background: #1a1a1a; border: 1px solid #333; color: white;
-            font-size: 1em; outline: none;
-        }
-        input[type="text"]:focus { border-color: #00ff88; }
-
+        input[type="text"], textarea { flex: 1; padding: 14px 18px; border-radius: 10px; background: #1a1a1a; border: 1px solid #333; color: white; font-size: 1em; outline: none; font-family: monospace; }
+        input[type="text"]:focus, textarea:focus { border-color: #00ff88; }
+        textarea { width: 100%; min-height: 200px; resize: vertical; margin-bottom: 12px; }
         .api-key-row { margin-bottom: 15px; }
         .api-key-row label { color: #888; font-size: 0.9em; display: block; margin-bottom: 6px; }
-
-        button {
-            padding: 14px 24px; border-radius: 10px; border: none;
-            background: #00ff88; color: #000; font-weight: bold;
-            font-size: 1em; cursor: pointer; transition: all 0.2s;
-            white-space: nowrap;
-        }
+        button { padding: 14px 24px; border-radius: 10px; border: none; background: #00ff88; color: #000; font-weight: bold; font-size: 1em; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         button:hover { background: #00cc70; transform: scale(1.03); }
         button:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-
         .result-box { margin-top: 20px; padding: 20px; background: #0d0d0d; border-radius: 12px; border: 1px solid #1a1a1a; display: none; }
         .result-box.show { display: block; }
-
-        .live-link {
-            display: inline-block; margin-top: 12px;
-            padding: 12px 24px; background: #00ff88; color: #000;
-            border-radius: 10px; text-decoration: none; font-weight: bold;
-            font-size: 1.05em; transition: all 0.2s;
-        }
+        .live-link { display: inline-block; margin-top: 12px; padding: 12px 24px; background: #00ff88; color: #000; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 1.05em; transition: all 0.2s; }
         .live-link:hover { background: #00cc70; transform: scale(1.03); }
-
-        .answer-box { color: #ccc; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
-
+        .answer-box { color: #ccc; line-height: 1.7; white-space: pre-wrap; word-break: break-word; font-family: monospace; }
         .status { font-size: 0.9em; color: #888; margin-top: 8px; }
         .status.success { color: #00ff88; }
-        .status.error { color: #ff4444; }
-
         .loading { display: none; text-align: center; padding: 20px; color: #00ff88; }
         .loading.show { display: block; }
         .dot { animation: blink 1s infinite; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
-
-        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
-        .app-card { background: #1a1a1a; border-radius: 10px; padding: 14px; text-align: center; border: 1px solid #222; }
-        .app-card a { color: #00ff88; text-decoration: none; font-size: 0.95em; }
-        .app-card a:hover { color: white; }
-
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; background: #1a1a1a; color: #888; border: 1px solid #222; font-size: 0.95em; }
         .tab.active { background: #00ff88; color: #000; font-weight: bold; border-color: #00ff88; }
-
+        .test-item { background: #1a1a1a; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 0.9em; }
+        .test-item.hack { border-left: 3px solid #ff4444; color: #ff4444; }
+        .test-item.safe { border-left: 3px solid #00ff88; color: #00ff88; }
         footer { text-align: center; padding: 40px; color: #333; font-size: 0.85em; }
     </style>
 </head>
 <body>
-
 <div class="hero">
-    <h1>‚ö° Super AI</h1>
-    <p>Nameless8588 ka AI Platform ‚Äî Jo bhi bolun, banake de!</p>
+    <h1>Super AI</h1>
+    <p>Nameless8588 ka AI Platform</p>
 </div>
-
 <div class="container">
-
-    <!-- API Key -->
     <div class="card">
-        <h2>Ì¥ë API Key</h2>
+        <h2>API Key</h2>
         <div class="api-key-row">
-            <label>Apni API key daalo (ek baar daalo, yaad rakhega)</label>
+            <label>Apni API key daalo</label>
             <input type="text" id="apiKey" placeholder="SUPER-AI-FREE-001" />
         </div>
         <button onclick="saveKey()">Save Key</button>
         <span class="status" id="keyStatus"></span>
     </div>
-
-    <!-- Tabs -->
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('webapp')">Web App Banao</div>
-        <div class="tab" onclick="switchTab('ask')">Kuch Poochho</div>
-        <div class="tab" onclick="switchTab('apps')">Mere Apps</div>
+        <div class="tab active" onclick="switchTab('webapp', this)">Web App Banao</div>
+        <div class="tab" onclick="switchTab('ask', this)">Kuch Poochho</div>
+        <div class="tab" onclick="switchTab('chat', this)">Chat</div>
+        <div class="tab" onclick="switchTab('break', this)">Code Breaker</div>
     </div>
-
-    <!-- Web App Tab -->
     <div id="tab-webapp" class="card">
-        <h2>Ì∫Ä AI se Web App Banwao</h2>
+        <h2>AI se Web App Banwao</h2>
         <div class="input-row">
-            <input type="text" id="webTask" placeholder="jaise: snake game banao, calculator banao..." />
+            <input type="text" id="webTask" placeholder="snake game banao, calculator banao..." />
             <button id="webBtn" onclick="makeWebApp()">Banao!</button>
         </div>
-        <div class="loading" id="webLoading">
-            <span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span>
-            <p style="margin-top:10px">AI bana rahi hai...</p>
-        </div>
+        <div class="loading" id="webLoading"><span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span><p style="margin-top:10px">AI bana rahi hai...</p></div>
         <div class="result-box" id="webResult">
-            <p class="status success">‚úÖ App ready hai!</p>
-            <p style="margin-top:8px;color:#888">Yahan click karo aur seedha khelo:</p>
-            <a id="webLink" class="live-link" href="#" target="_blank">ÌæÆ App Kholo</a>
+            <p class="status success">App ready hai!</p>
+            <a id="webLink" class="live-link" href="#" target="_blank">App Kholo</a>
             <p class="status" id="webTime"></p>
         </div>
     </div>
-
-    <!-- Ask Tab -->
     <div id="tab-ask" class="card" style="display:none">
-        <h2>Ì¥ñ AI se Kuch Poochho</h2>
+        <h2>AI se Kuch Poochho</h2>
         <div class="input-row">
             <input type="text" id="askQ" placeholder="koi bhi sawaal..." onkeydown="if(event.key==='Enter')askAI()" />
             <button id="askBtn" onclick="askAI()">Poochho!</button>
         </div>
-        <div class="loading" id="askLoading">
-            <span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span>
-            <p style="margin-top:10px">Soch rahi hai...</p>
-        </div>
+        <div class="loading" id="askLoading"><span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span></div>
         <div class="result-box" id="askResult">
             <div class="answer-box" id="askAnswer"></div>
             <p class="status" id="askTime"></p>
         </div>
     </div>
-
-    <!-- Apps Tab -->
-    <div id="tab-apps" class="card" style="display:none">
-        <h2>Ì≥Ç Tere Banaye Apps</h2>
-        <div class="apps-grid" id="appsGrid">
-            <div class="app-card"><a href="apps/ek_flappy_bird_game_banao_ji.html" target="_blank">Ì∞¶ Flappy Bird</a></div>
+    <div id="tab-chat" class="card" style="display:none">
+        <h2>AI se Baat Karo</h2>
+        <div id="chatBox" style="min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:12px;padding:10px;background:#0d0d0d;border-radius:10px;"></div>
+        <div class="input-row">
+            <input type="text" id="chatMsg" placeholder="kuch bhi likho..." onkeydown="if(event.key==='Enter')sendChat()" />
+            <button id="chatBtn" onclick="sendChat()">Bhejo</button>
         </div>
-        <p style="color:#555;margin-top:15px;font-size:0.85em">Naye apps banane ke baad yahan dikhenge!</p>
     </div>
-
+    <div id="tab-break" class="card" style="display:none">
+        <h2>Code Breaker</h2>
+        <p style="color:#888;margin-bottom:12px;font-size:0.9em">Code paste karo ‚Äî AI real attacks chalayegi!</p>
+        <textarea id="breakCode" placeholder="yahan code paste karo..."></textarea>
+        <button id="breakBtn" onclick="doBreakCode()" style="width:100%">Break Karo!</button>
+        <div class="loading" id="breakLoading"><span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span><p style="margin-top:10px">Attack chal raha hai...</p></div>
+        <div class="result-box" id="breakResult">
+            <h3 style="color:#ff4444;margin-bottom:12px">Attack Results:</h3>
+            <div id="breakTests"></div>
+            <h3 style="color:#00ff88;margin-top:16px;margin-bottom:8px">AI Analysis:</h3>
+            <div class="answer-box" id="breakAnalysis"></div>
+            <p class="status" id="breakTime"></p>
+        </div>
+    </div>
 </div>
-
-<footer>Made with ‚ù§Ô∏è by Nameless8588 | Powered by Super AI</footer>
-
+<footer>Made with love by Nameless8588 | Powered by Super AI</footer>
 <script>
     const API_BASE = "https://super-ai-api.onrender.com";
-
-    // Load saved key
     window.onload = () => {
         const saved = localStorage.getItem('superai_key');
-        if (saved) {
-            document.getElementById('apiKey').value = saved;
-            document.getElementById('keyStatus').textContent = '‚úÖ Key saved!';
-            document.getElementById('keyStatus').className = 'status success';
-        }
+        if (saved) { document.getElementById('apiKey').value = saved; document.getElementById('keyStatus').textContent = 'Key saved!'; document.getElementById('keyStatus').className = 'status success'; }
     };
-
     function saveKey() {
         const key = document.getElementById('apiKey').value.trim();
         if (!key) return;
         localStorage.setItem('superai_key', key);
-        document.getElementById('keyStatus').textContent = '‚úÖ Key save ho gaya!';
+        document.getElementById('keyStatus').textContent = 'Key save ho gaya!';
         document.getElementById('keyStatus').className = 'status success';
     }
-
-    function getKey() {
-        return localStorage.getItem('superai_key') || document.getElementById('apiKey').value.trim();
-    }
-
-    function switchTab(tab) {
+    function getKey() { return localStorage.getItem('superai_key') || document.getElementById('apiKey').value.trim(); }
+    function switchTab(tab, el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById('tab-webapp').style.display = 'none';
-        document.getElementById('tab-ask').style.display = 'none';
-        document.getElementById('tab-apps').style.display = 'none';
-        document.getElementById('tab-' + tab).style.display = 'block';
+        el.classList.add('active');
+        ['webapp','ask','chat','break'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
     }
-
     async function makeWebApp() {
         const task = document.getElementById('webTask').value.trim();
         const key = getKey();
-        if (!task) return alert('Task likho pehle!');
-        if (!key) return alert('API key daalo pehle!');
-
+        if (!task || !key) return alert('Task aur key daalo!');
         document.getElementById('webBtn').disabled = true;
         document.getElementById('webLoading').classList.add('show');
         document.getElementById('webResult').classList.remove('show');
-
         try {
-            const res = await fetch(`${API_BASE}/webapp?task=${encodeURIComponent(task)}&emoji=ÌæÆ`, {
-                headers: { 'X-API-Key': key }
-            });
+            const res = await fetch(`${API_BASE}/webapp?task=${encodeURIComponent(task)}&emoji=rocket`, { headers: {'X-API-Key': key} });
             const data = await res.json();
-
-            if (data.live_url) {
-                document.getElementById('webLink').href = data.live_url;
-                document.getElementById('webTime').textContent = '‚è± ' + data.response_time;
-                document.getElementById('webResult').classList.add('show');
-
-                // Apps tab mein bhi add karo
-                const grid = document.getElementById('appsGrid');
-                const card = document.createElement('div');
-                card.className = 'app-card';
-                card.innerHTML = `<a href="${data.live_url}" target="_blank">Ì∫Ä ${task.slice(0,20)}</a>`;
-                grid.prepend(card);
-            } else {
-                alert('Kuch error aaya ‚Äî dobara try karo!');
-            }
-        } catch(e) {
-            alert('API se connect nahi ho paya!');
-        }
-
+            if (data.live_url) { document.getElementById('webLink').href = data.live_url; document.getElementById('webTime').textContent = data.response_time; document.getElementById('webResult').classList.add('show'); }
+            else alert('Error aaya!');
+        } catch(e) { alert('API se connect nahi ho paya!'); }
         document.getElementById('webBtn').disabled = false;
         document.getElementById('webLoading').classList.remove('show');
     }
-
     async function askAI() {
         const q = document.getElementById('askQ').value.trim();
         const key = getKey();
-        if (!q) return alert('Sawaal likho pehle!');
-        if (!key) return alert('API key daalo pehle!');
-
+        if (!q || !key) return alert('Sawaal aur key daalo!');
         document.getElementById('askBtn').disabled = true;
         document.getElementById('askLoading').classList.add('show');
         document.getElementById('askResult').classList.remove('show');
-
         try {
-            const res = await fetch(`${API_BASE}/ask?q=${encodeURIComponent(q)}`, {
-                headers: { 'X-API-Key': key }
-            });
+            const res = await fetch(`${API_BASE}/ask?q=${encodeURIComponent(q)}`, { headers: {'X-API-Key': key} });
             const data = await res.json();
             document.getElementById('askAnswer').textContent = data.jawab;
-            document.getElementById('askTime').textContent = '‚è± ' + data.response_time;
+            document.getElementById('askTime').textContent = data.response_time;
             document.getElementById('askResult').classList.add('show');
-        } catch(e) {
-            alert('API se connect nahi ho paya!');
-        }
-
+        } catch(e) { alert('API se connect nahi ho paya!'); }
         document.getElementById('askBtn').disabled = false;
         document.getElementById('askLoading').classList.remove('show');
     }
+    async function sendChat() {
+        const msg = document.getElementById('chatMsg').value.trim();
+        const key = getKey();
+        if (!msg || !key) return;
+        const box = document.getElementById('chatBox');
+        box.innerHTML += `<div style="text-align:right;margin:8px 0"><span style="background:#00ff8822;padding:8px 12px;border-radius:10px;color:#00ff88">${msg}</span></div>`;
+        document.getElementById('chatMsg').value = '';
+        document.getElementById('chatBtn').disabled = true;
+        try {
+            const res = await fetch(`${API_BASE}/chat?msg=${encodeURIComponent(msg)}&session=user1`, { headers: {'X-API-Key': key} });
+            const data = await res.json();
+            box.innerHTML += `<div style="text-align:left;margin:8px 0"><span style="background:#1a1a1a;padding:8px 12px;border-radius:10px;color:#ccc">${data.reply}</span></div>`;
+            box.scrollTop = box.scrollHeight;
+        } catch(e) { box.innerHTML += `<div style="color:#ff4444">Error!</div>`; }
+        document.getElementById('chatBtn').disabled = false;
+    }
+    async function doBreakCode() {
+        const code = document.getElementById('breakCode').value.trim();
+        const key = getKey();
+        if (!code) return alert('Code paste karo pehle!');
+        if (!key) return alert('API key daalo!');
+        document.getElementById('breakBtn').disabled = true;
+        document.getElementById('breakLoading').classList.add('show');
+        document.getElementById('breakResult').classList.remove('show');
+        try {
+            const res = await fetch(`${API_BASE}/breakcode`, {
+                method: 'POST',
+                headers: {'X-API-Key': key, 'Content-Type': 'application/json'},
+                body: JSON.stringify({code: code})
+            });
+            const data = await res.json();
+            const testsDiv = document.getElementById('breakTests');
+            testsDiv.innerHTML = '';
+            if (data.test_results) {
+                data.test_results.forEach(r => {
+                    const hacked = r.toLowerCase().includes('hacked') || r.toLowerCase().includes('worked');
+                    testsDiv.innerHTML += `<div class="test-item ${hacked?'hack':'safe'}">${hacked?'HACKED! ':'Safe: '}${r}</div>`;
+                });
+            }
+            document.getElementById('breakAnalysis').textContent = data.ai_analysis || '';
+            document.getElementById('breakTime').textContent = data.response_time || '';
+            document.getElementById('breakResult').classList.add('show');
+        } catch(e) { alert('API se connect nahi ho paya!'); }
+        document.getElementById('breakBtn').disabled = false;
+        document.getElementById('breakLoading').classList.remove('show');
+    }
 </script>
-
 </body>
 </html>
