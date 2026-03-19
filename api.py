@@ -134,35 +134,19 @@ def webapp(task: str, emoji: str = "rocket", key: str = Depends(verify_key)):
     filename = task[:30].replace(" ", "_").replace("/", "") + ".html"
     live_url = save_and_deploy(filename, html, emoji, task[:30].title())
     save_memory(task, html, True)
-    return {
-        "task": task,
-        "live_url": live_url,
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
+    return {"task": task, "live_url": live_url, "response_time": f"{round(time.time()-start, 2)}s"}
 
 @app.get("/analyze")
 def analyze_code(code: str, key: str = Depends(verify_key)):
     start = time.time()
     attempts = 0
     max_attempts = 3
-
     while attempts < max_attempts:
         attempts += 1
         test_result = run_code(code)
-
         if test_result["success"]:
-            return {
-                "status": "success",
-                "attempts": attempts,
-                "output": test_result.get("output", ""),
-                "response_time": f"{round(time.time()-start, 2)}s"
-            }
-
-        fix_prompt = f"""Yeh code fix karo. Error: {test_result.get('error', '')}
-Code:
-{code}
-Sirf fixed code likho, koi explanation nahi."""
-
+            return {"status": "success", "attempts": attempts, "output": test_result.get("output", ""), "response_time": f"{round(time.time()-start, 2)}s"}
+        fix_prompt = f"Yeh code fix karo. Error: {test_result.get('error', '')}\nCode:\n{code}\nSirf fixed code likho."
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": fix_prompt}],
@@ -171,13 +155,7 @@ Sirf fixed code likho, koi explanation nahi."""
         code = response.choices[0].message.content.strip()
         if "```python" in code:
             code = code.split("```python")[1].split("```")[0].strip()
-
-    return {
-        "status": "failed",
-        "attempts": attempts,
-        "last_error": test_result.get("error", ""),
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
+    return {"status": "failed", "attempts": attempts, "last_error": test_result.get("error", ""), "response_time": f"{round(time.time()-start, 2)}s"}
 
 @app.get("/search")
 def web_search(q: str, key: str = Depends(verify_key)):
@@ -187,15 +165,8 @@ def web_search(q: str, key: str = Depends(verify_key)):
         results = []
         with DDGS() as ddgs:
             for r in ddgs.text(q, max_results=3):
-                results.append({
-                    "title": r["title"],
-                    "summary": r["body"][:200]
-                })
-        return {
-            "query": q,
-            "results": results,
-            "response_time": f"{round(time.time()-start, 2)}s"
-        }
+                results.append({"title": r["title"], "summary": r["body"][:200]})
+        return {"query": q, "results": results, "response_time": f"{round(time.time()-start, 2)}s"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -204,94 +175,42 @@ chat_history = {}
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     start = time.time()
-
     if session not in chat_history:
         chat_history[session] = []
-
     chat_history[session].append({"role": "user", "content": msg})
     history = chat_history[session][-10:]
-
-    system = """Tu ek smart AI assistant hai jo:
-- Hinglish mein baat karta hai
-- Bahut short aur crisp jawab deta hai
-- Dost jaisi baat karta hai, boring nahi
-- Sirf zaroorat pe detail deta hai"""
-
+    system = "Tu ek smart AI assistant hai jo Hinglish mein baat karta hai. Short aur crisp jawab de. Dost jaisa baat kar."
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
-
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "system", "content": system}] + messages,
         max_tokens=300
     )
-
     reply = response.choices[0].message.content.strip()
     chat_history[session].append({"role": "assistant", "content": reply})
+    return {"reply": reply, "response_time": f"{round(time.time()-start, 2)}s"}
 
-    return {
-        "reply": reply,
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
-
-@app.get("/breakcode")
-def break_code(code: str, key: str = Depends(verify_key)):
+@app.post("/breakcode")
+def break_code(request: dict, key: str = Depends(verify_key)):
     start = time.time()
+    code = request.get("code", "")
     results = []
 
-    # Step 1 - Normal run
     test1 = run_code(code)
-    results.append(f"Normal run: {'OK' if test1['success'] else 'FAIL - ' + test1.get('error','')}")
+    results.append(f"Normal run: {'OK' if test1['success'] else 'FAIL - ' + test1.get('error','')[:100]}")
 
-    # Step 2 - Brute force attack
-    brute_code = code + """
-attacks = ["", "admin", "1234", "password", "root", "123456", "' OR '1'='1"]
-for a in attacks:
-    try:
-        r = login(a)
-        if "success" in str(r).lower():
-            print(f"HACKED with: {a}")
-    except Exception as e:
-        pass
-"""
+    brute_code = code + "\nattacks = ['', 'admin', '1234', 'password', 'root', '123456']\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print(f'HACKED with: {a}')\n    except:\n        pass\n"
     test2 = run_code(brute_code)
-    results.append(f"Brute force: {test2.get('output', 'No output') or 'No breach found'}")
+    results.append(f"Brute force: {test2.get('output', '') or 'No breach found'}")
 
-    # Step 3 - SQL injection
-    sql_code = code + """
-injections = ["' OR 1=1--", "admin'--", "' DROP TABLE users--", "1' OR '1'='1"]
-for i in injections:
-    try:
-        r = login(i)
-        if "success" in str(r).lower():
-            print(f"SQL INJECTION WORKED: {i}")
-    except:
-        pass
-"""
+    sql_code = code + "\ninjections = [\"' OR 1=1--\", \"admin'--\", \"1' OR '1'='1\"]\nfor i in injections:\n    try:\n        r = login(i)\n        if 'success' in str(r).lower():\n            print(f'SQL INJECTION WORKED: {i}')\n    except:\n        pass\n"
     test3 = run_code(sql_code)
-    results.append(f"SQL Injection: {test3.get('output', 'No output') or 'No breach found'}")
+    results.append(f"SQL Injection: {test3.get('output', '') or 'No breach found'}")
 
-    # Step 4 - AI analysis
-    prompt = f"""Yeh code hai:
-{code}
-
-Real attack results:
-{chr(10).join(results)}
-
-Batao:
-- Kya actually hack hua?
-- Real vulnerabilities kya hain?
-- Top 3 fixes?
-
-Hinglish mein, short aur direct. No markdown."""
-
+    prompt = f"Code:\n{code}\n\nReal attack results:\n" + "\n".join(results) + "\n\nBatao: kya actually hack hua? Real vulnerabilities? Top 3 fixes? Hinglish mein short aur direct bolo."
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=400
     )
-
-    return {
-        "test_results": results,
-        "ai_analysis": response.choices[0].message.content.strip(),
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
+    return {"test_results": results, "ai_analysis": response.choices[0].message.content.strip(), "response_time": f"{round(time.time()-start, 2)}s"}
