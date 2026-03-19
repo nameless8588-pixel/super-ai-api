@@ -198,3 +198,6 @@ def web_search(q: str, key: str = Depends(verify_key)):
         }
     except Exception as e:
         return {"error": str(e)}
+The AT command has been deprecated. Please use schtasks.exe instead.
+
+The request is not supported.
