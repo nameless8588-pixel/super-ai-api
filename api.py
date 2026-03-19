@@ -100,7 +100,7 @@ def create(task: str, filename: str = "ai_generated.py", key: str = Depends(veri
     return {"task": task, "filename": filename, "code": code, "test_result": test_result, "attempts": attempts, "response_time": f"{round(time.time()-start, 2)}s"}
 
 @app.get("/webapp")
-def webapp(task: str, emoji: str = "íº€", key: str = Depends(verify_key)):
+def webapp(task: str, emoji: str = "ï¿½ï¿½ï¿½", key: str = Depends(verify_key)):
     start = time.time()
     html = generate_web_app(task)
     filename = task[:30].replace(" ", "_").replace("/", "") + ".html"
