@@ -178,3 +178,23 @@ Sirf fixed code likho, koi explanation nahi."""
         "last_error": test_result.get("error", ""),
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+@app.get("/search")
+def web_search(q: str, key: str = Depends(verify_key)):
+    start = time.time()
+    try:
+        from duckduckgo_search import DDGS
+        results = []
+        with DDGS() as ddgs:
+            for r in ddgs.text(q, max_results=3):
+                results.append({
+                    "title": r["title"],
+                    "summary": r["body"][:200]
+                })
+        return {
+            "query": q,
+            "results": results,
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"error": str(e)}
