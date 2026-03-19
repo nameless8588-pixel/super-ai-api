@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware, HTTPException, Depends
 from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
 from cachetools import TTLCache
@@ -41,6 +42,7 @@ except:
     def get_mistakes(): return []
 
 app = FastAPI(title="Super AI API", version="5.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
 api_key_header = APIKeyHeader(name="X-API-Key")
 
