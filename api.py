@@ -232,32 +232,66 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
         "reply": reply,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
 @app.get("/breakcode")
 def break_code(code: str, key: str = Depends(verify_key)):
     start = time.time()
-    
-    prompt = f"""Tu ek expert ethical hacker aur code security analyst hai.
-Yeh code analyze kar aur batao:
-1. Kahan se toot sakta hai (weak points)
-2. Security holes kya hain
-3. Kaise improve karein
-4. Koi bhi hidden bugs
+    results = []
 
-Code:
+    # Step 1 - Normal run
+    test1 = run_code(code)
+    results.append(f"Normal run: {'OK' if test1['success'] else 'FAIL - ' + test1.get('error','')}")
+
+    # Step 2 - Brute force attack
+    brute_code = code + """
+attacks = ["", "admin", "1234", "password", "root", "123456", "' OR '1'='1"]
+for a in attacks:
+    try:
+        r = login(a)
+        if "success" in str(r).lower():
+            print(f"HACKED with: {a}")
+    except Exception as e:
+        pass
+"""
+    test2 = run_code(brute_code)
+    results.append(f"Brute force: {test2.get('output', 'No output') or 'No breach found'}")
+
+    # Step 3 - SQL injection
+    sql_code = code + """
+injections = ["' OR 1=1--", "admin'--", "' DROP TABLE users--", "1' OR '1'='1"]
+for i in injections:
+    try:
+        r = login(i)
+        if "success" in str(r).lower():
+            print(f"SQL INJECTION WORKED: {i}")
+    except:
+        pass
+"""
+    test3 = run_code(sql_code)
+    results.append(f"SQL Injection: {test3.get('output', 'No output') or 'No breach found'}")
+
+    # Step 4 - AI analysis
+    prompt = f"""Yeh code hai:
 {code}
 
-Hinglish mein short points mein batao."""
+Real attack results:
+{chr(10).join(results)}
+
+Batao:
+- Kya actually hack hua?
+- Real vulnerabilities kya hain?
+- Top 3 fixes?
+
+Hinglish mein, short aur direct. No markdown."""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=500
+        max_tokens=400
     )
-    
-    analysis = response.choices[0].message.content.strip()
-    
+
     return {
-        "status": "analyzed",
-        "analysis": analysis,
+        "test_results": results,
+        "ai_analysis": response.choices[0].message.content.strip(),
         "response_time": f"{round(time.time()-start, 2)}s"
     }
