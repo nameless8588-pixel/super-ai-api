@@ -1,0 +1,20 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
+from dotenv import load_dotenv
+from cachetools import TTLCache
+from groq import Groq
+import requests
+import base64
+import sys
+import os
+import time
+
+load_dotenv()
+cache = TTLCache(maxsize=100, ttl=3600)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
+GITHUB_REPO = os.getenv("GITHUB_REPO")
+base_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(base_path, 'tools'))
