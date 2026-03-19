@@ -18,6 +18,7 @@ GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
 GITHUB_REPO = os.getenv("GITHUB_REPO")
 base_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(base_path, 'tools'))
+
 try:
     from internet import search_internet
 except:
@@ -144,11 +145,11 @@ def analyze_code(code: str, key: str = Depends(verify_key)):
     start = time.time()
     attempts = 0
     max_attempts = 3
-    
+
     while attempts < max_attempts:
         attempts += 1
         test_result = run_code(code)
-        
+
         if test_result["success"]:
             return {
                 "status": "success",
@@ -156,13 +157,12 @@ def analyze_code(code: str, key: str = Depends(verify_key)):
                 "output": test_result.get("output", ""),
                 "response_time": f"{round(time.time()-start, 2)}s"
             }
-        
-        # Bug mila - AI se fix karwao
+
         fix_prompt = f"""Yeh code fix karo. Error: {test_result.get('error', '')}
 Code:
 {code}
 Sirf fixed code likho, koi explanation nahi."""
-        
+
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": fix_prompt}],
@@ -171,7 +171,7 @@ Sirf fixed code likho, koi explanation nahi."""
         code = response.choices[0].message.content.strip()
         if "```python" in code:
             code = code.split("```python")[1].split("```")[0].strip()
-    
+
     return {
         "status": "failed",
         "attempts": attempts,
@@ -198,6 +198,37 @@ def web_search(q: str, key: str = Depends(verify_key)):
         }
     except Exception as e:
         return {"error": str(e)}
-The AT command has been deprecated. Please use schtasks.exe instead.
 
-The request is not supported.
+chat_history = {}
+
+@app.get("/chat")
+def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
+    start = time.time()
+
+    if session not in chat_history:
+        chat_history[session] = []
+
+    chat_history[session].append({"role": "user", "content": msg})
+    history = chat_history[session][-10:]
+
+    system = """Tu ek smart AI assistant hai jo:
+- Hinglish mein baat karta hai
+- Bahut short aur crisp jawab deta hai
+- Dost jaisi baat karta hai, boring nahi
+- Sirf zaroorat pe detail deta hai"""
+
+    messages = [{"role": m["role"], "content": m["content"]} for m in history]
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "system", "content": system}] + messages,
+        max_tokens=300
+    )
+
+    reply = response.choices[0].message.content.strip()
+    chat_history[session].append({"role": "assistant", "content": reply})
+
+    return {
+        "reply": reply,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
