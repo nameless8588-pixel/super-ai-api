@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super AI Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; color: white; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+        
+        .hero { text-align: center; padding: 60px 20px 40px; }
+        .hero h1 { font-size: 3.5em; color: #00ff88; text-shadow: 0 0 30px #00ff8855; }
+        .hero p { color: #888; margin-top: 10px; font-size: 1.1em; }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+
+        .card { background: #111; border: 1px solid #222; border-radius: 16px; padding: 30px; margin-bottom: 25px; }
+        .card h2 { color: #00ff88; margin-bottom: 20px; font-size: 1.3em; }
+
+        .input-row { display: flex; gap: 10px; }
+        input[type="text"] {
+            flex: 1; padding: 14px 18px; border-radius: 10px;
+            background: #1a1a1a; border: 1px solid #333; color: white;
+            font-size: 1em; outline: none;
+        }
+        input[type="text"]:focus { border-color: #00ff88; }
+
+        .api-key-row { margin-bottom: 15px; }
+        .api-key-row label { color: #888; font-size: 0.9em; display: block; margin-bottom: 6px; }
+
+        button {
+            padding: 14px 24px; border-radius: 10px; border: none;
+            background: #00ff88; color: #000; font-weight: bold;
+            font-size: 1em; cursor: pointer; transition: all 0.2s;
+            white-space: nowrap;
+        }
+        button:hover { background: #00cc70; transform: scale(1.03); }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+
+        .result-box { margin-top: 20px; padding: 20px; background: #0d0d0d; border-radius: 12px; border: 1px solid #1a1a1a; display: none; }
+        .result-box.show { display: block; }
+
+        .live-link {
+            display: inline-block; margin-top: 12px;
+            padding: 12px 24px; background: #00ff88; color: #000;
+            border-radius: 10px; text-decoration: none; font-weight: bold;
+            font-size: 1.05em; transition: all 0.2s;
+        }
+        .live-link:hover { background: #00cc70; transform: scale(1.03); }
+
+        .answer-box { color: #ccc; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+
+        .status { font-size: 0.9em; color: #888; margin-top: 8px; }
+        .status.success { color: #00ff88; }
+        .status.error { color: #ff4444; }
+
+        .loading { display: none; text-align: center; padding: 20px; color: #00ff88; }
+        .loading.show { display: block; }
+        .dot { animation: blink 1s infinite; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+        .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
+        .app-card { background: #1a1a1a; border-radius: 10px; padding: 14px; text-align: center; border: 1px solid #222; }
+        .app-card a { color: #00ff88; text-decoration: none; font-size: 0.95em; }
+        .app-card a:hover { color: white; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; background: #1a1a1a; color: #888; border: 1px solid #222; font-size: 0.95em; }
+        .tab.active { background: #00ff88; color: #000; font-weight: bold; border-color: #00ff88; }
+
+        footer { text-align: center; padding: 40px; color: #333; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>‚ö° Super AI</h1>
+    <p>Nameless8588 ka AI Platform ‚Äî Jo bhi bolun, banake de!</p>
+</div>
+
+<div class="container">
+
+    <!-- API Key -->
+    <div class="card">
+        <h2>Ì¥ë API Key</h2>
+        <div class="api-key-row">
+            <label>Apni API key daalo (ek baar daalo, yaad rakhega)</label>
+            <input type="text" id="apiKey" placeholder="SUPER-AI-FREE-001" />
+        </div>
+        <button onclick="saveKey()">Save Key</button>
+        <span class="status" id="keyStatus"></span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('webapp')">ÌæÆ Web App Banao</div>
+        <div class="tab" onclick="switchTab('ask')">Ì¥ñ Kuch Poochho</div>
+        <div class="tab" onclick="switchTab('apps')">Ì≥Ç Mere Apps</div>
+    </div>
+
+    <!-- Web App Tab -->
+    <div id="tab-webapp" class="card">
+        <h2>Ì∫Ä AI se Web App Banwao</h2>
+        <div class="input-row">
+            <input type="text" id="webTask" placeholder="jaise: snake game banao, calculator banao..." />
+            <button id="webBtn" onclick="makeWebApp()">Banao!</button>
+        </div>
+        <div class="loading" id="webLoading">
+            <span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span>
+            <p style="margin-top:10px">AI bana rahi hai...</p>
+        </div>
+        <div class="result-box" id="webResult">
+            <p class="status success">‚úÖ App ready hai!</p>
+            <p style="margin-top:8px;color:#888">Yahan click karo aur seedha khelo:</p>
+            <a id="webLink" class="live-link" href="#" target="_blank">ÌæÆ App Kholo</a>
+            <p class="status" id="webTime"></p>
+        </div>
+    </div>
+
+    <!-- Ask Tab -->
+    <div id="tab-ask" class="card" style="display:none">
+        <h2>Ì¥ñ AI se Kuch Poochho</h2>
+        <div class="input-row">
+            <input type="text" id="askQ" placeholder="koi bhi sawaal..." onkeydown="if(event.key==='Enter')askAI()" />
+            <button id="askBtn" onclick="askAI()">Poochho!</button>
+        </div>
+        <div class="loading" id="askLoading">
+            <span class="dot">‚óè</span><span class="dot">‚óè</span><span class="dot">‚óè</span>
+            <p style="margin-top:10px">Soch rahi hai...</p>
+        </div>
+        <div class="result-box" id="askResult">
+            <div class="answer-box" id="askAnswer"></div>
+            <p class="status" id="askTime"></p>
+        </div>
+    </div>
+
+    <!-- Apps Tab -->
+    <div id="tab-apps" class="card" style="display:none">
+        <h2>Ì≥Ç Tere Banaye Apps</h2>
+        <div class="apps-grid" id="appsGrid">
+            <div class="app-card"><a href="apps/ek_flappy_bird_game_banao_ji.html" target="_blank">Ì∞¶ Flappy Bird</a></div>
+        </div>
+        <p style="color:#555;margin-top:15px;font-size:0.85em">Naye apps banane ke baad yahan dikhenge!</p>
+    </div>
+
+</div>
+
+<footer>Made with ‚ù§Ô∏è by Nameless8588 | Powered by Super AI</footer>
+
+<script>
+    const API_BASE = "https://super-ai-api.onrender.com";
+
+    // Load saved key
+    window.onload = () => {
+        const saved = localStorage.getItem('superai_key');
+        if (saved) {
+            document.getElementById('apiKey').value = saved;
+            document.getElementById('keyStatus').textContent = '‚úÖ Key saved!';
+            document.getElementById('keyStatus').className = 'status success';
+        }
+    };
+
+    function saveKey() {
+        const key = document.getElementById('apiKey').value.trim();
+        if (!key) return;
+        localStorage.setItem('superai_key', key);
+        document.getElementById('keyStatus').textContent = '‚úÖ Key save ho gaya!';
+        document.getElementById('keyStatus').className = 'status success';
+    }
+
+    function getKey() {
+        return localStorage.getItem('superai_key') || document.getElementById('apiKey').value.trim();
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('tab-webapp').style.display = 'none';
+        document.getElementById('tab-ask').style.display = 'none';
+        document.getElementById('tab-apps').style.display = 'none';
+        document.getElementById('tab-' + tab).style.display = 'block';
+    }
+
+    async function makeWebApp() {
+        const task = document.getElementById('webTask').value.trim();
+        const key = getKey();
+        if (!task) return alert('Task likho pehle!');
+        if (!key) return alert('API key daalo pehle!');
+
+        document.getElementById('webBtn').disabled = true;
+        document.getElementById('webLoading').classList.add('show');
+        document.getElementById('webResult').classList.remove('show');
+
+        try {
+            const res = await fetch(`${API_BASE}/webapp?task=${encodeURIComponent(task)}&emoji=ÌæÆ`, {
+                headers: { 'X-API-Key': key }
+            });
+            const data = await res.json();
+
+            if (data.live_url) {
+                document.getElementById('webLink').href = data.live_url;
+                document.getElementById('webTime').textContent = '‚è± ' + data.response_time;
+                document.getElementById('webResult').classList.add('show');
+
+                // Apps tab mein bhi add karo
+                const grid = document.getElementById('appsGrid');
+                const card = document.createElement('div');
+                card.className = 'app-card';
+                card.innerHTML = `<a href="${data.live_url}" target="_blank">Ì∫Ä ${task.slice(0,20)}</a>`;
+                grid.prepend(card);
+            } else {
+                alert('Kuch error aaya ‚Äî dobara try karo!');
+            }
+        } catch(e) {
+            alert('API se connect nahi ho paya!');
+        }
+
+        document.getElementById('webBtn').disabled = false;
+        document.getElementById('webLoading').classList.remove('show');
+    }
+
+    async function askAI() {
+        const q = document.getElementById('askQ').value.trim();
+        const key = getKey();
+        if (!q) return alert('Sawaal likho pehle!');
+        if (!key) return alert('API key daalo pehle!');
+
+        document.getElementById('askBtn').disabled = true;
+        document.getElementById('askLoading').classList.add('show');
+        document.getElementById('askResult').classList.remove('show');
+
+        try {
+            const res = await fetch(`${API_BASE}/ask?q=${encodeURIComponent(q)}`, {
+                headers: { 'X-API-Key': key }
+            });
+            const data = await res.json();
+            document.getElementById('askAnswer').textContent = data.jawab;
+            document.getElementById('askTime').textContent = '‚è± ' + data.response_time;
+            document.getElementById('askResult').classList.add('show');
+        } catch(e) {
+            alert('API se connect nahi ho paya!');
+        }
+
+        document.getElementById('askBtn').disabled = false;
+        document.getElementById('askLoading').classList.remove('show');
+    }
+</script>
+
+</body>
+</html>
