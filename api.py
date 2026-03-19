@@ -232,3 +232,32 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
         "reply": reply,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+@app.get("/breakcode")
+def break_code(code: str, key: str = Depends(verify_key)):
+    start = time.time()
+    
+    prompt = f"""Tu ek expert ethical hacker aur code security analyst hai.
+Yeh code analyze kar aur batao:
+1. Kahan se toot sakta hai (weak points)
+2. Security holes kya hain
+3. Kaise improve karein
+4. Koi bhi hidden bugs
+
+Code:
+{code}
+
+Hinglish mein short points mein batao."""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=500
+    )
+    
+    analysis = response.choices[0].message.content.strip()
+    
+    return {
+        "status": "analyzed",
+        "analysis": analysis,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
