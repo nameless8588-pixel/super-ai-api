@@ -833,3 +833,103 @@ def sensitive_files(domain: str, key: str = Depends(verify_key)):
         return {"domain": domain, "exposed_files": found, "total_exposed": len(found), "verdict": "CRITICAL!" if any(f["risk"] == "CRITICAL! File exposed hai!" for f in found) else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/fullaudit")
+def full_audit(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not domain.startswith("http"):
+        url = "https://" + domain
+    else:
+        url = domain
+        domain = domain.replace("https://","").replace("http://","").split("/")[0]
+    
+    report = {"domain": domain, "url": url, "sections": {}}
+    
+    # SSL
+    try:
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+            s.settimeout(10)
+            s.connect((domain, 443))
+            cert = s.getpeercert()
+        import datetime
+        expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
+        days_left = (expire - datetime.datetime.utcnow()).days
+        report["sections"]["ssl"] = {"valid": True, "days_left": days_left, "status": "SAFE" if days_left > 30 else "WARNING!"}
+    except Exception as e:
+        report["sections"]["ssl"] = {"valid": False, "error": str(e)}
+
+    # Headers
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        security_headers = ["X-Frame-Options","X-XSS-Protection","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"]
+        missing = [h for h in security_headers if h not in headers]
+        score = round((1 - len(missing)/len(security_headers))*100)
+        report["sections"]["headers"] = {"score": str(score)+"%", "missing": missing}
+    except Exception as e:
+        report["sections"]["headers"] = {"error": str(e)}
+
+    # Ports
+    try:
+        ip = socket.gethostbyname(domain)
+        open_ports = []
+        risky = [21,23,445,3389,6379]
+        for port, service in [(80,"HTTP"),(443,"HTTPS"),(22,"SSH"),(21,"FTP"),(3306,"MySQL"),(3389,"RDP")]:
+            sock = socket.socket()
+            sock.settimeout(1)
+            if sock.connect_ex((ip, port)) == 0:
+                open_ports.append({"port": port, "service": service, "risk": "RISKY!" if port in risky else "Normal"})
+            sock.close()
+        report["sections"]["ports"] = {"open": open_ports, "risky_count": len([p for p in open_ports if p["risk"]=="RISKY!"])}
+    except Exception as e:
+        report["sections"]["ports"] = {"error": str(e)}
+
+    # Clickjacking
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        h = dict(res.headers)
+        xfo = h.get("X-Frame-Options","")
+        csp = h.get("Content-Security-Policy","")
+        if xfo.upper() in ["DENY","SAMEORIGIN"] or "frame-ancestors" in csp.lower():
+            report["sections"]["clickjacking"] = {"verdict": "Safe"}
+        else:
+            report["sections"]["clickjacking"] = {"verdict": "VULNERABLE!"}
+    except Exception as e:
+        report["sections"]["clickjacking"] = {"error": str(e)}
+
+    # Sensitive Files
+    try:
+        found = []
+        for f in [".env",".git/config","wp-config.php","backup.sql",".htpasswd"]:
+            try:
+                req = urllib.request.Request(f"https://{domain}/{f}", headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=3)
+                found.append({"file": f, "status": "EXPOSED!"})
+            except Exception as ex:
+                if "403" in str(ex):
+                    found.append({"file": f, "status": "Exists but blocked"})
+        report["sections"]["sensitive_files"] = {"found": found, "exposed_count": len([x for x in found if x["status"]=="EXPOSED!"])}
+    except Exception as e:
+        report["sections"]["sensitive_files"] = {"error": str(e)}
+
+    # AI Summary
+    summary_prompt = f"""Yeh security audit result hai domain {domain} ka:
+{str(report["sections"])}
+
+Short security summary do Hinglish mein:
+- Overall kitna secure hai (score/10)
+- Top 3 problems
+- Top 3 fixes
+No markdown."""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": summary_prompt}],
+        max_tokens=300
+    )
+    report["ai_summary"] = response.choices[0].message.content.strip()
+    report["total_time"] = f"{round(time.time()-start, 2)}s"
+    return report
