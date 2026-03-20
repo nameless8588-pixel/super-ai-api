@@ -933,3 +933,48 @@ No markdown."""
     report["ai_summary"] = response.choices[0].message.content.strip()
     report["total_time"] = f"{round(time.time()-start, 2)}s"
     return report
+
+@app.get("/netanalyze")
+def network_analyze(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://","").replace("http://","").split("/")[0]
+    result = {}
+    try:
+        ip = socket.gethostbyname(domain)
+        result["ip"] = ip
+        all_ips = list(set([r[4][0] for r in socket.getaddrinfo(domain, None)]))
+        result["all_ips"] = all_ips
+        result["ip_version"] = "IPv6 supported" if any(":" in i for i in all_ips) else "IPv4 only"
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+            result["reverse_dns"] = hostname
+        except:
+            result["reverse_dns"] = "Not found"
+        latency_times = []
+        for _ in range(3):
+            t1 = time.time()
+            try:
+                s = socket.socket()
+                s.settimeout(3)
+                s.connect((ip, 443))
+                s.close()
+                latency_times.append(round((time.time()-t1)*1000, 2))
+            except:
+                latency_times.append(None)
+        valid = [l for l in latency_times if l]
+        result["latency_ms"] = latency_times
+        result["avg_latency"] = f"{round(sum(valid)/len(valid), 2)}ms" if valid else "Could not measure"
+        result["network_quality"] = "Excellent" if valid and sum(valid)/len(valid) < 50 else "Good" if valid and sum(valid)/len(valid) < 150 else "Slow"
+        open_ports = []
+        for port, service in [(80,"HTTP"),(443,"HTTPS"),(22,"SSH"),(21,"FTP"),(25,"SMTP"),(53,"DNS")]:
+            s = socket.socket()
+            s.settimeout(1)
+            if s.connect_ex((ip, port)) == 0:
+                open_ports.append(f"{port}/{service}")
+            s.close()
+        result["open_ports"] = open_ports
+        result["total_open"] = len(open_ports)
+    except Exception as e:
+        result["error"] = str(e)
+    result["response_time"] = f"{round(time.time()-start, 2)}s"
+    return {"domain": domain, "network_analysis": result}
