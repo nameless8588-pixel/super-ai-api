@@ -231,3 +231,208 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     prompt = f"Code:\n{code}\n\nResults:\n" + "\n".join(results) + "\n\nKya hack hua? Konsa password? Top 3 fixes? Hinglish mein short. No markdown."
     response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":prompt}], max_tokens=400)
     return {"test_results": results, "ai_analysis": response.choices[0].message.content.strip(), "response_time": f"{round(time.time()-start, 2)}s"}
+import socket
+import ssl
+import json
+import urllib.request
+
+@app.get("/webscan")
+def web_scan(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    results = {}
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        results["status"] = res.status
+        results["server"] = headers.get("Server", "Hidden")
+        results["powered_by"] = headers.get("X-Powered-By", "Hidden")
+        security_headers = ["X-Frame-Options","X-XSS-Protection","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"]
+        missing = [h for h in security_headers if h not in headers]
+        results["missing_security_headers"] = missing
+        results["security_score"] = str(round((1 - len(missing)/len(security_headers))*100)) + "%"
+        results["cookies"] = str(headers.get("Set-Cookie", "None"))
+    except Exception as e:
+        results["error"] = str(e)
+    return {"url": url, "results": results, "response_time": f"{round(time.time()-start, 2)}s"}
+
+@app.get("/headers")
+def header_check(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        security_headers = {
+            "X-Frame-Options": "Clickjacking se bachata hai",
+            "X-XSS-Protection": "XSS attacks rokta hai",
+            "Content-Security-Policy": "Injection attacks rokta hai",
+            "Strict-Transport-Security": "HTTPS force karta hai",
+            "X-Content-Type-Options": "MIME sniffing rokta hai",
+            "Referrer-Policy": "Referrer info control karta hai",
+            "Permissions-Policy": "Browser features control karta hai"
+        }
+        present = {}
+        missing = {}
+        for h, desc in security_headers.items():
+            if h in headers:
+                present[h] = headers[h]
+            else:
+                missing[h] = desc
+        return {"url": url, "present": present, "missing": missing, "score": str(round(len(present)/len(security_headers)*100)) + "%", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/sslcheck")
+def ssl_check(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+            s.settimeout(10)
+            s.connect((domain, 443))
+            cert = s.getpeercert()
+        import datetime
+        expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
+        days_left = (expire - datetime.datetime.utcnow()).days
+        return {
+            "domain": domain,
+            "valid": True,
+            "expires": cert["notAfter"],
+            "days_left": days_left,
+            "issued_to": cert.get("subject", [[["", ""]]])[0][0][1],
+            "issued_by": cert.get("issuer", [[["", ""]]])[1][0][1],
+            "status": "SAFE" if days_left > 30 else "WARNING - Jaldi expire hoga!",
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"domain": domain, "valid": False, "error": str(e)}
+
+@app.get("/whois")
+def whois_lookup(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ip = socket.gethostbyname(domain)
+        result = {"domain": domain, "ip": ip}
+        try:
+            hostname = socket.gethostbyaddr(ip)
+            result["hostname"] = hostname[0]
+        except:
+            result["hostname"] = "Not found"
+        return {"result": result, "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/dns")
+def dns_check(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ip = socket.gethostbyname(domain)
+        all_ips = list(set([r[4][0] for r in socket.getaddrinfo(domain, None)]))
+        return {
+            "domain": domain,
+            "main_ip": ip,
+            "all_ips": all_ips,
+            "ip_count": len(all_ips),
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+import socket
+import ssl
+import urllib.request
+import datetime
+
+@app.get("/webscan")
+def web_scan(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    results = {}
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        results["status"] = res.status
+        results["server"] = headers.get("Server", "Hidden")
+        results["powered_by"] = headers.get("X-Powered-By", "Hidden")
+        security_headers = ["X-Frame-Options","X-XSS-Protection","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"]
+        missing = [h for h in security_headers if h not in headers]
+        results["missing_headers"] = missing
+        results["security_score"] = str(round((1 - len(missing)/len(security_headers))*100)) + "%"
+    except Exception as e:
+        results["error"] = str(e)
+    return {"url": url, "results": results, "response_time": f"{round(time.time()-start, 2)}s"}
+
+@app.get("/headers")
+def header_check(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        security_headers = {
+            "X-Frame-Options": "Clickjacking se bachata hai",
+            "X-XSS-Protection": "XSS attacks rokta hai",
+            "Content-Security-Policy": "Injection attacks rokta hai",
+            "Strict-Transport-Security": "HTTPS force karta hai",
+            "X-Content-Type-Options": "MIME sniffing rokta hai",
+            "Referrer-Policy": "Referrer info control karta hai",
+            "Permissions-Policy": "Browser features control karta hai"
+        }
+        present = {h: headers[h] for h in security_headers if h in headers}
+        missing = {h: desc for h, desc in security_headers.items() if h not in headers}
+        return {"url": url, "present": present, "missing": missing, "score": str(round(len(present)/len(security_headers)*100)) + "%", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/sslcheck")
+def ssl_check(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+            s.settimeout(10)
+            s.connect((domain, 443))
+            cert = s.getpeercert()
+        expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
+        days_left = (expire - datetime.datetime.utcnow()).days
+        return {"domain": domain, "valid": True, "expires": cert["notAfter"], "days_left": days_left, "status": "SAFE" if days_left > 30 else "WARNING!", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"domain": domain, "valid": False, "error": str(e)}
+
+@app.get("/whois")
+def whois_lookup(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ip = socket.gethostbyname(domain)
+        try:
+            hostname = socket.gethostbyaddr(ip)[0]
+        except:
+            hostname = "Not found"
+        return {"domain": domain, "ip": ip, "hostname": hostname, "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/dns")
+def dns_check(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        ip = socket.gethostbyname(domain)
+        all_ips = list(set([r[4][0] for r in socket.getaddrinfo(domain, None)]))
+        return {"domain": domain, "main_ip": ip, "all_ips": all_ips, "ip_count": len(all_ips), "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
