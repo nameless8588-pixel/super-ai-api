@@ -437,29 +437,21 @@ def port_scan(domain: str, key: str = Depends(verify_key)):
         return {"error": str(e)}
 
 @app.get("/subdomains")
-def subdomain_scan(domain: str, key: str = Depends(verify_key)):
+def subdomains(domain: str, key: str = Depends(verify_key)):
+    import socket
     start = time.time()
-    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
-    common_subs = [
-        "www", "mail", "ftp", "admin", "api", "dev", "test", "staging",
-        "blog", "shop", "store", "app", "mobile", "portal", "dashboard",
-        "cpanel", "webmail", "smtp", "pop", "imap", "ns1", "ns2"
-    ]
+    domain = domain.replace("https://","").replace("http://","").split("/")[0]
+    common_subs = ["www","mail","ftp","admin","api","dev","test","staging","blog","shop","store","app","portal","vpn","smtp","pop","imap","remote","beta","demo","static","cdn","m","mobile","secure","login","dashboard","cpanel","whm","webmail","ns1","ns2","mx"]
     found = []
-    not_found = []
     for sub in common_subs:
         try:
             full = f"{sub}.{domain}"
             ip = socket.gethostbyname(full)
-            found.append({"subdomain": full, "ip": ip})
+            found.append({"subdomain": full, "ip": ip, "status": "ACTIVE"})
         except:
-            not_found.append(f"{sub}.{domain}")
-    return {
-        "domain": domain,
-        "found": found,
-        "total_found": len(found),
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
+            pass
+    return {"domain": domain, "total_checked": len(common_subs), "found_count": len(found), "subdomains": found, "response_time": f"{round(time.time()-start, 2)}s"}
+
 
 @app.get("/techdetect")
 def tech_detect(url: str, key: str = Depends(verify_key)):
@@ -537,60 +529,58 @@ def robots_scan(domain: str, key: str = Depends(verify_key)):
 
 @app.get("/xsstest")
 def xss_test(url: str, key: str = Depends(verify_key)):
+    import urllib.request, urllib.parse
     start = time.time()
     if not url.startswith("http"):
         url = "https://" + url
-    payloads = ["<script>alert(1)</script>", "<img src=x onerror=alert(1)>", "javascript:alert(1)", "'><script>alert(1)</script>"]
+    payloads = ["<script>alert(1)</script>", "'><img src=x onerror=alert(1)>", "javascript:alert(1)", "<svg onload=alert(1)>", "'"><script>alert(1)</script>"]
     results = []
-    try:
-        for payload in payloads:
-            test_url = f"{url}?q={payload}&search={payload}&id={payload}"
-            try:
-                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
-                res = urllib.request.urlopen(req, timeout=5)
-                body = res.read(3000).decode("utf-8", errors="ignore")
-                if payload in body:
-                    results.append({"payload": payload, "status": "VULNERABLE!", "type": "Reflected XSS"})
-                else:
-                    results.append({"payload": payload, "status": "Safe"})
-            except:
-                results.append({"payload": payload, "status": "Could not test"})
-        vulnerable = [r for r in results if r["status"] == "VULNERABLE!"]
-        return {"url": url, "results": results, "vulnerable_count": len(vulnerable), "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
-    except Exception as e:
-        return {"error": str(e)}
+    for payload in payloads:
+        try:
+            test_url = f"{url}?q={urllib.parse.quote(payload)}&search={urllib.parse.quote(payload)}&id={urllib.parse.quote(payload)}"
+            req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=5)
+            body = res.read(5000).decode("utf-8", errors="ignore")
+            if payload in body or payload.lower() in body.lower():
+                results.append({"payload": payload[:50], "status": "VULNERABLE! Reflected!", "severity": "HIGH"})
+            else:
+                results.append({"payload": payload[:50], "status": "Safe - filtered"})
+        except Exception as e:
+            results.append({"payload": payload[:50], "status": f"Error: {str(e)[:50]}"})
+    vulnerable = [r for r in results if "VULNERABLE" in r["status"]]
+    return {"url": url, "total_tests": len(payloads), "vulnerable_count": len(vulnerable), "results": results, "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+
 
 @app.get("/sqlinject")
-def sql_inject_test(url: str, key: str = Depends(verify_key)):
+def sql_inject(url: str, key: str = Depends(verify_key)):
+    import urllib.request, urllib.parse
     start = time.time()
     if not url.startswith("http"):
         url = "https://" + url
-    payloads = ["'", "''", "' OR '1'='1", "' OR '1'='1'--", "admin'--", "1' OR '1'='1"]
+    payloads = ["'", "' OR 1=1--", "1' OR '1'='1", "' OR 'x'='x", "'; DROP TABLE users--", "1 UNION SELECT 1,2,3--"]
+    sql_errors = ["sql syntax", "mysql_fetch", "ora-", "sqlite", "syntax error", "unclosed quotation", "mysql error", "division by zero", "odbc", "jdbc"]
     results = []
-    error_signs = ["sql", "mysql", "sqlite", "postgresql", "syntax error", "warning", "fatal error"]
-    try:
-        for payload in payloads:
-            test_url = f"{url}?id={payload}&user={payload}&q={payload}"
-            try:
-                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
-                res = urllib.request.urlopen(req, timeout=5)
-                body = res.read(3000).decode("utf-8", errors="ignore").lower()
-                found_errors = [e for e in error_signs if e in body]
-                if found_errors:
-                    results.append({"payload": payload, "status": "VULNERABLE!", "errors_found": found_errors})
-                else:
-                    results.append({"payload": payload, "status": "Safe"})
-            except Exception as ex:
-                err = str(ex).lower()
-                found_errors = [e for e in error_signs if e in err]
-                if found_errors:
-                    results.append({"payload": payload, "status": "VULNERABLE!", "errors_found": found_errors})
-                else:
-                    results.append({"payload": payload, "status": "Could not test"})
-        vulnerable = [r for r in results if r["status"] == "VULNERABLE!"]
-        return {"url": url, "results": results, "vulnerable_count": len(vulnerable), "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
-    except Exception as e:
-        return {"error": str(e)}
+    for payload in payloads:
+        try:
+            test_url = f"{url}?id={urllib.parse.quote(payload)}&user={urllib.parse.quote(payload)}&q={urllib.parse.quote(payload)}"
+            req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=5)
+            body = res.read(5000).decode("utf-8", errors="ignore").lower()
+            found = [e for e in sql_errors if e in body]
+            if found:
+                results.append({"payload": payload, "status": "VULNERABLE!", "error_found": found[0], "severity": "CRITICAL"})
+            else:
+                results.append({"payload": payload, "status": "Safe"})
+        except Exception as e:
+            err = str(e).lower()
+            found = [er for er in sql_errors if er in err]
+            if found:
+                results.append({"payload": payload, "status": "VULNERABLE! Error in response!", "error_found": found[0]})
+            else:
+                results.append({"payload": payload, "status": f"Could not test: {str(e)[:50]}"})
+    vulnerable = [r for r in results if "VULNERABLE" in r["status"]]
+    return {"url": url, "total_tests": len(payloads), "vulnerable_count": len(vulnerable), "results": results, "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+
 
 @app.get("/dirscan")
 def directory_scan(domain: str, key: str = Depends(verify_key)):
@@ -864,23 +854,27 @@ def clickjacking_test(url: str, key: str = Depends(verify_key)):
 
 @app.get("/sensitivefiles")
 def sensitive_files(domain: str, key: str = Depends(verify_key)):
+    import urllib.request
     start = time.time()
-    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
-    files = [".env", ".git/config", ".git/HEAD", "config.php", "wp-config.php", "database.yml", "settings.py", "config.js", "credentials.json", "backup.sql", "dump.sql", "db.sql", ".htpasswd", "composer.json", "package.json", "Dockerfile", "docker-compose.yml", ".ssh/id_rsa"]
-    found = []
-    try:
-        for f in files:
-            test_url = f"https://{domain}/{f}"
-            try:
-                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
-                res = urllib.request.urlopen(req, timeout=3)
-                found.append({"file": f, "status": res.status, "risk": "CRITICAL! File exposed hai!"})
-            except Exception as ex:
-                if "403" in str(ex):
-                    found.append({"file": f, "status": 403, "risk": "Exists but blocked"})
-        return {"domain": domain, "exposed_files": found, "total_exposed": len(found), "verdict": "CRITICAL!" if any(f["risk"] == "CRITICAL! File exposed hai!" for f in found) else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
-    except Exception as e:
-        return {"error": str(e)}
+    domain = domain.replace("https://","").replace("http://","").split("/")[0]
+    files = [".env", ".git/config", "wp-config.php", "backup.sql", ".htpasswd", "config.php", "database.yml", "credentials.json", "settings.py", "composer.json", ".DS_Store", "web.config", "phpinfo.php", "info.php", "test.php", "admin.php"]
+    results = []
+    for f in files:
+        try:
+            req = urllib.request.Request(f"https://{domain}/{f}", headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            preview = res.read(300).decode("utf-8", errors="ignore")
+            results.append({"file": f, "status": "EXPOSED!", "size": len(preview), "preview": preview[:100], "severity": "CRITICAL"})
+        except Exception as ex:
+            code = str(ex)
+            if "403" in code:
+                results.append({"file": f, "status": "Blocked (exists but forbidden)"})
+            elif "404" in code or "Not Found" in code:
+                pass
+            else:
+                results.append({"file": f, "status": f"Error: {code[:40]}"})
+    exposed = [r for r in results if r["status"] == "EXPOSED!"]
+    return {"domain": domain, "total_checked": len(files), "exposed_count": len(exposed), "results": results, "verdict": "CRITICAL!" if exposed else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
 
 
 @app.get("/fullaudit")
