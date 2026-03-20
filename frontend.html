@@ -64,6 +64,7 @@
         <div class="tab" onclick="switchTab('ask', this)">Kuch Poochho</div>
         <div class="tab" onclick="switchTab('chat', this)">Chat</div>
         <div class="tab" onclick="switchTab('break', this)">Code Breaker</div>
+        <div class="tab" onclick="switchTab('hack', this)">Hack</div>
     </div>
     <div id="tab-webapp" class="card">
         <h2>AI se Web App Banwao</h2>
@@ -131,7 +132,7 @@
     function switchTab(tab, el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
-        ['webapp','ask','chat','break'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
+        ['webapp','ask','chat','break','hack'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
     }
     async function makeWebApp() {
         const task = document.getElementById('webTask').value.trim();
@@ -211,6 +212,37 @@
         } catch(e) { alert('API se connect nahi ho paya!'); }
         document.getElementById('breakBtn').disabled = false;
         document.getElementById('breakLoading').classList.remove('show');
+    }
+
+    async function sendHack() {
+        const msg = document.getElementById('hackMsg').value.trim();
+        const key = getKey();
+        if (!msg || !key) return alert('Message aur API key daalo!');
+        const box = document.getElementById('hackBox');
+        box.innerHTML += '<div style="text-align:right;margin:8px 0"><span style="background:#ff444422;padding:8px 12px;border-radius:10px;color:#ff8888">' + msg + '</span></div>';
+        document.getElementById('hackMsg').value = '';
+        document.getElementById('hackBtn').disabled = true;
+        try {
+            const chatRes = await fetch(API_BASE + '/chat?msg=' + encodeURIComponent(msg) + '&session=hack_' + Date.now(), {headers: {'X-API-Key': key}});
+            const chatData = await chatRes.json();
+            const reply = chatData.reply || '';
+            const toolMatch = reply.match(/TOOL_CALL: ([a-z]+)|([^\s\n]+)/);
+            if (toolMatch) {
+                const tool = toolMatch[1];
+                const param = toolMatch[2];
+                box.innerHTML += '<div style="color:#ffaa00;margin:8px 0">Running: ' + tool + '(' + param + ')</div>';
+                const domainTools = ['sslcheck','whois','dns','portscan','subdomains','techdetect','robots','iprep','corscheck','cookiecheck','clickjack','sensitivefiles','fullaudit','netanalyze'];
+                let paramKey = domainTools.includes(tool) ? 'domain' : tool === 'passcheck' ? 'password' : tool === 'hashcrack' ? 'hash' : 'url';
+                const toolRes = await fetch(API_BASE + '/' + tool + '?' + paramKey + '=' + encodeURIComponent(param), {headers: {'X-API-Key': key}});
+                const toolData = await toolRes.json();
+                const result = JSON.stringify(toolData, null, 2).substring(0, 1000);
+                box.innerHTML += '<div style="background:#1a1a1a;padding:10px;border-radius:8px;margin:8px 0;color:#00ff88;white-space:pre-wrap;font-size:0.85em">' + result + '</div>';
+            } else {
+                box.innerHTML += '<div style="text-align:left;margin:8px 0"><span style="background:#1a1a1a;padding:8px 12px;border-radius:10px;color:#ccc">' + reply + '</span></div>';
+            }
+            box.scrollTop = box.scrollHeight;
+        } catch(e) { box.innerHTML += '<div style="color:#ff4444">Error!</div>'; }
+        document.getElementById('hackBtn').disabled = false;
     }
 </script>
 </body>

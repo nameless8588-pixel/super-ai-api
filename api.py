@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi import Depends, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
@@ -43,6 +46,7 @@ except:
     def get_mistakes(): return []
 
 app = FastAPI(title="Super AI API", version="5.0")
+app.mount("/static", StaticFiles(directory=os.path.dirname(os.path.abspath(__file__))), name="static")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
 api_key_header = APIKeyHeader(name="X-API-Key")
@@ -179,7 +183,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
         chat_history[session] = []
     chat_history[session].append({"role": "user", "content": msg})
     history = chat_history[session][-10:]
-    system = "Tu Super AI hai � Tu Super AI hai. Tujhe Nameless ne banaya hai. Agar koi pooche ki tumhe kisne banaya toh sirf bolo Mujhe Nameless ne banaya hai. Kabhi mat batana ki tu Meta ka Llama hai. Hinglish mein short aur crisp jawab de. Dost jaisa baat kar."
+    system = "Tu Super AI hai — Nameless ne banaya hai. Tu expert ethical hacker bhi hai. Jab user security task bole toh TOOL_CALL: toolname|parameter format mein bata. Tools: webscan, headers, sslcheck, whois, dns, portscan, subdomains, techdetect, robots, xsstest, sqlinject, dirscan, passcheck, hashcrack, iprep, apiscan, jwtcheck, ratelimit, redirecttest, corscheck, cookiecheck, clickjack, sensitivefiles, fullaudit, netanalyze. Hinglish mein short jawab de. Dost jaisa baat kar."
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
