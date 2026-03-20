@@ -351,3 +351,138 @@ import ssl
 import urllib.request
 import datetime
 
+
+@app.get("/portscan")
+def port_scan(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    common_ports = {
+        21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP",
+        53: "DNS", 80: "HTTP", 110: "POP3", 143: "IMAP",
+        443: "HTTPS", 445: "SMB", 3306: "MySQL", 3389: "RDP",
+        5432: "PostgreSQL", 6379: "Redis", 8080: "HTTP-Alt", 8443: "HTTPS-Alt"
+    }
+    open_ports = []
+    closed_ports = []
+    risky_ports = [21, 23, 445, 3389, 6379]
+    try:
+        ip = socket.gethostbyname(domain)
+        for port, service in common_ports.items():
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((ip, port))
+            if result == 0:
+                risk = "RISKY!" if port in risky_ports else "Normal"
+                open_ports.append({"port": port, "service": service, "risk": risk})
+            else:
+                closed_ports.append(port)
+            sock.close()
+        return {
+            "domain": domain,
+            "ip": ip,
+            "open_ports": open_ports,
+            "total_open": len(open_ports),
+            "risky_open": len([p for p in open_ports if p["risk"] == "RISKY!"]),
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/subdomains")
+def subdomain_scan(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    common_subs = [
+        "www", "mail", "ftp", "admin", "api", "dev", "test", "staging",
+        "blog", "shop", "store", "app", "mobile", "portal", "dashboard",
+        "cpanel", "webmail", "smtp", "pop", "imap", "ns1", "ns2"
+    ]
+    found = []
+    not_found = []
+    for sub in common_subs:
+        try:
+            full = f"{sub}.{domain}"
+            ip = socket.gethostbyname(full)
+            found.append({"subdomain": full, "ip": ip})
+        except:
+            not_found.append(f"{sub}.{domain}")
+    return {
+        "domain": domain,
+        "found": found,
+        "total_found": len(found),
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
+
+@app.get("/techdetect")
+def tech_detect(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        body = res.read(5000).decode("utf-8", errors="ignore")
+        tech = []
+        if "wp-content" in body or "wordpress" in body.lower():
+            tech.append("WordPress")
+        if "react" in body.lower() or "__REACT" in body:
+            tech.append("React.js")
+        if "ng-version" in body or "angular" in body.lower():
+            tech.append("Angular")
+        if "vue" in body.lower():
+            tech.append("Vue.js")
+        if "jquery" in body.lower():
+            tech.append("jQuery")
+        if "bootstrap" in body.lower():
+            tech.append("Bootstrap")
+        if "shopify" in body.lower():
+            tech.append("Shopify")
+        if "django" in body.lower():
+            tech.append("Django")
+        if "laravel" in body.lower():
+            tech.append("Laravel")
+        if "nginx" in headers.get("Server", "").lower():
+            tech.append("Nginx")
+        if "apache" in headers.get("Server", "").lower():
+            tech.append("Apache")
+        if "cloudflare" in headers.get("Server", "").lower() or "cloudflare" in str(headers).lower():
+            tech.append("Cloudflare")
+        if "php" in headers.get("X-Powered-By", "").lower():
+            tech.append("PHP")
+        if "node" in headers.get("X-Powered-By", "").lower():
+            tech.append("Node.js")
+        return {
+            "url": url,
+            "technologies": tech,
+            "total": len(tech),
+            "server": headers.get("Server", "Hidden"),
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/robots")
+def robots_scan(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    try:
+        url = f"https://{domain}/robots.txt"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        content = res.read().decode("utf-8", errors="ignore")
+        lines = content.split("\n")
+        disallowed = [l.replace("Disallow:", "").strip() for l in lines if l.startswith("Disallow:")]
+        allowed = [l.replace("Allow:", "").strip() for l in lines if l.startswith("Allow:")]
+        interesting = [p for p in disallowed if any(k in p.lower() for k in ["admin", "login", "api", "private", "secret", "backup", "config", "db", "database"])]
+        return {
+            "domain": domain,
+            "robots_found": True,
+            "disallowed_paths": disallowed,
+            "allowed_paths": allowed,
+            "interesting_paths": interesting,
+            "total_disallowed": len(disallowed),
+            "response_time": f"{round(time.time()-start, 2)}s"
+        }
+    except Exception as e:
+        return {"domain": domain, "robots_found": False, "error": str(e)}
