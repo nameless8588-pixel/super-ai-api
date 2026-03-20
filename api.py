@@ -260,26 +260,51 @@ import json
 import urllib.request
 
 @app.get("/webscan")
-def web_scan(url: str, key: str = Depends(verify_key)):
+def webscan_real(url: str, key: str = Depends(verify_key)):
+    import urllib.request, ssl, socket, json
     start = time.time()
-    results = {}
     if not url.startswith("http"):
         url = "https://" + url
+    domain = url.replace("https://","").replace("http://","").split("/")[0]
+    result = {"url": url, "domain": domain, "checks": {}}
+    
+    # Real HTTP request
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         res = urllib.request.urlopen(req, timeout=10)
         headers = dict(res.headers)
-        results["status"] = res.status
-        results["server"] = headers.get("Server", "Hidden")
-        results["powered_by"] = headers.get("X-Powered-By", "Hidden")
+        result["status"] = res.getcode()
+        
+        # Security headers check
         security_headers = ["X-Frame-Options","X-XSS-Protection","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"]
         missing = [h for h in security_headers if h not in headers]
-        results["missing_security_headers"] = missing
-        results["security_score"] = str(round((1 - len(missing)/len(security_headers))*100)) + "%"
-        results["cookies"] = str(headers.get("Set-Cookie", "None"))
+        present = [h for h in security_headers if h in headers]
+        result["checks"]["security_headers"] = {"present": present, "missing": missing, "score": f"{len(present)}/{len(security_headers)}"}
+        
+        # Page content check
+        body = res.read(5000).decode('utf-8', errors='ignore')
+        sensitive_patterns = ["password", "api_key", "secret", "token", "private_key"]
+        found_sensitive = [p for p in sensitive_patterns if p.lower() in body.lower()]
+        result["checks"]["sensitive_data"] = found_sensitive if found_sensitive else "None found"
+        
     except Exception as e:
-        results["error"] = str(e)
-    return {"url": url, "results": results, "response_time": f"{round(time.time()-start, 2)}s"}
+        result["error"] = str(e)
+    
+    # Real sensitive files check
+    sensitive_files = [".env", ".git/config", "wp-config.php", "backup.sql", ".htpasswd"]
+    exposed = []
+    for f in sensitive_files:
+        try:
+            req = urllib.request.Request(f"https://{domain}/{f}", headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            if res.getcode() == 200:
+                exposed.append({"file": f, "status": "EXPOSED!"})
+        except Exception as ex:
+            if "403" in str(ex):
+                exposed.append({"file": f, "status": "Exists but blocked"})
+    result["checks"]["sensitive_files"] = exposed if exposed else "None exposed"
+    result["response_time"] = f"{round(time.time()-start, 2)}s"
+    return result
 
 @app.get("/headers")
 def header_check(url: str, key: str = Depends(verify_key)):
