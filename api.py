@@ -919,7 +919,7 @@ def full_audit(domain: str, key: str = Depends(verify_key)):
 
     # 3. Real XSS Test
     try:
-        xss_payloads = ["<script>alert(1)</script>", "'"><img src=x onerror=alert(1)>", "javascript:alert(1)"]
+xss_payloads = ["<script>alert(1)</script>", '">img src=x onerror=alert(1)>', "javascript:alert(1)"]
         xss_results = []
         for payload in xss_payloads:
             try:
