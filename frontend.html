@@ -185,6 +185,7 @@
         const box = document.getElementById('chatBox');
         box.innerHTML += `<div style="text-align:right;margin:8px 0"><span style="background:#00ff8822;padding:8px 12px;border-radius:10px;color:#00ff88;display:inline-block;max-width:80%;word-wrap:break-word">${msg}</span></div>`;
         document.getElementById('chatMsg').value = '';
+        document.getElementById('chatMsg').focus();
         document.getElementById('chatBtn').disabled = true;
         try {
             const res = await fetch(`${API_BASE}/chat?msg=${encodeURIComponent(msg)}&session=user1`, { headers: {'X-API-Key': key} });
