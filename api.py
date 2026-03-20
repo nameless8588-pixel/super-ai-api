@@ -486,3 +486,157 @@ def robots_scan(domain: str, key: str = Depends(verify_key)):
         }
     except Exception as e:
         return {"domain": domain, "robots_found": False, "error": str(e)}
+
+@app.get("/xsstest")
+def xss_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    payloads = ["<script>alert(1)</script>", "<img src=x onerror=alert(1)>", "javascript:alert(1)", "'><script>alert(1)</script>"]
+    results = []
+    try:
+        for payload in payloads:
+            test_url = f"{url}?q={payload}&search={payload}&id={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(3000).decode("utf-8", errors="ignore")
+                if payload in body:
+                    results.append({"payload": payload, "status": "VULNERABLE!", "type": "Reflected XSS"})
+                else:
+                    results.append({"payload": payload, "status": "Safe"})
+            except:
+                results.append({"payload": payload, "status": "Could not test"})
+        vulnerable = [r for r in results if r["status"] == "VULNERABLE!"]
+        return {"url": url, "results": results, "vulnerable_count": len(vulnerable), "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/sqlinject")
+def sql_inject_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    payloads = ["'", "''", "' OR '1'='1", "' OR '1'='1'--", "admin'--", "1' OR '1'='1"]
+    results = []
+    error_signs = ["sql", "mysql", "sqlite", "postgresql", "syntax error", "warning", "fatal error"]
+    try:
+        for payload in payloads:
+            test_url = f"{url}?id={payload}&user={payload}&q={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(3000).decode("utf-8", errors="ignore").lower()
+                found_errors = [e for e in error_signs if e in body]
+                if found_errors:
+                    results.append({"payload": payload, "status": "VULNERABLE!", "errors_found": found_errors})
+                else:
+                    results.append({"payload": payload, "status": "Safe"})
+            except Exception as ex:
+                err = str(ex).lower()
+                found_errors = [e for e in error_signs if e in err]
+                if found_errors:
+                    results.append({"payload": payload, "status": "VULNERABLE!", "errors_found": found_errors})
+                else:
+                    results.append({"payload": payload, "status": "Could not test"})
+        vulnerable = [r for r in results if r["status"] == "VULNERABLE!"]
+        return {"url": url, "results": results, "vulnerable_count": len(vulnerable), "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/dirscan")
+def directory_scan(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    common_dirs = ["admin", "login", "dashboard", "api", "backup", "config", "uploads", "images", "js", "css", "test", "dev", "old", "wp-admin", "phpmyadmin", "cpanel", ".git", ".env", "private", "secret", "db", "database", "logs", "temp"]
+    found = []
+    try:
+        for d in common_dirs:
+            test_url = f"https://{domain}/{d}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=3)
+                risk = "CRITICAL!" if d in [".git", ".env", "backup", "config", "db", "private", "secret"] else "Check karo"
+                found.append({"path": f"/{d}", "status": res.status, "risk": risk})
+            except Exception as ex:
+                code = str(ex)
+                if "403" in code:
+                    found.append({"path": f"/{d}", "status": 403, "risk": "Exists but blocked"})
+        return {"domain": domain, "found": found, "total_found": len(found), "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/passcheck")
+def password_check(password: str, key: str = Depends(verify_key)):
+    start = time.time()
+    score = 0
+    feedback = []
+    length = len(password)
+    if length >= 8: score += 1
+    else: feedback.append("8+ characters chahiye")
+    if length >= 12: score += 1
+    else: feedback.append("12+ characters better hai")
+    if any(c.isupper() for c in password): score += 1
+    else: feedback.append("Uppercase letter add karo (A-Z)")
+    if any(c.islower() for c in password): score += 1
+    else: feedback.append("Lowercase letter add karo (a-z)")
+    if any(c.isdigit() for c in password): score += 1
+    else: feedback.append("Number add karo (0-9)")
+    if any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password): score += 1
+    else: feedback.append("Special character add karo (!@#$)")
+    common = ["password", "123456", "admin", "qwerty", "abc123", "letmein", "monkey", "1234567890"]
+    if password.lower() in common:
+        score = 0
+        feedback.append("Bahut common password hai!")
+    levels = {0: "Bahut Weak", 1: "Weak", 2: "Medium", 3: "Fair", 4: "Strong", 5: "Very Strong", 6: "Excellent!"}
+    return {"password_length": length, "score": f"{score}/6", "strength": levels.get(score, "Unknown"), "feedback": feedback, "response_time": f"{round(time.time()-start, 2)}s"}
+
+@app.get("/hashcrack")
+def hash_crack(hash_value: str, key: str = Depends(verify_key)):
+    start = time.time()
+    import hashlib
+    common_passwords = ["password", "123456", "admin", "qwerty", "abc123", "letmein", "monkey", "1234", "test", "user", "root", "pass", "hello", "welcome", "login", "master", "dragon", "666666", "password1", "iloveyou", "sunshine", "princess", "football", "superman", "batman"]
+    hash_len = len(hash_value)
+    hash_type = "Unknown"
+    if hash_len == 32: hash_type = "MD5"
+    elif hash_len == 40: hash_type = "SHA1"
+    elif hash_len == 64: hash_type = "SHA256"
+    cracked = None
+    for p in common_passwords:
+        if hashlib.md5(p.encode()).hexdigest() == hash_value.lower():
+            cracked = p
+            hash_type = "MD5"
+            break
+        if hashlib.sha1(p.encode()).hexdigest() == hash_value.lower():
+            cracked = p
+            hash_type = "SHA1"
+            break
+        if hashlib.sha256(p.encode()).hexdigest() == hash_value.lower():
+            cracked = p
+            hash_type = "SHA256"
+            break
+    return {"hash": hash_value, "hash_type": hash_type, "cracked": cracked, "result": f"PASSWORD MILA: {cracked}" if cracked else "Nahi mila — strong password hai!", "response_time": f"{round(time.time()-start, 2)}s"}
+
+@app.get("/iprep")
+def ip_reputation(ip: str, key: str = Depends(verify_key)):
+    start = time.time()
+    try:
+        try:
+            resolved_ip = socket.gethostbyname(ip)
+        except:
+            resolved_ip = ip
+        suspicious = False
+        reasons = []
+        private_ranges = [("10.", "Private network"), ("192.168.", "Private network"), ("172.16.", "Private network"), ("127.", "Localhost")]
+        for range_start, reason in private_ranges:
+            if resolved_ip.startswith(range_start):
+                suspicious = True
+                reasons.append(reason)
+        try:
+            hostname = socket.gethostbyaddr(resolved_ip)[0]
+        except:
+            hostname = "Not found"
+            reasons.append("No reverse DNS")
+        return {"ip": resolved_ip, "hostname": hostname, "suspicious": suspicious, "reasons": reasons if reasons else ["Clean - koi known issue nahi"], "verdict": "Suspicious" if suspicious else "Clean", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
