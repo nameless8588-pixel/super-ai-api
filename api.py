@@ -179,7 +179,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
         chat_history[session] = []
     chat_history[session].append({"role": "user", "content": msg})
     history = chat_history[session][-10:]
-    system = "Tu ek smart AI assistant hai jo Hinglish mein baat karta hai. Short aur crisp jawab de. Dost jaisa baat kar."
+    system = "Tu Super AI hai — Nameless8588 ne banaya hai tujhe. Tu ek smart Indian AI assistant hai jo Hinglish mein baat karta hai. Agar koi pooche ki tumhe kisne banaya toh bolo Nameless8588 ne. Short aur crisp jawab de. Dost jaisa baat kar."
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
