@@ -206,7 +206,17 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     common = ["", "admin", "1234", "password", "root", "123456", "test", "abc123"]
     all_attacks = common + ai_passwords
     
-    brute_lines = "attacks = " + repr(all_attacks) + "\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print('HACKED with: [' + str(a) + '] <- yeh password tha!')\n    except:\n        pass"
+    # Function signature detect karo
+    import re
+    sig_match = re.search(r"def login\(([^)]+)\)", code)
+    params = [p.strip() for p in sig_match.group(1).split(",")] if sig_match else ["password"]
+    num_params = len(params)
+
+    if num_params == 1:
+        brute_lines = "attacks = " + repr(all_attacks) + "\nfor a in attacks:\n    try:\n        r = login(a)\n        if 'success' in str(r).lower():\n            print('HACKED with: [' + str(a) + '] <- yeh password tha!')\n    except:\n        pass"
+    else:
+        usernames = ["admin", "root", "user", "administrator", "test"]
+        brute_lines = "attacks = " + repr(all_attacks) + "\nusernames = " + repr(usernames) + "\nfor u in usernames:\n    for a in attacks:\n        try:\n            r = login(u, a)\n            if 'success' in str(r).lower():\n                print('HACKED with user:[' + u + '] pass:[' + str(a) + ']!')\n        except:\n            pass"
     test2 = run_code(code + "\n" + brute_lines)
     results.append(f"Smart Brute force: {test2.get('output', '') or 'No breach found'}")
 
