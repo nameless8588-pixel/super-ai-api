@@ -6,14 +6,18 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(base_path, 'tools'))
 
 def add_app_to_index(filename, emoji, title):
-    """Naya app index.html mein add karo"""
     index_path = os.path.join(base_path, 'index.html')
     
     with open(index_path, 'r') as f:
         content = f.read()
     
-    new_link = f'        <p><a href="apps/{filename}">{emoji} {title}</a></p>\n    </div>'
-    content = content.replace('    </div>', new_link, 1)
+    # Check karo pehle se hai ya nahi
+    if filename in content:
+        print(f"⚠️ {filename} pehle se index mein hai!")
+        return
+    
+    new_link = f'        <p><a href="apps/{filename}">{emoji} {title}</a></p>\n        <!-- END_APPS -->'
+    content = content.replace('        <!-- END_APPS -->', new_link)
     
     with open(index_path, 'w') as f:
         f.write(content)
@@ -21,7 +25,6 @@ def add_app_to_index(filename, emoji, title):
     print(f"✅ {title} index.html mein add ho gaya!")
 
 def save_and_deploy(filename, code, emoji="🚀", title=None):
-    """App save karo aur GitHub pe deploy karo"""
     if title is None:
         title = filename.replace('.html', '').replace('_', ' ').title()
     
