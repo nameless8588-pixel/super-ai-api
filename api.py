@@ -533,7 +533,7 @@ def xss_test(url: str, key: str = Depends(verify_key)):
     start = time.time()
     if not url.startswith("http"):
         url = "https://" + url
-    payloads = ["<script>alert(1)</script>", "'><img src=x onerror=alert(1)>", "javascript:alert(1)", "<svg onload=alert(1)>", "'"><script>alert(1)</script>"]
+    payloads = ["<script>alert(1)</script>", "><img src=x onerror=alert(1)>", "javascript:alert(1)", "<svg onload=alert(1)>", "><script>alert(1)</script>"]
     results = []
     for payload in payloads:
         try:
