@@ -303,6 +303,54 @@
         box.scrollTop = box.scrollHeight;
     }
 
+
+    async function runSiteReport() {
+        const domain = document.getElementById('hackMsg').value.trim();
+        const key = getKey();
+        if (!domain || !key) return alert('Domain aur API key daalo!');
+        const box = document.getElementById('hackBox');
+        box.innerHTML += '<div style="color:#ff4444;margin:8px 0">Full Audit chal raha hai... (30-60 sec lagenge)</div>';
+        document.getElementById('auditBtn').disabled = true;
+        try {
+            const res = await fetch(API_BASE + '/sitereport?url=' + encodeURIComponent(domain), {headers: {'X-API-Key': key}});
+            const data = await res.json();
+            
+            let html = '<div style="background:#1a1a1a;padding:15px;border-radius:8px;margin:8px 0;border:1px solid #ff4444">';
+            html += '<div style="color:#ff4444;font-size:1.2em;font-weight:bold">SECURITY REPORT: ' + data.domain + '</div>';
+            
+            const scoreColor = data.score >= 70 ? "#00ff88" : data.score >= 40 ? "#ffaa00" : "#ff4444";
+            html += '<div style="color:' + scoreColor + ';font-size:2em;font-weight:bold">Score: ' + data.score + '/100</div>';
+            html += '<div style="color:#ccc;margin:8px 0">' + (data.ai_summary || "") + '</div>';
+            html += '<div style="color:#ff4444">Critical: ' + data.critical_count + ' | High: ' + data.high_count + ' | Total: ' + data.total_findings + '</div>';
+            
+            if (data.findings) {
+                html += '<div style="margin-top:10px">';
+                data.findings.forEach(f => {
+                    const c = f.severity === "CRITICAL" ? "#ff4444" : f.severity === "HIGH" ? "#ffaa00" : f.severity === "MEDIUM" ? "#4488ff" : "#00ff88";
+                    html += '<div style="border-left:3px solid ' + c + ';padding:6px;margin:4px 0;background:#0d0d0d">';
+                    html += '<span style="color:' + c + ';font-weight:bold">[' + f.severity + '] ' + f.category + '</span><br>';
+                    html += '<span style="color:#ccc">' + f.issue + '</span><br>';
+                    html += '<span style="color:#888">Fix: ' + f.fix + '</span>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            
+            // PDF Download
+            if (data.pdf_base64) {
+                const blob = new Blob([Uint8Array.from(atob(data.pdf_base64), c => c.charCodeAt(0))], {type: "application/pdf"});
+                const pdfUrl = URL.createObjectURL(blob);
+                html += '<a href="' + pdfUrl + '" download="security_report_' + data.domain + '.pdf" style="display:block;margin-top:15px;padding:12px;background:#ff4444;color:white;text-align:center;border-radius:8px;text-decoration:none;font-weight:bold">PDF Report Download Karo</a>';
+            }
+            
+            html += '</div>';
+            box.innerHTML += html;
+            box.scrollTop = box.scrollHeight;
+        } catch(e) {
+            box.innerHTML += '<div style="color:#ff4444">Error: ' + e.message + '</div>';
+        }
+        document.getElementById('auditBtn').disabled = false;
+    }
 </script>
 </body>
 </html>
