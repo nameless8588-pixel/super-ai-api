@@ -640,3 +640,196 @@ def ip_reputation(ip: str, key: str = Depends(verify_key)):
         return {"ip": resolved_ip, "hostname": hostname, "suspicious": suspicious, "reasons": reasons if reasons else ["Clean - koi known issue nahi"], "verdict": "Suspicious" if suspicious else "Clean", "response_time": f"{round(time.time()-start, 2)}s"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/apiscan")
+def api_security_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    endpoints = ["/api", "/api/v1", "/api/v2", "/api/users", "/api/admin", "/api/login", "/api/token", "/api/keys", "/graphql", "/swagger", "/swagger-ui.html", "/api-docs"]
+    found = []
+    try:
+        for ep in endpoints:
+            test_url = url.rstrip("/") + ep
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=3)
+                risk = "CRITICAL!" if any(x in ep for x in ["admin", "keys", "token"]) else "Check karo"
+                found.append({"endpoint": ep, "status": res.status, "risk": risk})
+            except Exception as ex:
+                code = str(ex)
+                if "403" in code:
+                    found.append({"endpoint": ep, "status": 403, "risk": "Exists but blocked"})
+        return {"url": url, "found_endpoints": found, "total_found": len(found), "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/jwtcheck")
+def jwt_check(token: str, key: str = Depends(verify_key)):
+    start = time.time()
+    import base64
+    import json
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return {"valid_format": False, "error": "Valid JWT nahi hai - 3 parts chahiye"}
+        def decode_part(p):
+            p += "=" * (4 - len(p) % 4)
+            return json.loads(base64.urlsafe_b64decode(p).decode("utf-8", errors="ignore"))
+        header = decode_part(parts[0])
+        payload = decode_part(parts[1])
+        issues = []
+        if header.get("alg", "").upper() == "NONE":
+            issues.append("CRITICAL: Algorithm none hai - authentication bypass possible!")
+        if header.get("alg", "").upper() == "HS256":
+            issues.append("WARNING: HS256 weak ho sakta hai - brute force possible")
+        if "exp" not in payload:
+            issues.append("WARNING: Expiry nahi hai - token kabhi expire nahi hoga!")
+        import time as t
+        if "exp" in payload and payload["exp"] < t.time():
+            issues.append("CRITICAL: Token already expired hai!")
+        return {"valid_format": True, "header": header, "payload": payload, "issues": issues, "verdict": "VULNERABLE!" if any("CRITICAL" in i for i in issues) else "OK", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/ratelimit")
+def rate_limit_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    responses = []
+    try:
+        for i in range(10):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                responses.append(res.status)
+            except Exception as ex:
+                code = str(ex)
+                if "429" in code:
+                    responses.append(429)
+                else:
+                    responses.append(0)
+        blocked = responses.count(429)
+        success = responses.count(200)
+        return {"url": url, "total_requests": 10, "successful": success, "blocked_429": blocked, "verdict": "Rate limiting hai!" if blocked > 0 else "Rate limiting NAHI hai - vulnerable!", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/redirecttest")
+def open_redirect_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    payloads = ["?redirect=https://evil.com", "?url=https://evil.com", "?next=https://evil.com", "?return=https://evil.com", "?goto=https://evil.com"]
+    results = []
+    try:
+        for payload in payloads:
+            test_url = url + payload
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                final_url = res.geturl()
+                if "evil.com" in final_url:
+                    results.append({"payload": payload, "status": "VULNERABLE! Open Redirect mila!"})
+                else:
+                    results.append({"payload": payload, "status": "Safe"})
+            except:
+                results.append({"payload": payload, "status": "Could not test"})
+        vulnerable = [r for r in results if "VULNERABLE" in r["status"]]
+        return {"url": url, "results": results, "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/corscheck")
+def cors_check(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Origin": "https://evil.com"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        acao = headers.get("Access-Control-Allow-Origin", "Not set")
+        acac = headers.get("Access-Control-Allow-Credentials", "Not set")
+        issues = []
+        if acao == "*":
+            issues.append("WARNING: Wildcard CORS - sab origins allow hain!")
+        if acao == "https://evil.com":
+            issues.append("CRITICAL: Evil origin reflect ho raha hai!")
+        if acac == "true" and acao == "*":
+            issues.append("CRITICAL: Credentials + wildcard = data theft possible!")
+        return {"url": url, "allow_origin": acao, "allow_credentials": acac, "issues": issues, "verdict": "VULNERABLE!" if any("CRITICAL" in i for i in issues) else "OK", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/cookiecheck")
+def cookie_check(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        cookie_header = headers.get("Set-Cookie", "")
+        issues = []
+        good = []
+        if not cookie_header:
+            return {"url": url, "cookies_found": False, "message": "Koi cookie set nahi ho rahi"}
+        if "httponly" not in cookie_header.lower():
+            issues.append("HttpOnly missing - JavaScript se cookie steal possible!")
+        else:
+            good.append("HttpOnly present")
+        if "secure" not in cookie_header.lower():
+            issues.append("Secure flag missing - HTTP pe bhi cookie jayegi!")
+        else:
+            good.append("Secure flag present")
+        if "samesite" not in cookie_header.lower():
+            issues.append("SameSite missing - CSRF attack possible!")
+        else:
+            good.append("SameSite present")
+        return {"url": url, "cookies_found": True, "issues": issues, "good_practices": good, "verdict": "VULNERABLE!" if issues else "Secure!", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/clickjack")
+def clickjacking_test(url: str, key: str = Depends(verify_key)):
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=10)
+        headers = dict(res.headers)
+        xfo = headers.get("X-Frame-Options", "")
+        csp = headers.get("Content-Security-Policy", "")
+        if xfo.upper() in ["DENY", "SAMEORIGIN"]:
+            verdict = "Safe - X-Frame-Options set hai"
+        elif "frame-ancestors" in csp.lower():
+            verdict = "Safe - CSP frame-ancestors set hai"
+        else:
+            verdict = "VULNERABLE! Site iframe mein load ho sakti hai - Clickjacking possible!"
+        return {"url": url, "x_frame_options": xfo or "Not set", "csp_frame": "Set" if "frame-ancestors" in csp.lower() else "Not set", "verdict": verdict, "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/sensitivefiles")
+def sensitive_files(domain: str, key: str = Depends(verify_key)):
+    start = time.time()
+    domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
+    files = [".env", ".git/config", ".git/HEAD", "config.php", "wp-config.php", "database.yml", "settings.py", "config.js", "credentials.json", "backup.sql", "dump.sql", "db.sql", ".htpasswd", "composer.json", "package.json", "Dockerfile", "docker-compose.yml", ".ssh/id_rsa"]
+    found = []
+    try:
+        for f in files:
+            test_url = f"https://{domain}/{f}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=3)
+                found.append({"file": f, "status": res.status, "risk": "CRITICAL! File exposed hai!"})
+            except Exception as ex:
+                if "403" in str(ex):
+                    found.append({"file": f, "status": 403, "risk": "Exists but blocked"})
+        return {"domain": domain, "exposed_files": found, "total_exposed": len(found), "verdict": "CRITICAL!" if any(f["risk"] == "CRITICAL! File exposed hai!" for f in found) else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
+    except Exception as e:
+        return {"error": str(e)}
