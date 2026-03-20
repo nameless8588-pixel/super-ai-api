@@ -882,8 +882,10 @@ def sensitive_files(domain: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.get("/fullaudit")
 def full_audit(domain: str, key: str = Depends(verify_key)):
+    import urllib.request, ssl, socket, datetime
     start = time.time()
     if not domain.startswith("http"):
         url = "https://" + domain
@@ -893,94 +895,146 @@ def full_audit(domain: str, key: str = Depends(verify_key)):
     
     report = {"domain": domain, "url": url, "sections": {}}
     
-    # SSL
+    # 1. SSL Check
     try:
         ctx = ssl.create_default_context()
         with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
             s.settimeout(10)
             s.connect((domain, 443))
             cert = s.getpeercert()
-        import datetime
         expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
         days_left = (expire - datetime.datetime.utcnow()).days
         report["sections"]["ssl"] = {"valid": True, "days_left": days_left, "status": "SAFE" if days_left > 30 else "WARNING!"}
     except Exception as e:
         report["sections"]["ssl"] = {"valid": False, "error": str(e)}
 
-    # Headers
+    # 2. Security Headers
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         res = urllib.request.urlopen(req, timeout=10)
         headers = dict(res.headers)
+        body = res.read(10000).decode("utf-8", errors="ignore")
         security_headers = ["X-Frame-Options","X-XSS-Protection","Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options"]
         missing = [h for h in security_headers if h not in headers]
-        score = round((1 - len(missing)/len(security_headers))*100)
-        report["sections"]["headers"] = {"score": str(score)+"%", "missing": missing}
+        present = [h for h in security_headers if h in headers]
+        score = round((len(present)/len(security_headers))*100)
+        report["sections"]["headers"] = {"score": str(score)+"%", "present": present, "missing": missing}
     except Exception as e:
+        body = ""
         report["sections"]["headers"] = {"error": str(e)}
 
-    # Ports
+    # 3. Real XSS Test
     try:
-        ip = socket.gethostbyname(domain)
-        open_ports = []
-        risky = [21,23,445,3389,6379]
-        for port, service in [(80,"HTTP"),(443,"HTTPS"),(22,"SSH"),(21,"FTP"),(3306,"MySQL"),(3389,"RDP")]:
-            sock = socket.socket()
-            sock.settimeout(1)
-            if sock.connect_ex((ip, port)) == 0:
-                open_ports.append({"port": port, "service": service, "risk": "RISKY!" if port in risky else "Normal"})
-            sock.close()
-        report["sections"]["ports"] = {"open": open_ports, "risky_count": len([p for p in open_ports if p["risk"]=="RISKY!"])}
+        xss_payloads = ["<script>alert(1)</script>", "'"><img src=x onerror=alert(1)>", "javascript:alert(1)"]
+        xss_results = []
+        for payload in xss_payloads:
+            try:
+                test_url = f"{url}?q={urllib.parse.quote(payload)}&search={urllib.parse.quote(payload)}"
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                resp_body = res.read(5000).decode("utf-8", errors="ignore")
+                if payload in resp_body:
+                    xss_results.append({"payload": payload, "status": "VULNERABLE! Payload reflected!"})
+                else:
+                    xss_results.append({"payload": payload[:30], "status": "Safe - not reflected"})
+            except:
+                xss_results.append({"payload": payload[:30], "status": "Could not test"})
+        report["sections"]["xss"] = xss_results
     except Exception as e:
-        report["sections"]["ports"] = {"error": str(e)}
+        report["sections"]["xss"] = {"error": str(e)}
 
-    # Clickjacking
+    # 4. Real SQL Injection Test
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        res = urllib.request.urlopen(req, timeout=10)
-        h = dict(res.headers)
-        xfo = h.get("X-Frame-Options","")
-        csp = h.get("Content-Security-Policy","")
-        if xfo.upper() in ["DENY","SAMEORIGIN"] or "frame-ancestors" in csp.lower():
-            report["sections"]["clickjacking"] = {"verdict": "Safe"}
-        else:
-            report["sections"]["clickjacking"] = {"verdict": "VULNERABLE!"}
+        import urllib.parse
+        sql_payloads = ["'", "' OR 1=1--", "1' OR '1'='1", "' OR 'x'='x"]
+        sql_results = []
+        for payload in sql_payloads:
+            try:
+                test_url = f"{url}?id={urllib.parse.quote(payload)}&user={urllib.parse.quote(payload)}"
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                resp_body = res.read(5000).decode("utf-8", errors="ignore")
+                sql_errors = ["sql syntax", "mysql_fetch", "ora-", "sqlite", "syntax error", "unclosed quotation"]
+                found_error = [e for e in sql_errors if e in resp_body.lower()]
+                if found_error:
+                    sql_results.append({"payload": payload, "status": "VULNERABLE! SQL error found!", "error": found_error[0]})
+                else:
+                    sql_results.append({"payload": payload, "status": "Safe"})
+            except:
+                sql_results.append({"payload": payload, "status": "Could not test"})
+        report["sections"]["sql_injection"] = sql_results
     except Exception as e:
-        report["sections"]["clickjacking"] = {"error": str(e)}
+        report["sections"]["sql_injection"] = {"error": str(e)}
 
-    # Sensitive Files
+    # 5. Real Admin Pages Check
     try:
-        found = []
-        for f in [".env",".git/config","wp-config.php","backup.sql",".htpasswd"]:
+        admin_paths = ["/admin", "/admin/login", "/wp-admin", "/administrator", "/login", "/dashboard", "/panel", "/cpanel", "/manager"]
+        found_admin = []
+        for path in admin_paths:
+            try:
+                req = urllib.request.Request(f"https://{domain}{path}", headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=3)
+                if res.getcode() == 200:
+                    found_admin.append({"path": path, "status": res.getcode(), "verdict": "EXPOSED!"})
+            except Exception as ex:
+                if "403" in str(ex):
+                    found_admin.append({"path": path, "status": 403, "verdict": "Exists but blocked"})
+                elif "401" in str(ex):
+                    found_admin.append({"path": path, "status": 401, "verdict": "Auth required"})
+        report["sections"]["admin_pages"] = found_admin if found_admin else "None found"
+    except Exception as e:
+        report["sections"]["admin_pages"] = {"error": str(e)}
+
+    # 6. Sensitive Files
+    try:
+        sens_files = [".env", ".git/config", "wp-config.php", "backup.sql", ".htpasswd", "config.php", "database.yml"]
+        exposed_files = []
+        for f in sens_files:
             try:
                 req = urllib.request.Request(f"https://{domain}/{f}", headers={"User-Agent": "Mozilla/5.0"})
                 res = urllib.request.urlopen(req, timeout=3)
-                found.append({"file": f, "status": "EXPOSED!"})
+                content_preview = res.read(200).decode("utf-8", errors="ignore")
+                exposed_files.append({"file": f, "status": "EXPOSED!", "preview": content_preview[:100]})
             except Exception as ex:
                 if "403" in str(ex):
-                    found.append({"file": f, "status": "Exists but blocked"})
-        report["sections"]["sensitive_files"] = {"found": found, "exposed_count": len([x for x in found if x["status"]=="EXPOSED!"])}
+                    exposed_files.append({"file": f, "status": "Blocked (exists)"})
+        report["sections"]["sensitive_files"] = exposed_files if exposed_files else "None exposed"
     except Exception as e:
         report["sections"]["sensitive_files"] = {"error": str(e)}
 
-    # AI Summary
-    summary_prompt = f"""Yeh security audit result hai domain {domain} ka:
-{str(report["sections"])}
+    # 7. Open Ports
+    try:
+        ip = socket.gethostbyname(domain)
+        open_ports = []
+        for port, service in [(80,"HTTP"),(443,"HTTPS"),(22,"SSH"),(21,"FTP"),(3306,"MySQL"),(3389,"RDP"),(8080,"HTTP-Alt")]:
+            sock = socket.socket()
+            sock.settimeout(1)
+            if sock.connect_ex((ip, port)) == 0:
+                open_ports.append({"port": port, "service": service, "risk": "RISKY!" if port in [21,23,3306,3389] else "Normal"})
+            sock.close()
+        report["sections"]["ports"] = {"ip": ip, "open": open_ports}
+    except Exception as e:
+        report["sections"]["ports"] = {"error": str(e)}
 
-Short security summary do Hinglish mein:
-- Overall kitna secure hai (score/10)
-- Top 3 problems
+    # AI Summary
+    summary_prompt = f"""Security audit result for {domain}:
+{str(report["sections"])[:1000]}
+
+Hinglish mein short summary do:
+- Overall score /10
+- Top 3 critical findings
 - Top 3 fixes
 No markdown."""
-
+    
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": summary_prompt}],
-        max_tokens=300
+        max_tokens=400
     )
     report["ai_summary"] = response.choices[0].message.content.strip()
     report["total_time"] = f"{round(time.time()-start, 2)}s"
     return report
+
 
 @app.get("/netanalyze")
 def network_analyze(domain: str, key: str = Depends(verify_key)):
