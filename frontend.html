@@ -172,11 +172,11 @@
         try {
             const res = await fetch(`${API_BASE}/ask?q=${encodeURIComponent(q)}`, { headers: {'X-API-Key': key} });
             const data = await res.json();
-            document.getElementById('askAnswer').textContent = data.jawab;
+            document.getElementById('askAnswer').textContent = data.jawab; document.getElementById('askAnswer').insertAdjacentHTML('afterbegin', '<b style="color:#00ff88">Tum: ' + document.getElementById('askQ').value + '</b><br>');
             document.getElementById('askTime').textContent = data.response_time;
             document.getElementById('askResult').classList.add('show');
         } catch(e) { alert('API se connect nahi ho paya!'); }
-        document.getElementById('askBtn').disabled = false;
+        document.getElementById('askBtn').disabled = false; document.getElementById('askQ').value='';
         document.getElementById('askLoading').classList.remove('show');
     }
     async function sendChat() {

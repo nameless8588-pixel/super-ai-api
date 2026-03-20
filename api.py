@@ -110,12 +110,31 @@ def create(task: str, filename: str = "ai_generated.py", key: str = Depends(veri
         memory_hint += f"\nYeh galtiyan pehle hui hain, inhe avoid karo: {[m['error'] for m in mistakes[-3:]]}"
     while attempts < 3:
         attempts += 1
+        # Internet se search karo pehle
+        search_context = ""
+        try:
+            search_context = search_internet(f"{task} python code example best practices")
+        except:
+            pass
+
+        system_prompt = f"""Tu ek world-class senior Python developer hai jo production-grade code likhta hai.
+Rules:
+- Sirf Python code likh, koi explanation nahi, koi markdown nahi
+- High quality, clean, well-structured code likh
+- Error handling zaroori hai
+- Best practices follow karo
+- Latest libraries use karo
+- Comments add karo important parts mein
+{memory_hint}
+Internet se mila context: {search_context[:500] if search_context else "N/A"}"""
+
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"Tu ek expert Python developer hai. Sirf Python code likh, koi explanation nahi. Markdown mat use kar. {memory_hint}"},
-                {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nError: {test_result.get('error', '')} — fix kar!"}
-            ]
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Yeh banao: {task}" if attempts == 1 else f"Yeh banao: {task}\n\nError: {test_result.get('error', '')} — fix kar! High quality code chahiye."}
+            ],
+            max_tokens=4000
         )
         code = response.choices[0].message.content.replace("```python", "").replace("```", "").strip()
         test_result = run_code(code)
