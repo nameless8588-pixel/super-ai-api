@@ -1567,4 +1567,188 @@ def login_bypass(url: str, key: str = Depends(verify_key)):
     }
 
 
+@app.get("/sitereport")
+def site_report(url: str, key: str = Depends(verify_key)):
+    import urllib.request, urllib.parse, ssl, socket, datetime, requests as req_lib
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    import io, base64
+    start = time.time()
+    if not url.startswith("http"):
+        url = "https://" + url
+    domain = url.replace("https://","").replace("http://","").split("/")[0]
+    
+    findings = []
+    score = 100
+    
+    # 1. SSL Check
+    try:
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=domain) as s:
+            s.settimeout(10)
+            s.connect((domain, 443))
+            cert = s.getpeercert()
+        expire = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
+        days_left = (expire - datetime.datetime.utcnow()).days
+        if days_left < 30:
+            findings.append({"category": "SSL", "severity": "HIGH", "issue": f"SSL certificate expires in {days_left} days!", "fix": "Renew SSL certificate immediately"})
+            score -= 15
+        else:
+            findings.append({"category": "SSL", "severity": "INFO", "issue": f"SSL valid - {days_left} days left", "fix": "No action needed"})
+    except Exception as e:
+        findings.append({"category": "SSL", "severity": "CRITICAL", "issue": f"SSL Error: {str(e)[:50]}", "fix": "Fix SSL certificate"})
+        score -= 25
 
+    # 2. Security Headers
+    try:
+        res = req_lib.get(url, timeout=10, verify=False)
+        headers = res.headers
+        security_headers = {
+            "X-Frame-Options": "Clickjacking attack possible",
+            "X-XSS-Protection": "XSS attacks not blocked",
+            "Content-Security-Policy": "Content injection possible",
+            "Strict-Transport-Security": "HTTPS not enforced",
+            "X-Content-Type-Options": "MIME sniffing possible"
+        }
+        for h, issue in security_headers.items():
+            if h not in headers:
+                findings.append({"category": "Headers", "severity": "MEDIUM", "issue": f"Missing {h} - {issue}", "fix": f"Add {h} header to server config"})
+                score -= 5
+    except Exception as e:
+        findings.append({"category": "Headers", "severity": "ERROR", "issue": str(e)[:50], "fix": "Check server"})
+
+    # 3. XSS Test
+    try:
+        xss_payloads = ["<script>alert(1)</script>", "'><img src=x onerror=alert(1)>"]
+        for payload in xss_payloads:
+            test_url = f"{url}?q={urllib.parse.quote(payload)}"
+            res = req_lib.get(test_url, timeout=5, verify=False)
+            if payload in res.text:
+                findings.append({"category": "XSS", "severity": "CRITICAL", "issue": f"XSS Vulnerable! Payload reflected: {payload[:40]}", "fix": "Sanitize all user inputs, use Content-Security-Policy"})
+                score -= 20
+                break
+        else:
+            findings.append({"category": "XSS", "severity": "INFO", "issue": "No XSS vulnerability found", "fix": "Keep sanitizing inputs"})
+    except Exception as e:
+        findings.append({"category": "XSS", "severity": "ERROR", "issue": str(e)[:50], "fix": "Manual test required"})
+
+    # 4. SQL Injection Test
+    try:
+        sql_payloads = ["'", "' OR 1=1--", "1' OR '1'='1"]
+        sql_errors = ["sql syntax", "mysql_fetch", "ora-", "sqlite", "syntax error"]
+        vuln_found = False
+        for payload in sql_payloads:
+            test_url = f"{url}?id={urllib.parse.quote(payload)}&q={urllib.parse.quote(payload)}"
+            res = req_lib.get(test_url, timeout=5, verify=False)
+            if any(e in res.text.lower() for e in sql_errors):
+                findings.append({"category": "SQL Injection", "severity": "CRITICAL", "issue": f"SQL Injection Vulnerable! Payload: {payload}", "fix": "Use parameterized queries, never concatenate SQL strings"})
+                score -= 25
+                vuln_found = True
+                break
+        if not vuln_found:
+            findings.append({"category": "SQL Injection", "severity": "INFO", "issue": "No SQL injection found", "fix": "Keep using parameterized queries"})
+    except Exception as e:
+        findings.append({"category": "SQL Injection", "severity": "ERROR", "issue": str(e)[:50], "fix": "Manual test required"})
+
+    # 5. Sensitive Files
+    try:
+        sens_files = [".env", ".git/config", "wp-config.php", "backup.sql", ".htpasswd"]
+        for f in sens_files:
+            try:
+                res = req_lib.get(f"https://{domain}/{f}", timeout=3, verify=False)
+                if res.status_code == 200:
+                    findings.append({"category": "Sensitive Files", "severity": "CRITICAL", "issue": f"{f} is publicly accessible!", "fix": f"Remove or restrict access to {f}"})
+                    score -= 20
+            except:
+                pass
+    except Exception as e:
+        pass
+
+    # 6. Open Ports
+    try:
+        ip = socket.gethostbyname(domain)
+        risky_ports = {21: "FTP", 23: "Telnet", 3306: "MySQL", 3389: "RDP", 6379: "Redis"}
+        for port, service in risky_ports.items():
+            sock = socket.socket()
+            sock.settimeout(1)
+            if sock.connect_ex((ip, port)) == 0:
+                findings.append({"category": "Open Ports", "severity": "HIGH", "issue": f"Risky port {port} ({service}) is open!", "fix": f"Close port {port} or restrict with firewall"})
+                score -= 10
+            sock.close()
+    except:
+        pass
+
+    score = max(0, score)
+    
+    # AI Summary
+    critical = [f for f in findings if f["severity"] == "CRITICAL"]
+    high = [f for f in findings if f["severity"] == "HIGH"]
+    summary_prompt = f"""Security audit for {domain}:
+Score: {score}/100
+Critical issues: {len(critical)}
+High issues: {len(high)}
+Findings: {str([f["issue"] for f in findings[:5]])}
+
+3 line Hinglish summary do — kya mila, kitna dangerous, top fix."""
+    
+    ai_summary = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": summary_prompt}],
+        max_tokens=200
+    ).choices[0].message.content.strip()
+
+    # PDF Generate
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    title_style = ParagraphStyle("title", parent=styles["Title"], textColor=colors.darkred, fontSize=24)
+    story.append(Paragraph(f"Security Audit Report", title_style))
+    story.append(Paragraph(f"Domain: {domain}", styles["Normal"]))
+    story.append(Paragraph(f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["Normal"]))
+    story.append(Spacer(1, 20))
+    
+    # Score
+    score_color = colors.green if score >= 70 else colors.orange if score >= 40 else colors.red
+    score_style = ParagraphStyle("score", parent=styles["Normal"], textColor=score_color, fontSize=18, fontName="Helvetica-Bold")
+    story.append(Paragraph(f"Security Score: {score}/100", score_style))
+    story.append(Paragraph(f"AI Summary: {ai_summary}", styles["Normal"]))
+    story.append(Spacer(1, 20))
+    
+    # Findings Table
+    story.append(Paragraph("Findings:", styles["Heading2"]))
+    table_data = [["Category", "Severity", "Issue", "Fix"]]
+    for f in findings:
+        sev_color = colors.red if f["severity"] == "CRITICAL" else colors.orange if f["severity"] == "HIGH" else colors.blue if f["severity"] == "MEDIUM" else colors.green
+        table_data.append([f["category"], f["severity"], f["issue"][:50], f["fix"][:50]])
+    
+    table = Table(table_data, colWidths=[80, 60, 220, 140])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.darkred),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 8),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.lightgrey]),
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+    ]))
+    story.append(table)
+    
+    doc.build(story)
+    pdf_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return {
+        "domain": domain,
+        "score": score,
+        "total_findings": len(findings),
+        "critical_count": len(critical),
+        "high_count": len(high),
+        "findings": findings,
+        "ai_summary": ai_summary,
+        "pdf_base64": pdf_base64,
+        "response_time": f"{round(time.time()-start, 2)}s"
+    }
