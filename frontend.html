@@ -114,6 +114,16 @@
         </div>
     </div>
 </div>
+
+    <div id="tab-hack" class="card" style="display:none">
+        <h2 style="color:#ff4444">AI Auto Hacker</h2>
+        <p style="color:#888;margin-bottom:12px;font-size:0.9em">Domain do - AI khud sab 24 tools chalayegi aur full report degi!</p>
+        <div id="hackBox" style="min-height:200px;max-height:500px;overflow-y:auto;margin-bottom:12px;padding:10px;background:#0d0d0d;border-radius:10px;font-family:monospace;font-size:0.85em;"></div>
+        <div class="input-row">
+            <input type="text" id="hackDomain" placeholder="example.com" />
+            <button id="hackBtn" onclick="runFullAudit()">Hack Karo!</button>
+        </div>
+    </div>
 <footer>Made with love by Nameless8588 | Powered by Super AI</footer>
 <script>
     const API_BASE = "https://super-ai-api.onrender.com";
@@ -243,6 +253,92 @@
             box.scrollTop = box.scrollHeight;
         } catch(e) { box.innerHTML += '<div style="color:#ff4444">Error!</div>'; }
         document.getElementById('hackBtn').disabled = false;
+    }
+
+    async function runFullAudit() {
+        const domain = document.getElementById('hackDomain').value.trim();
+        const key = getKey();
+        if (!domain) return alert('Domain daalo!');
+        if (!key) return alert('API key daalo!');
+        const box = document.getElementById('hackBox');
+        box.innerHTML = '<div style="color:#ffaa00">Scanning: ' + domain + '...</div>';
+        document.getElementById('hackBtn').disabled = true;
+
+        const tools = [
+            {name:'webscan', param:'url', label:'Web Scan'},
+            {name:'headers', param:'url', label:'Header Check'},
+            {name:'sslcheck', param:'domain', label:'SSL Check'},
+            {name:'whois', param:'domain', label:'WHOIS'},
+            {name:'dns', param:'domain', label:'DNS Check'},
+            {name:'portscan', param:'domain', label:'Port Scan'},
+            {name:'subdomains', param:'domain', label:'Subdomains'},
+            {name:'techdetect', param:'url', label:'Tech Detect'},
+            {name:'robots', param:'domain', label:'Robots.txt'},
+            {name:'xsstest', param:'url', label:'XSS Test'},
+            {name:'sqlinject', param:'url', label:'SQL Inject'},
+            {name:'dirscan', param:'domain', label:'Dir Scan'},
+            {name:'corscheck', param:'url', label:'CORS Check'},
+            {name:'cookiecheck', param:'url', label:'Cookie Check'},
+            {name:'clickjack', param:'url', label:'Clickjack'},
+            {name:'sensitivefiles', param:'domain', label:'Sensitive Files'},
+            {name:'apiscan', param:'url', label:'API Scan'},
+            {name:'redirecttest', param:'url', label:'Redirect Test'},
+            {name:'iprep', param:'ip', label:'IP Reputation'},
+            {name:'ratelimit', param:'url', label:'Rate Limit'},
+        ];
+
+        let critical = [];
+        let warnings = [];
+        let safe = [];
+
+        for (const tool of tools) {
+            box.innerHTML += '<div style="color:#888;margin:4px 0">Running ' + tool.label + '...</div>';
+            box.scrollTop = box.scrollHeight;
+            try {
+                const paramVal = tool.param === 'url' ? 'https://' + domain : domain;
+                const res = await fetch(API_BASE + '/' + tool.name + '?' + tool.param + '=' + encodeURIComponent(paramVal), {
+                    headers: {'X-API-Key': key}
+                });
+                const data = await res.json();
+
+                let found = false;
+                const dataStr = JSON.stringify(data).toLowerCase();
+                if (dataStr.includes('critical') || dataStr.includes('vulnerable') || dataStr.includes('hacked') || dataStr.includes('exposed')) {
+                    critical.push(tool.label + ': ' + JSON.stringify(data).substring(0, 150));
+                    box.innerHTML += '<div style="color:#ff4444;margin:4px 0;padding:6px;background:#ff000011;border-radius:6px">CRITICAL - ' + tool.label + '</div>';
+                    found = true;
+                } else if (dataStr.includes('warning') || dataStr.includes('missing') || dataStr.includes('risky')) {
+                    warnings.push(tool.label + ': ' + JSON.stringify(data).substring(0, 150));
+                    box.innerHTML += '<div style="color:#ffaa00;margin:4px 0;padding:6px;background:#ffaa0011;border-radius:6px">WARNING - ' + tool.label + '</div>';
+                    found = true;
+                }
+                if (!found) {
+                    safe.push(tool.label);
+                    box.innerHTML += '<div style="color:#00ff88;margin:4px 0">SAFE - ' + tool.label + '</div>';
+                }
+            } catch(e) {
+                box.innerHTML += '<div style="color:#555;margin:4px 0">SKIP - ' + tool.label + '</div>';
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // Full Audit
+        box.innerHTML += '<div style="color:#ffaa00;margin:8px 0;font-size:1.1em">Running Full AI Audit...</div>';
+        try {
+            const auditRes = await fetch(API_BASE + '/fullaudit?domain=' + encodeURIComponent(domain), {headers: {'X-API-Key': key}});
+            const auditData = await auditRes.json();
+            box.innerHTML += '<div style="background:#1a1a1a;padding:12px;border-radius:8px;margin:8px 0;border:1px solid #333">';
+            box.innerHTML += '<div style="color:#ff4444;font-weight:bold">FINAL REPORT - ' + domain + '</div>';
+            box.innerHTML += '<div style="color:#ff4444">Critical: ' + (auditData.critical_count || 0) + '</div>';
+            box.innerHTML += '<div style="color:#ffaa00">Warnings: ' + (auditData.warning_count || 0) + '</div>';
+            box.innerHTML += '<div style="color:#00ff88">Safe: ' + (auditData.safe_count || 0) + '</div>';
+            box.innerHTML += '<div style="color:#ccc;margin-top:8px;white-space:pre-wrap">' + (auditData.ai_summary || '') + '</div>';
+            box.innerHTML += '</div>';
+        } catch(e) {}
+
+        box.innerHTML += '<div style="color:#00ff88;margin-top:12px;font-size:1.1em">Scan Complete!</div>';
+        document.getElementById('hackBtn').disabled = false;
+        box.scrollTop = box.scrollHeight;
     }
 </script>
 </body>
