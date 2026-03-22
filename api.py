@@ -1881,3 +1881,75 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
         "ai_summary": ai_summary,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+
+# MEMORY
+@app.get('/memory/save')
+def memory_save(key_name: str, value: str, key: str = Depends(verify_key)):
+    import json, os
+    mem_file = '/tmp/ai_memory.json'
+    memory = {}
+    if os.path.exists(mem_file):
+        memory = json.loads(open(mem_file).read())
+    memory[key_name] = value
+    open(mem_file, 'w').write(json.dumps(memory))
+    return {'status': 'saved', 'key': key_name}
+
+@app.get('/memory/get')
+def memory_get(key_name: str = None, key: str = Depends(verify_key)):
+    import json, os
+    mem_file = '/tmp/ai_memory.json'
+    if not os.path.exists(mem_file):
+        return {'memory': {}}
+    memory = json.loads(open(mem_file).read())
+    if key_name:
+        return {'value': memory.get(key_name, 'Not found')}
+    return {'memory': memory}
+
+# MULTI AGENT
+@app.get('/multiagent')
+def multi_agent(task: str, key: str = Depends(verify_key)):
+    import time
+    start = time.time()
+    roles = ['Security expert ban ke jawab de.', 'Developer ban ke jawab de.', 'Analyst ban ke jawab de.']
+    results = []
+    for i, role in enumerate(roles):
+        try:
+            r = client.chat.completions.create(model='llama-3.3-70b-versatile', messages=[{'role': 'system', 'content': role}, {'role': 'user', 'content': task}], max_tokens=300)
+            results.append({'agent': i+1, 'role': role.split(' ban')[0], 'response': r.choices[0].message.content})
+        except Exception as e:
+            results.append({'agent': i+1, 'error': str(e)})
+    return {'task': task, 'results': results, 'time': str(round(time.time()-start, 2))+'s'}
+
+# SCHEDULER
+scheduled_tasks = []
+
+@app.get('/scheduler/add')
+def scheduler_add(task: str, interval_seconds: int = 3600, key: str = Depends(verify_key)):
+    scheduled_tasks.append({'task': task, 'interval': interval_seconds})
+    return {'status': 'scheduled', 'total': len(scheduled_tasks)}
+
+@app.get('/scheduler/list')
+def scheduler_list(key: str = Depends(verify_key)):
+    return {'tasks': scheduled_tasks}
+
+# SELF UPGRADE
+@app.get('/selfupgrade')
+def self_upgrade(key: str = Depends(verify_key)):
+    import subprocess
+    try:
+        prompt = 'Ek simple useful Python function likh. Sirf code, koi explanation nahi.'
+        r = client.chat.completions.create(model='llama-3.3-70b-versatile', messages=[{'role': 'user', 'content': prompt}], max_tokens=500)
+        new_code = r.choices[0].message.content.strip()
+        if chr(96)*3+'python' in new_code:
+            new_code = new_code.split(chr(96)*3+'python')[1].split(chr(96)*3)[0].strip()
+        elif chr(96)*3 in new_code:
+            new_code = new_code.split(chr(96)*3)[1].strip()
+        current = open('/app/api.py', 'r', encoding='utf-8').read()
+        open('/app/api.py', 'w', encoding='utf-8').write(current + chr(10) + new_code)
+        subprocess.run(['git', 'add', 'api.py'], cwd='/app')
+        subprocess.run(['git', 'commit', '-m', 'AI self upgrade'], cwd='/app')
+        result = subprocess.run(['git', 'push'], cwd='/app', capture_output=True, text=True)
+        return {'status': 'upgraded', 'pushed': result.returncode == 0}
+    except Exception as e:
+        return {'error': str(e)}
