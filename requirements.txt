@@ -40,3 +40,4 @@ beautifulsoup4
 reportlab
 playwright
 playwright
+google-generativeai
