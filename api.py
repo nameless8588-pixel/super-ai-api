@@ -1815,7 +1815,11 @@ Sirf code likh, kuch nahi."""
             max_tokens=2000
         )
         code_to_run = plan_response.choices[0].message.content
-        code_to_run = code_to_run.replace("", "").strip()
+        code_to_run = code_to_run.strip()
+        if "```python" in code_to_run:
+            code_to_run = code_to_run.split("```python")[1].split("```")[0].strip()
+        elif "```" in code_to_run:
+            code_to_run = code_to_run.split("```")[1].strip()
         steps.append({"step": "code_generated", "code": code_to_run[:200]})
     except Exception as e:
         return {"error": f"AI failed: {str(e)}"}
@@ -1844,7 +1848,11 @@ Sirf fixed code likh, kuch nahi."""
                     max_tokens=2000
                 )
                 code_to_run = fix_response.choices[0].message.content
-                code_to_run = code_to_run.replace("", "").strip()
+                code_to_run = code_to_run.strip()
+                if "```python" in code_to_run:
+                    code_to_run = code_to_run.split("```python")[1].split("```")[0].strip()
+                elif "```" in code_to_run:
+                    code_to_run = code_to_run.split("```")[1].strip()
             except:
                 break
 
