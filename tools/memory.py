@@ -32,12 +32,5 @@ def get_mistakes():
     memories = load_all()
     return [m for m in memories if not m['success']][-5:]
 
-def get_memory(user_input=None):
-    memories = load_all()
-    if user_input is None:
-        return memories
-    relevant = []
-    for m in memories:
-        if any(word in m["task"].lower() for word in user_input.lower().split()):
-            relevant.append(m)
-    return relevant
+def get_memory():
+    return load_all()
