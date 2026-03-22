@@ -1,0 +1,8 @@
+[
+  {
+    "task": "curl -H \"X-API-Key: SUPER-AI-FREE-001\" \"http://localhost:8000/jsbypass?url=http://zero.webappsecurity.com/login.html\"",
+    "code": "Okay, that\u2019s pretty standard. It\u2019s a GET request to the `/resource` endpoint of a web server, using a specific API key. \n\nBasically, it\u2019s testing a web application. The data you provided shows it's trying to access a webpage, likely a login page, using a specific API key to bypass security measures. \n\nHope that helps! \ud83d\ude0a",
+    "success": true,
+    "error": ""
+  }
+]
