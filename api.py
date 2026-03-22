@@ -7,29 +7,27 @@ from fastapi.security import APIKeyHeader
 from dotenv import load_dotenv
 from cachetools import TTLCache
 from groq import Groq
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+except:
+    genai = None
 
 def get_ai_response(prompt, system="Tu ek smart Indian dost hai. Hinglish mein jawab de."):
-    # Pehle Groq try karo
     try:
         c = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        r = c.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            max_tokens=1000
-        )
+        r = c.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"system","content":system},{"role":"user","content":prompt}], max_tokens=1000)
         return r.choices[0].message.content
     except:
         pass
-    # Groq fail - Gemini try karo
     try:
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        return model.generate_content(system + "
-" + prompt).text
+        m = genai.GenerativeModel("gemini-1.5-flash")
+        return m.generate_content(system + chr(10) + prompt).text
     except:
         pass
     return "AI unavailable"
+
 import requests
 import base64
 import sys
