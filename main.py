@@ -69,7 +69,7 @@ while True:
         messages.append({'role': 'assistant', 'content': reply})
 
         # Memory mein save karo
-        save_memory(user_input, reply)
+        save_memory(user_input, reply, success=True)
         
         speak(reply)
     except Exception as e:
