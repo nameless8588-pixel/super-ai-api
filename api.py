@@ -157,7 +157,12 @@ Internet se mila context: {search_context[:500] if search_context else "N/A"}"""
             ],
             max_tokens=4000
         )
-        code = response.choices[0].message.content.replace("```python", "").replace("```", "").strip()
+        code_to_run = response.choices[0].message.content
+        code_to_run = code_to_run.strip()
+        if "```python" in code_to_run:
+            code_to_run = code_to_run.split("```python")[1].split("```")[0].strip()
+        elif "```" in code_to_run:
+            code_to_run = code_to_run.split("```")[1].strip()
         test_result = run_code(code)
         if test_result["success"]:
             save_memory(task, code, True)
