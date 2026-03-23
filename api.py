@@ -67,7 +67,7 @@ except:
     def get_mistakes(): return []
 
 app = FastAPI(title="Super AI API", version="5.0")
-app.mount("/static", StaticFiles(directory=os.path.dirname(os.path.abspath(__file__))), name="static")
+# static mount removed
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}
 api_key_header = APIKeyHeader(name="X-API-Key")
