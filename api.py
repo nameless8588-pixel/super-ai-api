@@ -280,10 +280,10 @@ def break_code(request: dict, key: str = Depends(verify_key)):
     prompt = f"Code:\n{code}\n\nResults:\n" + "\n".join(results) + "\n\nKya hack hua? Konsa password? Top 3 fixes? Hinglish mein short. No markdown."
     response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role":"user","content":prompt}], max_tokens=400)
     return {"test_results": results, "ai_analysis": response.choices[0].message.content.strip(), "response_time": f"{round(time.time()-start, 2)}s"}
-import socket
-import ssl
-import json
-import urllib.request
+# import socket
+# import ssl
+# import json
+# import urllib.request
 
 @app.get("/webscan")
 def webscan_real(url: str, key: str = Depends(verify_key)):
@@ -420,10 +420,10 @@ def dns_check(domain: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"error": str(e)}
 
-import socket
-import ssl
-import urllib.request
-import datetime
+# import socket
+# import ssl
+# import urllib.request
+# import datetime
 
 
 @app.get("/portscan")
