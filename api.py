@@ -1883,7 +1883,7 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
     }
 
 @app.get("/selfupgrade")
-async def selfupgrade(instruction: str, api_key: str = Depends(verify_api_key)):
+async def selfupgrade(instruction: str, api_key: str = Depends(verify_key)):
     import requests, base64, os
     prompt = f"Write ONLY a single FastAPI endpoint function for: {instruction}. Rules: Only decorator + async def, no imports, no app=FastAPI(), return a dict, max 20 lines"
     ai_resp = requests.get(f"https://super-ai-api.onrender.com/ask", params={"q": prompt, "api_key": "SUPER-AI-FREE-001"})
