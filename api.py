@@ -1934,7 +1934,7 @@ def scheduler_list(key: str = Depends(verify_key)):
     return {'tasks': scheduled_tasks}
 
 # SELF UPGRADE
-@app.get('/selfupgrade')
+@app.get("/selfupgrade")
 def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str = Depends(verify_key)):
     import subprocess
     try:
