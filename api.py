@@ -1881,3 +1881,27 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
         "ai_summary": ai_summary,
         "response_time": f"{round(time.time()-start, 2)}s"
     }
+
+@app.get("/selfupgrade")
+async def selfupgrade(instruction: str, api_key: str = Depends(verify_api_key)):
+    import requests, base64, os
+    prompt = f"Write ONLY a single FastAPI endpoint function for: {instruction}. Rules: Only decorator + async def, no imports, no app=FastAPI(), return a dict, max 20 lines"
+    ai_resp = requests.get(f"https://super-ai-api.onrender.com/ask", params={"q": prompt, "api_key": "SUPER-AI-FREE-001"})
+    new_code = ai_resp.json().get("response", "")
+    blocked = ["app = FastAPI", "from fastapi", "import uvicorn", "os.system", "subprocess"]
+    for b in blocked:
+        if b in new_code:
+            return {"error": f"Blocked: {b}"}
+    token = os.getenv("GITHUB_TOKEN")
+    repo = os.getenv("GITHUB_REPO")
+    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
+    headers = {"Authorization": f"token {token}"}
+    get_resp = requests.get(api_url, headers=headers)
+    sha = get_resp.json().get("sha", "")
+    current_decoded = base64.b64decode(get_resp.json().get("content", "")).decode("utf-8")
+    updated = current_decoded + "\n\n" + new_code
+    encoded = base64.b64encode(updated.encode()).decode()
+    push_resp = requests.put(api_url, headers=headers, json={"message": f"selfupgrade: {instruction[:50]}", "content": encoded, "sha": sha})
+    if push_resp.status_code in [200, 201]:
+        return {"status": "success", "added_code": new_code}
+    return {"error": "GitHub push failed"}
