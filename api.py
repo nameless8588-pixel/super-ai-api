@@ -1935,7 +1935,7 @@ def scheduler_list(key: str = Depends(verify_key)):
 
 # SELF UPGRADE
 @app.get('/selfupgrade')
-def self_upgrade(key: str = Depends(verify_key)):
+def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str = Depends(verify_key)):
     import subprocess
     try:
         prompt = f'FastAPI project hai. User instruction: {instruction}. Sirf Python code likh jo is instruction ko implement kare. Koi explanation nahi, sirf executable code.'
