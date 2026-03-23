@@ -1964,3 +1964,18 @@ def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str
             pushed = False
     except Exception as e:
         return {'error': str(e)}
+
+from fastapi import FastAPI
+import random
+
+app = FastAPI()
+
+jokes = [
+    "Sachin Tendulkar ne ball ko itna maaraa ki ball hospital mein admit ho gaya.",
+    "Ek baar jab Newton ne apple ko girate hue dekha, tab unhone gravity ki khoj ki. Lekin jab maine apne pati ko girate hue dekha, tab maine samjhaya ki yeh gravity nahi, yeh toh sharab ki wajah se hai.",
+    "Maine apne dost se poocha, 'Tumhari girlfriend kaun si hai?' Unhone kaha, 'Arre, woh toh Facebook par hai, search karo - single aur confused.'"
+]
+
+@app.get("/joke")
+def get_joke():
+    return {"joke": random.choice(jokes)}
