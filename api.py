@@ -1938,7 +1938,7 @@ def scheduler_list(key: str = Depends(verify_key)):
 def self_upgrade(key: str = Depends(verify_key)):
     import subprocess
     try:
-        prompt = 'Ek simple useful Python function likh. Sirf code, koi explanation nahi.'
+        prompt = f'FastAPI project hai. User instruction: {instruction}. Sirf Python code likh jo is instruction ko implement kare. Koi explanation nahi, sirf executable code.'
         r = client.chat.completions.create(model='llama-3.3-70b-versatile', messages=[{'role': 'user', 'content': prompt}], max_tokens=500)
         new_code = r.choices[0].message.content.strip()
         if chr(96)*3+'python' in new_code:
