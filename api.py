@@ -1956,8 +1956,11 @@ def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str
             headers = {"Authorization": f"token {github_token}", "Content-Type": "application/json"}
             get_resp = __import__("requests").get(api_url, headers=headers)
             sha = get_resp.json().get("sha", "")
-            updated = open(__file__, "r", encoding="utf-8").read()
-            encoded = base64.b64encode(updated.encode()).decode()
+        current_file = open(__file__, "r", encoding="utf-8").read()
+        if "from fastapi" in new_code or "app = FastAPI" in new_code:
+            return {"error": "AI ne poora app likhne ki koshish ki - rejected"}
+        updated = current_file + "\n\n" + new_code
+        encoded = base64.b64encode(updated.encode()).decode()
             push_resp = __import__("requests").put(api_url, headers=headers, json={"message": "AI self upgrade", "content": encoded, "sha": sha})
             pushed = push_resp.status_code in [200, 201]
         else:
