@@ -1946,7 +1946,7 @@ def self_upgrade(key: str = Depends(verify_key)):
         elif chr(96)*3 in new_code:
             new_code = new_code.split(chr(96)*3)[1].strip()
         current = open(__file__, 'r', encoding='utf-8').read()
-        open('/app/api.py', 'w', encoding='utf-8').write(current + chr(10) + new_code)
+        open(__file__, 'w', encoding='utf-8').write(current + chr(10) + new_code)
         subprocess.run(['git', 'add', 'api.py'], cwd=os.path.dirname(__file__))
         subprocess.run(['git', 'commit', '-m', 'AI self upgrade'], cwd=os.path.dirname(os.path.abspath(__file__)))
         result = subprocess.run(['git', 'push'], cwd=os.path.dirname(__file__), capture_output=True, text=True)
