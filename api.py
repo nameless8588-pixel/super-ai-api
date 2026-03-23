@@ -1979,3 +1979,19 @@ jokes = [
 @app.get("/joke")
 def get_joke():
     return {"joke": random.choice(jokes)}
+from fastapi import FastAPI
+import random
+
+app = FastAPI()
+
+jokes = [
+    "Humor kya hai? Joke suno!",
+    "Joke sunne ke liye taiyar ho jao!",
+    "Santa: Doctor sahab, mujhe funny lagta hai. Doctor: Toh tumne kya kiya? Santa: Maine apne ghar ke saamne board lagaya, 'Santa ka clinic'.",
+    "Ek joke suno, phir hasi aayegi!",
+    "Kya tumne kabhi joke suna hai jo aapko hasi nahi dilata? Aisa kyun hota hai?"
+]
+
+@app.get("/joke")
+def get_joke():
+    return {"joke": random.choice(jokes)}
