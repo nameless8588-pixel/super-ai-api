@@ -1962,6 +1962,7 @@ def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str
             pushed = push_resp.status_code in [200, 201]
         else:
             pushed = False
+        return {"status": "upgraded", "pushed": pushed}
     except Exception as e:
         return {'error': str(e)}
 
