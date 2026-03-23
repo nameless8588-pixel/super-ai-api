@@ -1949,7 +1949,12 @@ def self_upgrade(key: str = Depends(verify_key)):
         open(__file__, 'w', encoding='utf-8').write(current + chr(10) + new_code)
         subprocess.run(['git', 'add', 'api.py'], cwd=os.path.dirname(__file__))
         subprocess.run(['git', 'commit', '-m', 'AI self upgrade'], cwd=os.path.dirname(os.path.abspath(__file__)))
-        github_token = os.getenv(chr(39)+chr(71)+chr(73)+chr(84)+chr(72)+chr(85)+chr(66)+chr(95)+chr(84)+chr(79)+chr(75)+chr(69)+chr(78)+chr(39), chr(39)+chr(39))
+        github_token = os.getenv("GITHUB_TOKEN", "")
+        github_user = os.getenv("GITHUB_USERNAME", "")
+        github_repo = os.getenv("GITHUB_REPO", "")
+        remote_url = f"https://{github_user}:{github_token}@github.com/{github_user}/{github_repo}.git"
+        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=os.path.dirname(__file__))
+        result = subprocess.run(["git", "push", "origin", "main"], cwd=os.path.dirname(__file__), capture_output=True, text=True)
         github_user = os.getenv("GITHUB_USERNAME", "")
         github_repo = os.getenv("GITHUB_REPO", "")
         remote_url = f"https://{github_user}:{github_token}@github.com/{github_user}/{github_repo}.git"
