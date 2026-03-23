@@ -1947,19 +1947,20 @@ def self_upgrade(instruction: str = "Ek naya useful endpoint add karo", key: str
             new_code = new_code.split(chr(96)*3)[1].strip()
         current = open(__file__, 'r', encoding='utf-8').read()
         open(__file__, 'w', encoding='utf-8').write(current + chr(10) + new_code)
-        subprocess.run(['git', 'add', 'api.py'], cwd=os.path.dirname(__file__))
-        subprocess.run(['git', 'commit', '-m', 'AI self upgrade'], cwd=os.path.dirname(os.path.abspath(__file__)))
+        import base64, json as json_lib
         github_token = os.getenv("GITHUB_TOKEN", "")
         github_user = os.getenv("GITHUB_USERNAME", "")
         github_repo = os.getenv("GITHUB_REPO", "")
-        remote_url = f"https://{github_user}:{github_token}@github.com/{github_user}/{github_repo}.git"
-        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=os.path.dirname(__file__))
-        result = subprocess.run(["git", "push", "origin", "main"], cwd=os.path.dirname(__file__), capture_output=True, text=True)
-        github_user = os.getenv("GITHUB_USERNAME", "")
-        github_repo = os.getenv("GITHUB_REPO", "")
-        remote_url = f"https://{github_user}:{github_token}@github.com/{github_user}/{github_repo}.git"
-        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=os.path.dirname(__file__))
-        result = subprocess.run(["git", "push", "origin", "main"], cwd=os.path.dirname(__file__), capture_output=True, text=True)
-        return {'status': 'upgraded', 'pushed': result.returncode == 0}
+        if github_token and github_user and github_repo:
+            api_url = f"https://api.github.com/repos/{github_user}/{github_repo}/contents/api.py"
+            headers = {"Authorization": f"token {github_token}", "Content-Type": "application/json"}
+            get_resp = __import__("requests").get(api_url, headers=headers)
+            sha = get_resp.json().get("sha", "")
+            updated = open(__file__, "r", encoding="utf-8").read()
+            encoded = base64.b64encode(updated.encode()).decode()
+            push_resp = __import__("requests").put(api_url, headers=headers, json={"message": "AI self upgrade", "content": encoded, "sha": sha})
+            pushed = push_resp.status_code in [200, 201]
+        else:
+            pushed = False
     except Exception as e:
         return {'error': str(e)}
