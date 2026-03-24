@@ -2134,3 +2134,7 @@ async def rollback(key: str = Depends(verify_key)):
     if push_resp.status_code in [200, 201]:
         return {"status": "success", "restored_to": message}
     return {"error": "Rollback failed", "details": push_resp.text[:200]}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
