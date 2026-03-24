@@ -2133,6 +2133,8 @@ Task: {prompt}"""
 
 @app.get("/rollback")
 async def rollback(key: str = Depends(verify_key)):
+    if VALID_KEYS.get(key) != "boss":
+        return {"error": "Only boss key can rollback!"}
     import requests, base64, os
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPO")
