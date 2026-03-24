@@ -41,3 +41,5 @@ reportlab
 playwright
 playwright
 google-genai
+openai
+anthropic
