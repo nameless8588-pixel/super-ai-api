@@ -222,9 +222,10 @@ def ask(q: str, model: str = "auto", key: str = Depends(verify_key)):
     response_text = result["response"] if isinstance(result, dict) else result
     ai_model_used = result.get("model", "unknown") if isinstance(result, dict) else "unknown"
     reply = response_text
-    cache[q] = reply
-    save_memory(q, reply, True)
     ai_errors = result.get("errors", []) if isinstance(result, dict) else []
+    if reply != "AI unavailable":
+        cache[q] = reply
+        save_memory(q, reply, True)
     return {"sawal": q, "jawab": reply, "model": ai_model_used, "response_time": f"{round(time.time()-start, 2)}s", "plan": VALID_KEYS[key], "errors": ai_errors}
 
 @app.get("/create")
