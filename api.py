@@ -1910,4 +1910,4 @@ async def selfupgrade(instruction: str, api_key: str = Depends(verify_key)):
     push_resp = requests.put(api_url, headers=headers, json={"message": f"selfupgrade: {instruction[:50]}", "content": encoded, "sha": sha})
     if push_resp.status_code in [200, 201]:
         return {"status": "success", "added_code": new_code}
-    return {"error": "GitHub push failed"}
+    return {"error": "GitHub push failed", "status_code": push_resp.status_code, "details": push_resp.text[:200]}
