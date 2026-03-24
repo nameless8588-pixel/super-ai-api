@@ -224,7 +224,8 @@ def ask(q: str, model: str = "auto", key: str = Depends(verify_key)):
     reply = response_text
     cache[q] = reply
     save_memory(q, reply, True)
-    return {"sawal": q, "jawab": reply, "model": ai_model_used, "response_time": f"{round(time.time()-start, 2)}s", "plan": VALID_KEYS[key]}
+    ai_errors = result.get("errors", []) if isinstance(result, dict) else []
+    return {"sawal": q, "jawab": reply, "model": ai_model_used, "response_time": f"{round(time.time()-start, 2)}s", "plan": VALID_KEYS[key], "errors": ai_errors}
 
 @app.get("/create")
 def create(task: str, filename: str = "ai_generated.py", key: str = Depends(verify_key)):
