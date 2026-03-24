@@ -31,8 +31,8 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
             gc = new_genai.Client(api_key=_os.getenv("GEMINI_API_KEY"))
             r = gc.models.generate_content(model=gemini_model, contents=system + "\n" + prompt)
             return {"response": r.text, "model": gemini_model, "provider": "gemini"}
-        except:
-            pass
+        except Exception as eg:
+            return {"response": f"Gemini error: {str(eg)}", "model": "gemini_error", "provider": "error"}
     if model == "auto" or model in openai_models:
         try:
             from openai import OpenAI as _OAI
