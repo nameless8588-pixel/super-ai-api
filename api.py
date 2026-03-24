@@ -1915,12 +1915,15 @@ Rules:
 - Return a dict
 - Max 20 lines"""
     else:
-        prompt = f"""Modify this FastAPI api.py code as instructed: {instruction}
+        prompt = f"""You are editing a FastAPI endpoint. Task: {instruction}
 STRICT RULES:
-- Do NOT touch these protected lines containing: {protected}
-- Do NOT remove any existing endpoints
-- Return the COMPLETE modified file
-- No markdown, no explanation, just raw Python code"""
+- Return ONLY the modified function code (decorator + function only)
+- Do NOT return the whole file
+- Do NOT remove anything
+- No imports outside function
+- No app=FastAPI()
+- No markdown, just raw Python code
+- Max 30 lines"""
 
     groq_key = os.getenv("GROQ_API_KEY")
     groq_headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
@@ -1950,7 +1953,19 @@ STRICT RULES:
     if mode == "append":
         final_code = current_decoded + "\n\n" + new_code
     else:
-        final_code = new_code
+        # Sirf specific function replace karo
+        import re
+        func_match = re.search(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
+        if func_match:
+            route = func_match.group(2)
+            # Purane function ko dhundo aur replace karo
+            pattern = rf'(@app\.(get|post)\("{re.escape(route)}"\)[^@]*)'
+            if re.search(pattern, current_decoded, re.DOTALL):
+                final_code = re.sub(pattern, new_code + "\n\n", current_decoded, flags=re.DOTALL)
+            else:
+                final_code = current_decoded + "\n\n" + new_code
+        else:
+            return {"error": "No valid endpoint found in generated code"}
 
     # Step 7: Syntax check
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
