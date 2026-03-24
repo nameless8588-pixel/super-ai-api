@@ -1885,9 +1885,15 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
 @app.get("/selfupgrade")
 async def selfupgrade(instruction: str, api_key: str = Depends(verify_key)):
     import requests, base64, os
-    prompt = f"Write ONLY a single FastAPI endpoint function for: {instruction}. Rules: Only decorator + async def, no imports, no app=FastAPI(), return a dict, max 20 lines"
-    ai_resp = requests.get(f"https://super-ai-api.onrender.com/ask", params={"q": prompt, "api_key": "SUPER-AI-FREE-001"})
-    new_code = ai_resp.json().get("response", "")
+    prompt = f"Write ONLY a single FastAPI endpoint function for: {instruction}. Rules: Only @app.get decorator + async def function, no imports at top, no app=FastAPI(), return a dict, max 15 lines"
+    groq_resp = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}", "Content-Type": "application/json"},
+        json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "max_tokens": 500},
+        timeout=15
+    )
+    new_code = groq_resp.json()["choices"][0]["message"]["content"]
+    new_code = new_code.replace("```python", "").replace("```", "").strip()
     blocked = ["app = FastAPI", "from fastapi", "import uvicorn", "os.system", "subprocess"]
     for b in blocked:
         if b in new_code:
