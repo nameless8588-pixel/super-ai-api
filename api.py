@@ -1883,17 +1883,94 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
     }
 
 @app.get("/selfupgrade")
-async def selfupgrade(instruction: str, api_key: str = Depends(verify_key)):
-    import requests, base64, os
-    prompt = f"Write ONLY a single FastAPI endpoint function for: {instruction}. Rules: Only @app.get decorator + async def function, no imports at top, no app=FastAPI(), return a dict, max 15 lines"
+async def selfupgrade(instruction: str, mode: str = "append", api_key: str = Depends(verify_key)):
+    import requests, base64, os, tempfile, subprocess
+
+    # Step 1: GitHub se current file fetch karo
+    token = os.getenv("GITHUB_TOKEN")
+    repo = os.getenv("GITHUB_REPO")
+    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
+    headers = {"Authorization": f"token {token}"}
+    get_resp = requests.get(api_url, headers=headers, timeout=10)
+    sha = get_resp.json().get("sha", "")
+    current_decoded = base64.b64decode(get_resp.json().get("content", "")).decode("utf-8")
+
+    # Step 2: Protected zones define karo
+    protected = [
+        "app = FastAPI",
+        "verify_key",
+        "VALID_KEYS",
+        "load_dotenv",
+        "api_key_header",
+        "CORSMiddleware",
+    ]
+
+    # Step 3: AI se code generate karo
+    if mode == "append":
+        prompt = f"""Write ONLY a single FastAPI endpoint function for: {instruction}
+Rules:
+- Only @app.get or @app.post decorator + async def
+- No imports outside function, no app=FastAPI(), no uvicorn
+- All imports INSIDE the function
+- Return a dict
+- Max 20 lines"""
+    else:
+        prompt = f"""Modify this FastAPI api.py code as instructed: {instruction}
+STRICT RULES:
+- Do NOT touch these protected lines containing: {protected}
+- Do NOT remove any existing endpoints
+- Return the COMPLETE modified file
+- No markdown, no explanation, just raw Python code"""
+
     groq_resp = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}", "Content-Type": "application/json"},
-        json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "max_tokens": 500},
-        timeout=15
+        headers={{"Authorization": f"Bearer {{os.getenv('GROQ_API_KEY')}}", "Content-Type": "application/json"}},
+        json={{"model": "llama-3.3-70b-versatile", "messages": [{{"role": "user", "content": prompt}}], "max_tokens": 4000}},
+        timeout=30
     )
     new_code = groq_resp.json()["choices"][0]["message"]["content"]
     new_code = new_code.replace("```python", "").replace("```", "").strip()
+
+    # Step 4: Safety check
+    blocked = ["os.system", "subprocess.call", "eval(", "exec(", "__import__"]
+    for b in blocked:
+        if b in new_code:
+            return {{"error": f"Blocked dangerous code: {{b}}"}}
+
+    # Step 5: Protected zone check (sirf modify mode mein)
+    if mode == "modify":
+        for p in protected:
+            if p in current_decoded and p not in new_code:
+                return {{"error": f"Protected code removed: {{p}} - rejected!"}},
+
+    # Step 6: Final code banao
+    if mode == "append":
+        final_code = current_decoded + "\n\n" + new_code
+    else:
+        final_code = new_code
+
+    # Step 7: Syntax check
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
+        tmp.write(final_code)
+        tmp_path = tmp.name
+    
+    result = subprocess.run(["python", "-m", "py_compile", tmp_path], capture_output=True, text=True)
+    os.unlink(tmp_path)
+    
+    if result.returncode != 0:
+        return {{"error": "Syntax error in generated code", "details": result.stderr}}
+
+    # Step 8: GitHub pe push karo
+    encoded = base64.b64encode(final_code.encode()).decode()
+    push_resp = requests.put(api_url, headers=headers, json={{
+        "message": f"selfupgrade({mode}): {{instruction[:50]}}",
+        "content": encoded,
+        "sha": sha
+    }}, timeout=10)
+
+    if push_resp.status_code in [200, 201]:
+        return {{"status": "success", "mode": mode, "added_code": new_code[:200]}}
+    return {{"error": "GitHub push failed", "status_code": push_resp.status_code}}
     blocked = ["app = FastAPI", "from fastapi", "import uvicorn", "os.system", "subprocess"]
     for b in blocked:
         if b in new_code:
