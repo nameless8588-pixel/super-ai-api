@@ -2073,13 +2073,15 @@ Task: {prompt}"""
     new_code = new_code.replace("```python", "").replace("```", "").strip()
 
     # Step 4: Safety check
-    blocked = ["os.system", "subprocess.call", "eval(", "exec(", "__import__"]
+    blocked = ["GITHUB_TOKEN", "GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY", "shutil.rmtree", "DROP TABLE", "DELETE FROM"]
     for b in blocked:
         if b in new_code:
             return {"error": f"Blocked dangerous code: {b}"}
 
     # Step 5: Protected zone check (sirf modify mode mein)
     if mode == "modify":
+        return {"error": "Modify mode permanently disabled for safety"}
+    if mode == "NEVER_modify":
         for p in protected:
             if p in current_decoded and p not in new_code:
                 return {"error": f"Protected code removed: {p} - rejected!"}
