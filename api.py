@@ -1910,10 +1910,16 @@ async def selfupgrade(instruction: str, mode: str = "append", api_key: str = Dep
         prompt = f"""Write ONLY a single FastAPI endpoint function for: {instruction}
 Rules:
 - Only @app.get or @app.post decorator + async def
-- No imports outside function, no app=FastAPI(), no uvicorn
+- Add relevant query parameters (e.g. city: str, amount: float, text: str)
 - All imports INSIDE the function
-- Return a dict
-- Max 20 lines"""
+- No imports outside function, no app=FastAPI(), no uvicorn
+- Return a meaningful dict with results
+- Max 25 lines
+Example:
+@app.get("/weather")
+async def get_weather(city: str, key: str = Depends(verify_key)):
+    import requests
+    return {{"city": city, "temp": "25C"}}"""
     else:
         prompt = f"""You are editing a FastAPI endpoint. Task: {instruction}
 STRICT RULES:
