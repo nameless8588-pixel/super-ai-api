@@ -1925,7 +1925,7 @@ STRICT RULES:
     groq_resp = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={{"Authorization": f"Bearer {{os.getenv('GROQ_API_KEY')}}", "Content-Type": "application/json"}},
-        json={{"model": "llama-3.3-70b-versatile", "messages": [{{"role": "user", "content": prompt}}], "max_tokens": 4000}},
+        json={{"model": "llama-3.3-70b-versatile", "messages": [{{"role": "user", "content": prompt}}], "max_tokens": 8000}},
         timeout=30
     )
     new_code = groq_resp.json()["choices"][0]["message"]["content"]
