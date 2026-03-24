@@ -55,9 +55,36 @@ def init_db():
         error TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS backups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sha TEXT,
+        commit_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
     conn.commit()
     conn.close()
 init_db()
+
+def save_backup(sha, message):
+    try:
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        c.execute("INSERT INTO backups (sha, commit_message) VALUES (?,?)", (sha, message))
+        # Sirf last 10 backups rakho
+        c.execute("DELETE FROM backups WHERE id NOT IN (SELECT id FROM backups ORDER BY id DESC LIMIT 10)")
+        conn.commit()
+        conn.close()
+    except: pass
+
+def get_last_backup():
+    try:
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        c.execute("SELECT sha, commit_message FROM backups ORDER BY id DESC LIMIT 1")
+        result = c.fetchone()
+        conn.close()
+        return result
+    except: return None
 
 def save_endpoint(route, code, instruction):
     try:
@@ -2074,3 +2101,43 @@ Task: {prompt}"""
     if push_resp.status_code in [200, 201]:
         return {"status": "success", "added_code": new_code}
     return {"error": "GitHub push failed", "status_code": push_resp.status_code, "details": push_resp.text[:200]}
+
+
+@app.get("/rollback")
+async def rollback(key: str = Depends(verify_key)):
+    import requests, base64, os
+    token = os.getenv("GITHUB_TOKEN")
+    repo = os.getenv("GITHUB_REPO")
+    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
+    headers = {"Authorization": f"token {token}"}
+
+    # Last backup sha lo
+    backup = get_last_backup()
+    if not backup:
+        return {"error": "Koi backup nahi mila!"}
+    
+    sha_to_restore, message = backup
+
+    # GitHub se us commit ka content lo
+    commit_url = f"https://api.github.com/repos/{repo}/git/blobs/{sha_to_restore}"
+    blob_resp = requests.get(commit_url, headers=headers, timeout=10)
+    if blob_resp.status_code != 200:
+        return {"error": "Backup content nahi mila!"}
+    
+    old_content = base64.b64decode(blob_resp.json().get("content", "")).decode("utf-8")
+
+    # Current sha lo
+    get_resp = requests.get(api_url, headers=headers, timeout=10)
+    current_sha = get_resp.json().get("sha", "")
+
+    # Rollback push karo
+    encoded = base64.b64encode(old_content.encode()).decode()
+    push_resp = requests.put(api_url, headers=headers, json={
+        "message": f"rollback: restore to {message}",
+        "content": encoded,
+        "sha": current_sha
+    }, timeout=10)
+
+    if push_resp.status_code in [200, 201]:
+        return {"status": "success", "restored_to": message}
+    return {"error": "Rollback failed", "details": push_resp.text[:200]}
