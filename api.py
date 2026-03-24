@@ -32,6 +32,21 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
             return {"response": r, "model": gemini_model, "provider": "gemini"}
         except:
             pass
+    # OpenRouter try karo (Claude + 100+ models)
+    openrouter_models = ["anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5-20251001", "meta-llama/llama-3.3-70b", "google/gemini-2.0-flash", "mistralai/mistral-7b-instruct"]
+    if model == "auto" or model in openrouter_models or model.startswith("anthropic/") or model.startswith("meta-llama/"):
+        try:
+            import requests as _req
+            or_model = model if "/" in model else "meta-llama/llama-3.3-70b"
+            r = _req.post("https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}"},
+                json={"model": or_model, "messages": [{"role":"system","content":system},{"role":"user","content":prompt}]},
+                timeout=15
+            )
+            text = r.json()["choices"][0]["message"]["content"]
+            return {"response": text, "model": or_model, "provider": "openrouter"}
+        except:
+            pass
     return {"response": "AI unavailable", "model": "none", "provider": "none"}
 
 import requests
