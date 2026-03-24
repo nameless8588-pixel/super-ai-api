@@ -2034,13 +2034,13 @@ Task: {prompt}"""
     blocked = ["os.system", "subprocess.call", "eval(", "exec(", "__import__"]
     for b in blocked:
         if b in new_code:
-            return {{"error": f"Blocked dangerous code: {{b}}"}}
+            return {"error": f"Blocked dangerous code: {b}"}
 
     # Step 5: Protected zone check (sirf modify mode mein)
     if mode == "modify":
         for p in protected:
             if p in current_decoded and p not in new_code:
-                return {{"error": f"Protected code removed: {{p}} - rejected!"}},
+                return {"error": f"Protected code removed: {p} - rejected!"}
 
     # Step 6: Final code banao
     if mode == "append":
@@ -2069,19 +2069,24 @@ Task: {prompt}"""
     os.unlink(tmp_path)
     
     if result.returncode != 0:
-        return {{"error": "Syntax error in generated code", "details": result.stderr}}
+        return {"error": "Syntax error in generated code", "details": result.stderr}
 
     # Step 8: GitHub pe push karo
     encoded = base64.b64encode(final_code.encode()).decode()
-    push_resp = requests.put(api_url, headers=headers, json={{
-        "message": f"selfupgrade({mode}): {{instruction[:50]}}",
+    push_resp = requests.put(api_url, headers=headers, json={
+        "message": f"selfupgrade({mode}): {instruction[:50]}",
         "content": encoded,
         "sha": sha
-    }}, timeout=10)
+    }, timeout=10)
 
     if push_resp.status_code in [200, 201]:
-        return {{"status": "success", "mode": mode, "added_code": new_code[:200]}}
-    return {{"error": "GitHub push failed", "status_code": push_resp.status_code}}
+        save_backup(sha, f"before: {instruction[:50]}")
+        import re as _re
+        func_match = _re.search(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
+        if func_match:
+            save_endpoint(func_match.group(2), new_code, instruction)
+        return {"status": "success", "mode": mode, "added_code": new_code[:200]}
+    return {"error": "GitHub push failed", "status_code": push_resp.status_code}
     blocked = ["app = FastAPI", "from fastapi", "import uvicorn", "os.system", "subprocess"]
     for b in blocked:
         if b in new_code:
@@ -2096,9 +2101,6 @@ Task: {prompt}"""
     updated = current_decoded + "\n\n" + new_code
     encoded = base64.b64encode(updated.encode()).decode()
     push_resp = requests.put(api_url, headers=headers, json={"message": f"selfupgrade: {instruction[:50]}", "content": encoded, "sha": sha})
-    if push_resp.status_code in [200, 201]:
-        return {"status": "success", "added_code": new_code}
-    return {"error": "GitHub push failed", "status_code": push_resp.status_code, "details": push_resp.text[:200]}
 
 
 @app.get("/rollback")
