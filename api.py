@@ -197,6 +197,10 @@ def push_to_github(filename, code):
 def home():
     return {"name": "Super AI API", "version": "5.0", "status": "Online"}
 
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    return {"status": "ok"}
+
 @app.get("/ask")
 def ask(q: str, model: str = "auto", key: str = Depends(verify_key)):
     if q in cache:
