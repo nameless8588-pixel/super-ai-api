@@ -43,10 +43,14 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
                 json={"model": or_model, "messages": [{"role":"system","content":system},{"role":"user","content":prompt}]},
                 timeout=15
             )
-            text = r.json()["choices"][0]["message"]["content"]
-            return {"response": text, "model": or_model, "provider": "openrouter"}
-        except:
-            pass
+            rj = r.json()
+            if "choices" in rj:
+                text = rj["choices"][0]["message"]["content"]
+                return {"response": text, "model": or_model, "provider": "openrouter"}
+            else:
+                return {"response": f"OpenRouter error: {rj}", "model": or_model, "provider": "openrouter_error"}
+        except Exception as e:
+            return {"response": f"OpenRouter exception: {str(e)}", "model": "error", "provider": "error"}
     return {"response": "AI unavailable", "model": "none", "provider": "none"}
 
 import requests
