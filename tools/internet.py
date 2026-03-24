@@ -1,10 +1,10 @@
 from ddgs import DDGS
+import signal
 
 def search_internet(query):
     try:
-        with DDGS() as ddgs:
-            # Sirf top 2 results nikal rahe hain
+        with DDGS(timeout=5) as ddgs:
             results = [r['body'] for r in ddgs.text(query, max_results=2)]
             return " ".join(results)
     except Exception as e:
-        return f"Internet search fail ho gaya: {e}"
+        return ""
