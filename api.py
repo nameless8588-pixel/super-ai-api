@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from cachetools import TTLCache
 from groq import Groq
 try:
-    import google.generativeai as genai
+    from google import genai
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 except:
     genai = None
