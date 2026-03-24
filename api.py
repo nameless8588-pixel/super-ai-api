@@ -1931,9 +1931,20 @@ STRICT RULES:
 - No markdown, just raw Python code
 - Max 30 lines"""
 
+    # Context: existing endpoints AI ko dو
+    import re
+    existing_routes = re.findall(r'@app\.(get|post)\("(/[^"]*)"\)', current_decoded)
+    existing_list = ", ".join([r[1] for r in existing_routes])
+    
+    full_prompt = f"""You are upgrading a FastAPI app.
+Existing endpoints: {existing_list}
+Verify_key function exists for API key auth: key: str = Depends(verify_key)
+
+Task: {prompt}"""
+
     groq_key = os.getenv("GROQ_API_KEY")
     groq_headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
-    groq_body = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "max_tokens": 8000}
+    groq_body = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": full_prompt}], "max_tokens": 8000}
     groq_resp = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers=groq_headers,
