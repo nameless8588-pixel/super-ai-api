@@ -52,7 +52,7 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
             or_model = model if "/" in model else "meta-llama/llama-3.3-70b"
             r = _req.post("https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {_os.getenv('OPENROUTER_API_KEY')}", "HTTP-Referer": "https://super-ai-api.onrender.com"},
-                json={"model": or_model, "messages": [{"role":"system","content":system},{"role":"user","content":prompt}]},
+                json={"model": or_model, "messages": [{"role":"system","content":system},{"role":"user","content":prompt}], "max_tokens": 1000},
                 timeout=20
             )
             rj = r.json()
