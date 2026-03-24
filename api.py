@@ -164,7 +164,7 @@ def push_to_github(filename, code):
         data["sha"] = check.json()["sha"]
     requests.put(url, json=data, headers=headers)
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {"name": "Super AI API", "version": "5.0", "status": "Online"}
 
