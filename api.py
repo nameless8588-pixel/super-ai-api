@@ -36,6 +36,51 @@ import time
 
 load_dotenv()
 cache = TTLCache(maxsize=100, ttl=3600)
+
+# AI Memory Database
+import sqlite3
+def init_db():
+    conn = sqlite3.connect("ai_memory.db")
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS endpoints (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        route TEXT UNIQUE,
+        code TEXT,
+        instruction TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS failures (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        instruction TEXT,
+        error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.commit()
+    conn.close()
+init_db()
+
+def save_endpoint(route, code, instruction):
+    try:
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO endpoints (route, code, instruction) VALUES (?,?,?)", 
+                  (route, code, instruction))
+        conn.commit()
+        conn.close()
+    except: pass
+
+def get_similar_endpoints(instruction):
+    try:
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        words = instruction.lower().split()[:3]
+        results = []
+        for word in words:
+            c.execute("SELECT route, code FROM endpoints WHERE instruction LIKE ?", (f"%{word}%",))
+            results.extend(c.fetchall())
+        conn.close()
+        return results[:3]
+    except: return []
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
@@ -1931,15 +1976,21 @@ STRICT RULES:
 - No markdown, just raw Python code
 - Max 30 lines"""
 
-    # Context: existing endpoints AI ko dو
+    # Context: existing endpoints + memory
     import re
     existing_routes = re.findall(r'@app\.(get|post)\("(/[^"]*)"\)', current_decoded)
     existing_list = ", ".join([r[1] for r in existing_routes])
+    similar = get_similar_endpoints(instruction)
+    memory_context = ""
+    if similar:
+        memory_context = "Previous similar endpoints for reference:\n"
+        for route, code in similar:
+            memory_context += f"Route: {route}\nCode: {code[:200]}\n---\n"
     
     full_prompt = f"""You are upgrading a FastAPI app.
 Existing endpoints: {existing_list}
 Verify_key function exists for API key auth: key: str = Depends(verify_key)
-
+{memory_context}
 Task: {prompt}"""
 
     groq_key = os.getenv("GROQ_API_KEY")
