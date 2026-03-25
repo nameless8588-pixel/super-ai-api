@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Super AI - Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fff;font-family:Segoe UI,Arial,sans-serif;min-height:100vh;padding-bottom:80px}
+.header{background:#111;border-bottom:1px solid #00ff8833;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{color:#00ff88;font-size:1.4em;font-weight:bold}
+.status{display:flex;align-items:center;gap:6px;font-size:0.8em;color:#888}
+.dot{width:8px;height:8px;background:#00ff88;border-radius:50%}
+.key-box{margin:15px;background:#111;border:1px solid #222;border-radius:12px;padding:15px}
+.key-box label{color:#888;font-size:0.8em;display:block;margin-bottom:8px}
+.key-row{display:flex;gap:8px}
+.key-input{flex:1;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#00ff88;font-family:monospace;font-size:0.9em;outline:none}
+.save-btn{padding:12px 16px;background:#00ff88;color:#000;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
+.key-status{font-size:0.75em;color:#00ff88;margin-top:6px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 15px 15px}
+.stat{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:12px;text-align:center}
+.stat-num{font-size:1.8em;font-weight:bold;color:#00ff88}
+.stat-label{font-size:0.7em;color:#666;margin-top:3px}
+.section{margin:0 15px 15px}
+.sec-title{color:#00ff88;font-size:0.8em;font-weight:bold;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;opacity:0.7}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px;cursor:pointer;transition:transform 0.15s}
+.card:active{transform:scale(0.96)}
+.card.hack{border-left:3px solid #ff4444}
+.card.ai{border-left:3px solid #8844ff}
+.card.web{border-left:3px solid #4488ff}
+.card-icon{font-size:1.3em;font-weight:bold;color:#00ff88;margin-bottom:6px}
+.card-name{font-size:0.85em;font-weight:bold;color:#fff}
+.card-desc{font-size:0.7em;color:#666;margin-top:2px}
+.tag{display:inline-block;font-size:0.65em;padding:2px 6px;border-radius:4px;margin-top:5px}
+.tag-hack{background:#ff444422;color:#ff4444}
+.tag-ai{background:#8844ff22;color:#8844ff}
+.tag-web{background:#4488ff22;color:#4488ff}
+.modal{display:none;position:fixed;inset:0;background:#000c;z-index:200;align-items:flex-end}
+.modal.open{display:flex}
+.modal-box{background:#111;border-radius:20px 20px 0 0;width:100%;padding:20px;border-top:2px solid #00ff8833;max-height:85vh;overflow-y:auto}
+.modal-title{color:#00ff88;font-size:1.1em;font-weight:bold;margin-bottom:15px}
+.modal-input{width:100%;padding:14px;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;font-family:monospace;margin-bottom:10px;outline:none;font-size:0.9em}
+.modal-input:focus{border-color:#00ff88}
+.mbtn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:1em;cursor:pointer;margin-bottom:8px}
+.mbtn-run{background:#00ff88;color:#000}
+.mbtn-close{background:#1a1a1a;color:#888}
+.result{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:10px;padding:12px;margin-top:10px;font-family:monospace;font-size:0.75em;color:#00ff88;white-space:pre-wrap;word-break:break-all;max-height:250px;overflow-y:auto;display:none}
+.result.show{display:block}
+.loader{width:100%;height:3px;background:#1a1a1a;border-radius:3px;margin:10px 0;overflow:hidden;display:none}
+.loader.show{display:block}
+.loader-fill{height:100%;background:#00ff88;width:30%;animation:load 1s infinite}
+@keyframes load{0%{margin-left:-30%}100%{margin-left:100%}}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #222;display:flex;padding:8px 0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;cursor:pointer;color:#666;font-size:0.65em;border:none;background:none}
+.nav-btn.active{color:#00ff88}
+.nav-icon{font-size:1.2em;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">Super AI</div>
+  <div class="status"><div class="dot" id="dot"></div><span id="stxt">Checking...</span></div>
+</div>
+<div class="key-box">
+  <label>API Key</label>
+  <div class="key-row">
+    <input class="key-input" id="apiKey" type="password" placeholder="SUPER-AI-FREE-001" />
+    <button class="save-btn" onclick="saveKey()">Save</button>
+  </div>
+  <div class="key-status" id="keyStatus"></div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="stat-num">30+</div><div class="stat-label">Endpoints</div></div>
+  <div class="stat"><div class="stat-num" id="reqC">0</div><div class="stat-label">Requests</div></div>
+  <div class="stat"><div class="stat-num" id="bypC">0</div><div class="stat-label">Bypassed</div></div>
+</div>
+<div class="section">
+  <div class="sec-title">AI Tools</div>
+  <div class="grid">
+    <div class="card ai" onclick="openTool('ask ','q ','Ask AI ','Sawaal likho... ')"><div class="card-icon">AI</div><div class="card-name">Ask AI</div><div class="card-desc">Kuch bhi poochho</div><span class="tag tag-ai">AI</span></div>
+    <div class="card ai" onclick="openTool('chat ','msg ','Chat ','Message likho... ')"><div class="card-icon">CH</div><div class="card-name">Chat</div><div class="card-desc">Hinglish mein baat</div><span class="tag tag-ai">AI</span></div>
+    <div class="card ai" onclick="openTool('create ','task ','Code Banao ','Task likho... ')"><div class="card-icon">CD</div><div class="card-name">Create Code</div><div class="card-desc">Python generate</div><span class="tag tag-ai">AI</span></div>
+    <div class="card web" onclick="openTool('webapp ','task ','Web App ','App task... ')"><div class="card-icon">WB</div><div class="card-name">Web App</div><div class="card-desc">HTML app banao</div><span class="tag tag-web">WEB</span></div>
+  </div>
+</div>
+<div class="section">
+  <div class="sec-title">Security Tools</div>
+  <div class="grid">
+    <div class="card hack" onclick="openTool('sitereport ','url ','Site Report ','domain.com ')"><div class="card-icon">SR</div><div class="card-name">Site Report</div><div class="card-desc">Full audit + PDF</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('loginbypass ','url ','Login Bypass ','domain.com/login ')"><div class="card-icon">LB</div><div class="card-name">Login Bypass</div><div class="card-desc">WAF + CSRF bypass</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('xsstest ','url ','XSS Test ','domain.com ')"><div class="card-icon">XS</div><div class="card-name">XSS Test</div><div class="card-desc">XSS vulnerability</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('sqlinject ','url ','SQL Inject ','domain.com ')"><div class="card-icon">SQ</div><div class="card-name">SQL Inject</div><div class="card-desc">SQL injection test</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('fullaudit ','domain ','Full Audit ','domain.com ')"><div class="card-icon">FA</div><div class="card-name">Full Audit</div><div class="card-desc">Complete scan</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('subdomains ','domain ','Subdomains ','domain.com ')"><div class="card-icon">SD</div><div class="card-name">Subdomains</div><div class="card-desc">Subdomain scan</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('portscan ','domain ','Port Scan ','domain.com ')"><div class="card-icon">PS</div><div class="card-name">Port Scan</div><div class="card-desc">Open ports</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('sslcheck ','domain ','SSL Check ','domain.com ')"><div class="card-icon">SL</div><div class="card-name">SSL Check</div><div class="card-desc">Certificate check</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('webscan ','url ','Web Scan ','domain.com ')"><div class="card-icon">WS</div><div class="card-name">Web Scan</div><div class="card-desc">Security scan</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('sensitivefiles ','domain ','Sensitive Files ','domain.com ')"><div class="card-icon">SF</div><div class="card-name">Sensitive Files</div><div class="card-desc">Hidden files</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('whois ','domain ','WHOIS ','domain.com ')"><div class="card-icon">WH</div><div class="card-name">WHOIS</div><div class="card-desc">Domain info</div><span class="tag tag-hack">HACK</span></div>
+    <div class="card hack" onclick="openTool('netanalyze ','domain ','Network ','domain.com ')"><div class="card-icon">NT</div><div class="card-name">Network</div><div class="card-desc">Network analysis</div><span class="tag tag-hack">HACK</span></div>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="mTitle">Tool</div>
+    <input class="modal-input" id="mInput" placeholder="" />
+    <div class="loader" id="loader"><div class="loader-fill"></div></div>
+    <div class="result" id="result"></div>
+    <button class="mbtn mbtn-run" id="runBtn" onclick="runTool()">Run</button>
+    <button class="mbtn mbtn-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+<div class="nav">
+  <button class="nav-btn active"><div class="nav-icon">HM</div>Home</button>
+  <button class="nav-btn" onclick="location.href='docs.html '"><div class="nav-icon">DC</div>Docs</button>
+  <button class="nav-btn" onclick="window.open('https://super-ai-api.onrender.com/docs ')"><div class="nav-icon">AP</div>API</button>
+</div>
+<script>
+const API = "https://super-ai-api.onrender.com";
+let cur={e:null,p:null},req=0,byp=0;
+window.onload=()=>{
+  const k=localStorage.getItem("superai_key");
+  fetch(API+"/ping").then(r=>r.json()).then(()=>{document.getElementById("dot").style.background="#00ff88";document.getElementById("stxt").textContent="Online";}).catch(()=>{document.getElementById("dot").style.background="#ff4444";document.getElementById("stxt").textContent="Offline";});
+};
+function getKey(){return localStorage.getItem("superai_key")||document.getElementById("apiKey").value.trim();}
+function openTool(e,p,t,ph){cur={e,p};document.getElementById("mTitle").textContent=t;document.getElementById("mInput").placeholder=ph;document.getElementById("mInput").value="";document.getElementById("result").classList.remove("show");document.getElementById("modal").classList.add("open");}
+function closeModal(){document.getElementById("modal").classList.remove("open");}
+async function runTool(){
+  const v=document.getElementById("mInput").value.trim(),k=getKey();
+  document.getElementById("loader").classList.add("show");
+  document.getElementById("result").classList.remove("show");
+  document.getElementById("runBtn").disabled=true;
+  req++;document.getElementById("reqC").textContent=req;
+  try{
+    const r=await fetch(API+"/"+cur.e+"?"+cur.p+"="+encodeURIComponent(v),{headers:{"X-API-Key":k}});
+    const d=await r.json();
+    if(d.bypassed_count>0){byp+=d.bypassed_count;document.getElementById("bypC").textContent=byp;}
+    document.getElementById("result").textContent=JSON.stringify(d,null,2);
+    document.getElementById("result").classList.add("show");
+  }catch(e){document.getElementById("result").textContent="Error: "+e.message;document.getElementById("result").classList.add("show");}
+  document.getElementById("loader").classList.remove("show");
+  document.getElementById("runBtn").disabled=false;
+}
+document.getElementById("modal").addEventListener("click",function(e){if(e.target===this)closeModal();});
+document.getElementById("mInput").addEventListener("keydown",function(e){if(e.key==="Enter")runTool();});
+</script>
+</body>
+</html>
