@@ -15,7 +15,7 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
     import requests as _req, os as _os
     errors = []
     groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"]
-    gemini_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-lite"]
+    gemini_models = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
     openai_models = ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"]
 
     if model == "auto" or model in groq_models:
@@ -30,10 +30,9 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
     if model == "auto" or model in gemini_models:
         try:
             from google import genai as new_genai
-            gemini_model = model if model in gemini_models else "gemini-1.5-flash"
+            gemini_model = model if model in gemini_models else "gemini-2.0-flash-lite"
             gc = new_genai.Client(api_key=_os.getenv("GEMINI_API_KEY"))
-            full_model = gemini_model if "models/" in gemini_model else f"models/{gemini_model}"
-            r = gc.models.generate_content(model=full_model, contents=system + "\n" + prompt)
+            r = gc.models.generate_content(model=gemini_model, contents=system + "\n" + prompt)
             return {"response": r.text, "model": gemini_model, "provider": "gemini"}
         except Exception as e:
             errors.append(f"gemini: {str(e)}")
