@@ -203,7 +203,7 @@ def health():
     return {"status": "ok"}
 
 @app.get("/ask")
-def ask(q: str, model: str = "auto", key: str = Depends(verify_key)):
+def ask(q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
     if q in cache:
         return {"sawal": q, "jawab": cache[q], "model": "cached", "cached": True}
     start = time.time()
