@@ -102,24 +102,37 @@ init_db()
 
 def save_backup(sha, message):
     try:
-        conn = sqlite3.connect("ai_memory.db")
-        c = conn.cursor()
-        c.execute("INSERT INTO backups (sha, commit_message) VALUES (?,?)", (sha, message))
-        # Sirf last 10 backups rakho
-        c.execute("DELETE FROM backups WHERE id NOT IN (SELECT id FROM backups ORDER BY id DESC LIMIT 10)")
-        conn.commit()
-        conn.close()
+        import requests, os
+        token = os.getenv("GITHUB_TOKEN")
+        repo = os.getenv("GITHUB_REPO")
+        # GitHub pe backup.txt save karo
+        api_url = f"https://api.github.com/repos/{repo}/contents/backup.txt"
+        headers = {"Authorization": f"token {token}"}
+        import base64
+        data = f"{sha}|{message}"
+        encoded = base64.b64encode(data.encode()).decode()
+        get_resp = requests.get(api_url, headers=headers, timeout=5)
+        file_sha = get_resp.json().get("sha", "") if get_resp.status_code == 200 else ""
+        payload = {"message": "backup: save sha", "content": encoded}
+        if file_sha:
+            payload["sha"] = file_sha
+        requests.put(api_url, headers=headers, json=payload, timeout=5)
     except: pass
 
 def get_last_backup():
     try:
-        conn = sqlite3.connect("ai_memory.db")
-        c = conn.cursor()
-        c.execute("SELECT sha, commit_message FROM backups ORDER BY id DESC LIMIT 1")
-        result = c.fetchone()
-        conn.close()
-        return result
-    except: return None
+        import requests, os, base64
+        token = os.getenv("GITHUB_TOKEN")
+        repo = os.getenv("GITHUB_REPO")
+        api_url = f"https://api.github.com/repos/{repo}/contents/backup.txt"
+        headers = {"Authorization": f"token {token}"}
+        resp = requests.get(api_url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = base64.b64decode(resp.json().get("content", "")).decode("utf-8").strip()
+            sha, message = data.split("|", 1)
+            return (sha, message)
+    except: pass
+    return None
 
 def save_endpoint(route, code, instruction):
     try:
