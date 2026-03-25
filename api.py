@@ -27,7 +27,7 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
         except Exception as e:
             errors.append(f"groq: {str(e)}")
 
-    if model == "auto" or model in gemini_models:
+    if model in gemini_models:  # auto mein gemini skip - quota issues
         try:
             from google import genai as new_genai
             gemini_model = model if model in gemini_models else "gemini-2.0-flash-lite"
