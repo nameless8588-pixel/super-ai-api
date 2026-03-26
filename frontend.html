@@ -3,395 +3,457 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super AI Platform</title>
+    <title>Super AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0a0a; color: white; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
-        .hero { text-align: center; padding: 60px 20px 40px; }
-        .hero h1 { font-size: 3.5em; color: #00ff88; text-shadow: 0 0 30px #00ff8855; }
-        .hero p { color: #888; margin-top: 10px; font-size: 1.1em; }
-        .container { max-width: 700px; margin: 0 auto; padding: 20px; }
-        .card { background: #111; border: 1px solid #222; border-radius: 16px; padding: 30px; margin-bottom: 25px; }
-        .card h2 { color: #00ff88; margin-bottom: 20px; font-size: 1.3em; }
-        .input-row { display: flex; gap: 10px; }
-        input[type="text"], textarea { flex: 1; padding: 14px 18px; border-radius: 10px; background: #1a1a1a; border: 1px solid #333; color: white; font-size: 1em; outline: none; font-family: monospace; }
-        input[type="text"]:focus, textarea:focus { border-color: #00ff88; }
-        textarea { width: 100%; min-height: 200px; resize: vertical; margin-bottom: 12px; }
-        .api-key-row { margin-bottom: 15px; }
-        .api-key-row label { color: #888; font-size: 0.9em; display: block; margin-bottom: 6px; }
-        button { padding: 14px 24px; border-radius: 10px; border: none; background: #00ff88; color: #000; font-weight: bold; font-size: 1em; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        button:hover { background: #00cc70; transform: scale(1.03); }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-        .result-box { margin-top: 20px; padding: 20px; background: #0d0d0d; border-radius: 12px; border: 1px solid #1a1a1a; display: none; }
-        .result-box.show { display: block; }
-        .live-link { display: inline-block; margin-top: 12px; padding: 12px 24px; background: #00ff88; color: #000; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 1.05em; transition: all 0.2s; }
-        .live-link:hover { background: #00cc70; transform: scale(1.03); }
-        .answer-box { color: #ccc; line-height: 1.7; white-space: pre-wrap; word-break: break-word; font-family: monospace; }
-        .status { font-size: 0.9em; color: #888; margin-top: 8px; }
-        .status.success { color: #00ff88; }
-        .loading { display: none; text-align: center; padding: 20px; color: #00ff88; }
-        .loading.show { display: block; }
-        .dot { animation: blink 1s infinite; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; background: #1a1a1a; color: #888; border: 1px solid #222; font-size: 0.95em; }
-        .tab.active { background: #00ff88; color: #000; font-weight: bold; border-color: #00ff88; }
-        .test-item { background: #1a1a1a; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 0.9em; }
-        .test-item.hack { border-left: 3px solid #ff4444; color: #ff4444; }
-        .test-item.safe { border-left: 3px solid #00ff88; color: #00ff88; }
-        footer { text-align: center; padding: 40px; color: #333; font-size: 0.85em; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 3px; }
+        .message pre { white-space: pre-wrap; word-wrap: break-word; background: #1f2937; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; }
+        .tool-item { transition: all 0.2s; }
+        .tool-item:hover { background-color: #374151; }
+        .chat-message { margin-bottom: 1rem; display: flex; }
+        .chat-message.user { justify-content: flex-end; }
+        .chat-message.bot { justify-content: flex-start; }
+        .message-bubble { max-width: 80%; padding: 0.75rem; border-radius: 1rem; }
+        .chat-message.user .message-bubble { background-color: #10b981; color: white; border-bottom-right-radius: 0; }
+        .chat-message.bot .message-bubble { background-color: #1f2937; color: #e5e7eb; border-bottom-left-radius: 0; }
     </style>
 </head>
-<body>
-<div class="hero">
-    <h1>Super AI</h1>
-    <p>Nameless8588 ka AI Platform</p>
+<body class="bg-gray-900 text-gray-200 font-sans h-screen overflow-hidden">
+
+<div class="flex h-full">
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-80 bg-gray-800 flex flex-col overflow-hidden border-r border-gray-700">
+        <!-- Sidebar Header -->
+        <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-green-400">Super AI</h2>
+            <button id="settingsBtn" class="text-gray-400 hover:text-white transition">
+                <i class="fas fa-ellipsis-v text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Tools Accordion -->
+        <div class="flex-1 overflow-y-auto p-2">
+            <details class="mb-4" open>
+                <summary class="cursor-pointer text-green-400 font-semibold mb-2 flex items-center gap-2">
+                    <i class="fas fa-folder-open"></i> Tools
+                </summary>
+                <div class="ml-4 space-y-1">
+                    <!-- Bypass Tools -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">🔓 Bypass</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="loginbypass">Login Bypass (HTML)</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="jsbypass">JS Bypass (JSON/API)</button>
+
+                    <!-- Web Vulnerabilities -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">💉 Web Vulns</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="xsstest">XSS Test</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sqlinject">SQL Injection</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="dirscan">Directory Scan</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sensitivefiles">Sensitive Files</button>
+
+                    <!-- Security Headers & Misc -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">🛡️ Security</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="headers">Security Headers</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="corscheck">CORS Check</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="cookiecheck">Cookie Check</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="clickjack">Clickjacking Test</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="ratelimit">Rate Limit Test</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="redirecttest">Open Redirect</button>
+
+                    <!-- Network / Infrastructure -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">🌐 Network</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webscan">Web Scan</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sslcheck">SSL Check</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="portscan">Port Scan</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="subdomains">Subdomains</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="whois">WHOIS</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="dns">DNS Lookup</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="netanalyze">Network Analyze</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="techdetect">Tech Detect</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="robots">Robots.txt</button>
+
+                    <!-- Aggressive / Full Audit -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">⚡ Aggressive</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="fullaudit">Full Audit</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="aggressiveattack">Aggressive Attack</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="aggressive">Advanced Aggressive</button>
+
+                    <!-- Credentials / Passwords -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">🔑 Credentials</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="passcheck">Password Strength</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="hashcrack">Hash Crack</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="iprep">IP Reputation</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="jwtcheck">JWT Check</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="apiscan">API Endpoint Scan</button>
+
+                    <!-- AI Tools -->
+                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">🤖 AI</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="ask">Ask AI</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webapp">Generate Web App</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="breakcode">Code Breaker</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="agent">AI Agent</button>
+                </div>
+            </details>
+
+            <!-- Old Chats -->
+            <div class="mt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-green-400 font-semibold"><i class="fas fa-history mr-2"></i>Old Chats</h3>
+                    <button id="clearAllChatsBtn" class="text-xs text-red-400 hover:text-red-300">Clear all</button>
+                </div>
+                <div id="chatSessionsList" class="space-y-1"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- RIGHT MAIN: CHAT AREA -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Chat Header -->
+        <div class="p-4 border-b border-gray-700 bg-gray-800">
+            <div class="flex items-center justify-between">
+                <h1 class="text-lg font-semibold">AI Assistant</h1>
+                <div class="text-sm text-gray-400">
+                    <i class="fas fa-key mr-1"></i> API Key: <span id="currentApiKeyDisplay">****</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-700 bg-gray-800">
+            <div class="flex gap-2">
+                <input type="text" id="chatInput" placeholder="Ask me anything, or click a tool from the sidebar..." class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button id="sendBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
+    </main>
 </div>
-<div class="container">
-    <div class="card">
-        <h2>API Key</h2>
-        <div class="api-key-row">
-            <label>Apni API key daalo</label>
-            <input type="text" id="apiKey" placeholder="SUPER-AI-FREE-001" />
+
+<!-- Settings Modal (hidden by default) -->
+<div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden transition-all">
+    <div class="bg-gray-800 rounded-lg p-6 w-96 shadow-xl border border-gray-700">
+        <h3 class="text-xl font-bold mb-4 text-green-400">Settings</h3>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">API Key</label>
+            <input type="text" id="settingsApiKey" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
         </div>
-        <button onclick="saveKey()">Save Key</button>
-        <span class="status" id="keyStatus"></span>
-    </div>
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('webapp', this)">Web App Banao</div>
-        <div class="tab" onclick="switchTab('ask', this)">Kuch Poochho</div>
-        <div class="tab" onclick="switchTab('chat', this)">Chat</div>
-        <div class="tab" onclick="switchTab('break', this)">Code Breaker</div>
-        <div class="tab" onclick="switchTab('hack', this)">Hack</div>
-    </div>
-    <div id="tab-webapp" class="card">
-        <h2>AI se Web App Banwao</h2>
-        <div class="input-row">
-            <input type="text" id="webTask" placeholder="snake game banao, calculator banao..." />
-            <button id="webBtn" onclick="makeWebApp()">Banao!</button>
-        </div>
-        <div class="loading" id="webLoading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span><p style="margin-top:10px">AI bana rahi hai...</p></div>
-        <div class="result-box" id="webResult">
-            <p class="status success">App ready hai!</p>
-            <a id="webLink" class="live-link" href="#" target="_blank">App Kholo</a>
-            <p class="status" id="webTime"></p>
-        </div>
-    </div>
-    <div id="tab-ask" class="card" style="display:none">
-        <h2>AI se Kuch Poochho</h2>
-        <div class="input-row">
-            <input type="text" id="askQ" placeholder="koi bhi sawaal..." onkeydown="if(event.key==='Enter')askAI()" />
-            <button id="askBtn" onclick="askAI()">Poochho!</button>
-        </div>
-        <div class="loading" id="askLoading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span></div>
-        <div class="result-box" id="askResult">
-            <div class="answer-box" id="askAnswer"></div>
-            <p class="status" id="askTime"></p>
-        </div>
-    </div>
-    <div id="tab-chat" class="card" style="display:none">
-        <h2>AI se Baat Karo</h2>
-        <div id="chatBox" style="min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:12px;padding:10px;background:#0d0d0d;border-radius:10px;"></div>
-        <div class="input-row">
-            <input type="text" id="chatMsg" placeholder="kuch bhi likho..." onkeydown="if(event.key==='Enter')sendChat()" />
-            <button id="chatBtn" onclick="sendChat()">Bhejo</button>
-        </div>
-    </div>
-    <div id="tab-break" class="card" style="display:none">
-        <h2>Code Breaker</h2>
-        <p style="color:#888;margin-bottom:12px;font-size:0.9em">Code paste karo — AI real attacks chalayegi!</p>
-        <textarea id="breakCode" placeholder="yahan code paste karo..."></textarea>
-        <button id="breakBtn" onclick="doBreakCode()" style="width:100%">Break Karo!</button>
-        <div class="loading" id="breakLoading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span><p style="margin-top:10px">Attack chal raha hai...</p></div>
-        <div class="result-box" id="breakResult">
-            <h3 style="color:#ff4444;margin-bottom:12px">Attack Results:</h3>
-            <div id="breakTests"></div>
-            <h3 style="color:#00ff88;margin-top:16px;margin-bottom:8px">AI Analysis:</h3>
-            <div class="answer-box" id="breakAnalysis"></div>
-            <p class="status" id="breakTime"></p>
+        <div class="flex justify-end gap-2">
+            <button id="saveSettingsBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Save</button>
+            <button id="closeSettingsBtn" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">Cancel</button>
         </div>
     </div>
 </div>
 
-    
-    <div id="tab-hack" class="card" style="display:block">
-        <h2 style="color:#ff4444">AI Auto Hacker</h2>
-        <p style="color:#888;margin-bottom:12px;font-size:0.9em">Domain do - AI khud sab 24 tools chalayegi aur full report degi!</p>
-        <div id="hackBox" style="min-height:200px;max-height:500px;overflow-y:auto;margin-bottom:12px;padding:10px;background:#0d0d0d;border-radius:10px;font-family:monospace;font-size:0.9em;"></div>
-        <div class="input-row">
-            <input type="text" id="hackDomain" placeholder="example.com" />
-            <button id="auditBtn" onclick="runFullAudit()" style="background:#ffaa00;color:#000">Full Audit</button>
-            <button id="aggBtn" onclick="runAggressiveAttack()" style="background:#ff4444;color:#fff">Aggressive Attack!</button>
-            <button id="auditBtn" onclick="runSiteReport()" style="background:#cc0000;color:#fff;margin-top:8px;width:100%;padding:12px;border-radius:8px;border:none;font-weight:bold;cursor:pointer">Full Audit + PDF Report</button>
-        </div>
-    </div>
-<footer>Made with love by Nameless8588 | Powered by Super AI</footer>
 <script>
-    const API_BASE = "https://super-ai-api.onrender.com";
-    window.onload = () => {
-        const saved = localStorage.getItem('superai_key');
-        if (saved) { document.getElementById('apiKey').value = saved; document.getElementById('keyStatus').textContent = 'Key saved!'; document.getElementById('keyStatus').className = 'status success'; }
-    };
-    function saveKey() {
-        const key = document.getElementById('apiKey').value.trim();
-        if (!key) return;
-        localStorage.setItem('superai_key', key);
-        document.getElementById('keyStatus').textContent = 'Key save ho gaya!';
-        document.getElementById('keyStatus').className = 'status success';
+    // ========== CONFIG ==========
+    const API_BASE = 'https://super-ai-api.onrender.com';
+    let currentApiKey = localStorage.getItem('apiKey') || 'SUPER-AI-FREE-001';
+    let currentSessionId = localStorage.getItem('currentSessionId') || generateSessionId();
+    let sessions = JSON.parse(localStorage.getItem('chatSessions') || '{}');
+    let currentMessages = [];
+
+    // Helper: generate random session ID
+    function generateSessionId() {
+        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
     }
-    function getKey() { return localStorage.getItem('superai_key') || document.getElementById('apiKey').value.trim(); }
-    function switchTab(tab, el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-        ['webapp','ask','chat','break','hack'].forEach(t => { document.getElementById('tab-'+t).style.display = t===tab?'block':'none'; });
+
+    // Load chat messages for current session
+    function loadCurrentSession() {
+        if (!sessions[currentSessionId]) {
+            sessions[currentSessionId] = { name: formatDate(new Date()), messages: [] };
+        }
+        currentMessages = sessions[currentSessionId].messages;
+        renderChatMessages();
+        updateChatSessionsList();
+        saveSessionsToStorage();
     }
-    async function makeWebApp() {
-        const task = document.getElementById('webTask').value.trim();
-        const key = getKey();
-        if (!task || !key) return alert('Task aur key daalo!');
-        document.getElementById('webBtn').disabled = true;
-        document.getElementById('webLoading').classList.add('show');
-        document.getElementById('webResult').classList.remove('show');
-        try {
-            const res = await fetch(`${API_BASE}/webapp?task=${encodeURIComponent(task)}&emoji=rocket`, { headers: {'X-API-Key': key} });
-            const data = await res.json();
-            if (data.live_url) { document.getElementById('webLink').href = data.live_url; document.getElementById('webTime').textContent = data.response_time; document.getElementById('webResult').classList.add('show'); }
-            else alert('Error aaya!');
-        } catch(e) { alert('API se connect nahi ho paya!'); }
-        document.getElementById('webBtn').disabled = false;
-        document.getElementById('webLoading').classList.remove('show');
+
+    // Save sessions to localStorage
+    function saveSessionsToStorage() {
+        localStorage.setItem('chatSessions', JSON.stringify(sessions));
+        localStorage.setItem('currentSessionId', currentSessionId);
     }
-    async function askAI() {
-        const q = document.getElementById('askQ').value.trim();
-        const key = getKey();
-        if (!q || !key) return alert('Sawaal aur key daalo!');
-        document.getElementById('askBtn').disabled = true;
-        document.getElementById('askLoading').classList.add('show');
-        document.getElementById('askResult').classList.remove('show');
-        try {
-            const res = await fetch(`${API_BASE}/ask?q=${encodeURIComponent(q)}`, { headers: {'X-API-Key': key} });
-            const data = await res.json();
-            document.getElementById('askAnswer').textContent = data.jawab; document.getElementById('askAnswer').insertAdjacentHTML('afterbegin', '<b style="color:#00ff88">Tum: ' + document.getElementById('askQ').value + '</b><br>');
-            document.getElementById('askTime').textContent = data.response_time;
-            document.getElementById('askResult').classList.add('show');
-        } catch(e) { alert('API se connect nahi ho paya!'); }
-        document.getElementById('askBtn').disabled = false; document.getElementById('askQ').value='';
-        document.getElementById('askLoading').classList.remove('show');
+
+    // Format date for chat session name
+    function formatDate(date) {
+        return date.toLocaleString();
     }
-    async function sendChat() {
-        const msg = document.getElementById('chatMsg').value.trim();
-        const key = getKey();
-        if (!msg || !key) return;
-        const box = document.getElementById('chatBox');
-        box.innerHTML += `<div style="text-align:right;margin:8px 0"><span style="background:#00ff8822;padding:8px 12px;border-radius:10px;color:#00ff88;display:inline-block;max-width:80%;word-wrap:break-word">${msg}</span></div>`;
-        document.getElementById('chatMsg').value = '';
-        document.getElementById('chatMsg').focus();
-        document.getElementById('chatBtn').disabled = true;
-        try {
-            const res = await fetch(`${API_BASE}/chat?msg=${encodeURIComponent(msg)}&session=user1`, { headers: {'X-API-Key': key} });
-            const data = await res.json();
-            box.innerHTML += `<div style="text-align:left;margin:8px 0"><span style="background:#1a1a1a;padding:8px 12px;border-radius:10px;color:#ccc;display:inline-block;max-width:80%;word-wrap:break-word">${data.reply}</span></div>`;
-            box.scrollTop = box.scrollHeight;
-        } catch(e) { box.innerHTML += `<div style="color:#ff4444">Error!</div>`; }
-        document.getElementById('chatBtn').disabled = false;
-    }
-    async function doBreakCode() {
-        const code = document.getElementById('breakCode').value.trim();
-        const key = getKey();
-        if (!code) return alert('Code paste karo pehle!');
-        if (!key) return alert('API key daalo!');
-        document.getElementById('breakBtn').disabled = true;
-        document.getElementById('breakLoading').classList.add('show');
-        document.getElementById('breakResult').classList.remove('show');
-        try {
-            const res = await fetch(`${API_BASE}/breakcode`, {
-                method: 'POST',
-                headers: {'X-API-Key': key, 'Content-Type': 'application/json'},
-                body: JSON.stringify({code: code})
+
+    // Update old chats sidebar
+    function updateChatSessionsList() {
+        const container = document.getElementById('chatSessionsList');
+        container.innerHTML = '';
+        const sessionIds = Object.keys(sessions);
+        // Sort by newest first (based on creation timestamp in sessionId)
+        sessionIds.sort((a,b) => {
+            const aTime = parseInt(a.split('_')[1]) || 0;
+            const bTime = parseInt(b.split('_')[1]) || 0;
+            return bTime - aTime;
+        });
+        for (const sid of sessionIds) {
+            const session = sessions[sid];
+            const firstMsg = session.messages.find(m => m.role === 'user')?.content || 'Empty chat';
+            const shortMsg = firstMsg.length > 30 ? firstMsg.substring(0,30)+'...' : firstMsg;
+            const li = document.createElement('div');
+            li.className = 'p-2 rounded cursor-pointer hover:bg-gray-700 flex justify-between items-center group';
+            li.innerHTML = `
+                <div class="flex-1 truncate">
+                    <div class="text-sm font-medium">${session.name}</div>
+                    <div class="text-xs text-gray-400 truncate">${shortMsg}</div>
+                </div>
+                <button class="delete-chat opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 mr-1" data-sid="${sid}">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+            `;
+            li.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-chat')) return;
+                switchChat(sid);
             });
-            const data = await res.json();
-            const testsDiv = document.getElementById('breakTests');
-            testsDiv.innerHTML = '';
-            if (data.test_results) {
-                data.test_results.forEach(r => {
-                    const hacked = r.toLowerCase().includes('hacked') || r.toLowerCase().includes('worked');
-                    testsDiv.innerHTML += `<div class="test-item ${hacked?'hack':'safe'}">${hacked?'HACKED! ':'Safe: '}${r}</div>`;
-                });
-            }
-            document.getElementById('breakAnalysis').textContent = data.ai_analysis || '';
-            document.getElementById('breakTime').textContent = data.response_time || '';
-            document.getElementById('breakResult').classList.add('show');
-        } catch(e) { alert('API se connect nahi ho paya!'); }
-        document.getElementById('breakBtn').disabled = false;
-        document.getElementById('breakLoading').classList.remove('show');
-    }
-
-    
-    async function runAggressiveAttack() {
-        const domain = document.getElementById('hackDomain').value.trim();
-        const key = getKey();
-        if (!domain) return alert('Domain daalo!');
-        if (!key) return alert('API key daalo!');
-        const box = document.getElementById('hackBox');
-        box.innerHTML = '<div style="color:#ff4444;font-weight:bold">AGGRESSIVE ATTACK: ' + domain + '</div>';
-        box.innerHTML += '<div style="color:#888">SQL Injection, XSS, Admin Brute Force, Login Bypass chal raha hai...</div>';
-        document.getElementById('aggBtn').disabled = true;
-        document.getElementById('auditBtn').disabled = true;
-        try {
-            const res = await fetch(API_BASE + '/aggressiveattack?domain=' + encodeURIComponent(domain), {
-                headers: {'X-API-Key': key}
+            const delBtn = li.querySelector('.delete-chat');
+            if (delBtn) delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteChatSession(sid);
             });
-            const data = await res.json();
-            box.innerHTML += '<div style="color:#ff4444;margin-top:12px;font-weight:bold">ATTACK RESULTS</div>';
-            box.innerHTML += '<div style="color:#ff4444">Critical: ' + (data.critical_count || 0) + '</div>';
-            box.innerHTML += '<div style="color:#ffaa00">Warnings: ' + (data.warning_count || 0) + '</div>';
-            box.innerHTML += '<div style="color:#00aaff">Data Leaks: ' + (data.data_leaks || 0) + '</div>';
-            if (data.critical && data.critical.length > 0) {
-                box.innerHTML += '<div style="color:#ff4444;margin-top:8px;font-weight:bold">CRITICAL FINDINGS:</div>';
-                data.critical.forEach(c => {
-                    box.innerHTML += '<div style="background:#ff000022;padding:8px;border-radius:6px;margin:4px 0;color:#ff6666;font-size:0.85em">' + c + '</div>';
-                });
-            }
-            if (data.warnings && data.warnings.length > 0) {
-                box.innerHTML += '<div style="color:#ffaa00;margin-top:8px;font-weight:bold">WARNINGS:</div>';
-                data.warnings.forEach(w => {
-                    box.innerHTML += '<div style="background:#ffaa0022;padding:6px;border-radius:6px;margin:4px 0;color:#ffcc44;font-size:0.85em">' + w + '</div>';
-                });
-            }
-            if (data.data_found && data.data_found.length > 0) {
-                box.innerHTML += '<div style="color:#00aaff;margin-top:8px;font-weight:bold">DATA LEAKS:</div>';
-                data.data_found.forEach(d => {
-                    box.innerHTML += '<div style="background:#0000ff22;padding:6px;border-radius:6px;margin:4px 0;color:#44aaff;font-size:0.85em">' + d + '</div>';
-                });
-            }
-            box.innerHTML += '<div style="color:#ccc;margin-top:12px;padding:10px;background:#1a1a1a;border-radius:8px">' + (data.ai_analysis || '') + '</div>';
-            box.innerHTML += '<div style="color:#00ff88;margin-top:8px">Attack Complete! Time: ' + (data.response_time || '') + '</div>';
-        } catch(e) {
-            box.innerHTML += '<div style="color:#ff4444">Error: ' + e.message + '</div>';
+            container.appendChild(li);
         }
-        document.getElementById('aggBtn').disabled = false;
-        document.getElementById('auditBtn').disabled = false;
-        box.scrollTop = box.scrollHeight;
     }
 
-    async function runFullAudit() {
-        const domain = document.getElementById('hackDomain').value.trim();
-        const key = getKey();
-        if (!domain) return alert('Domain daalo!');
-        if (!key) return alert('API key daalo!');
-        const box = document.getElementById('hackBox');
-        box.innerHTML = '<div style="color:#ffaa00">Full Audit: ' + domain + '...</div>';
-        document.getElementById('aggBtn').disabled = true;
-        document.getElementById('auditBtn').disabled = true;
-        try {
-            const res = await fetch(API_BASE + '/fullaudit?domain=' + encodeURIComponent(domain), {
-                headers: {'X-API-Key': key}
-            });
-            const data = await res.json();
-            box.innerHTML += '<div style="color:#ff4444">Critical: ' + (data.critical_count||0) + '</div>';
-            box.innerHTML += '<div style="color:#ffaa00">Warnings: ' + (data.warning_count||0) + '</div>';
-            box.innerHTML += '<div style="color:#00ff88">Safe: ' + (data.safe_count||0) + '</div>';
-            if (data.critical) data.critical.forEach(c => { box.innerHTML += '<div style="color:#ff4444;padding:4px">CRITICAL: ' + c + '</div>'; });
-            if (data.warnings) data.warnings.forEach(w => { box.innerHTML += '<div style="color:#ffaa00;padding:4px">WARNING: ' + w + '</div>'; });
-            box.innerHTML += '<div style="color:#ccc;margin-top:10px;padding:10px;background:#1a1a1a;border-radius:8px">' + (data.ai_summary||'') + '</div>';
-        } catch(e) {
-            box.innerHTML += '<div style="color:#ff4444">Error: ' + e.message + '</div>';
+    function deleteChatSession(sid) {
+        if (sid === currentSessionId) {
+            // switch to a new session
+            const newId = generateSessionId();
+            sessions[newId] = { name: formatDate(new Date()), messages: [] };
+            currentSessionId = newId;
+            loadCurrentSession();
         }
-        document.getElementById('aggBtn').disabled = false;
-        document.getElementById('auditBtn').disabled = false;
-        box.scrollTop = box.scrollHeight;
+        delete sessions[sid];
+        saveSessionsToStorage();
+        updateChatSessionsList();
+        if (currentSessionId !== sid) {
+            // if we deleted other session, just refresh list
+            loadCurrentSession(); // reload to ensure current messages correct
+        }
     }
 
-
-    async function runSiteReport() {
-        const domain = document.getElementById('hackMsg').value.trim();
-        const key = getKey();
-        if (!domain || !key) return alert('Domain aur API key daalo!');
-        const box = document.getElementById('hackBox');
-        box.innerHTML += '<div style="color:#ff4444;margin:8px 0">Full Audit chal raha hai... (30-60 sec lagenge)</div>';
-        document.getElementById('auditBtn').disabled = true;
-        try {
-            const res = await fetch(API_BASE + '/sitereport?url=' + encodeURIComponent(domain), {headers: {'X-API-Key': key}});
-            const data = await res.json();
-            
-            let html = '<div style="background:#1a1a1a;padding:15px;border-radius:8px;margin:8px 0;border:1px solid #ff4444">';
-            html += '<div style="color:#ff4444;font-size:1.2em;font-weight:bold">SECURITY REPORT: ' + data.domain + '</div>';
-            
-            const scoreColor = data.score >= 70 ? "#00ff88" : data.score >= 40 ? "#ffaa00" : "#ff4444";
-            html += '<div style="color:' + scoreColor + ';font-size:2em;font-weight:bold">Score: ' + data.score + '/100</div>';
-            html += '<div style="color:#ccc;margin:8px 0">' + (data.ai_summary || "") + '</div>';
-            html += '<div style="color:#ff4444">Critical: ' + data.critical_count + ' | High: ' + data.high_count + ' | Total: ' + data.total_findings + '</div>';
-            
-            if (data.findings) {
-                html += '<div style="margin-top:10px">';
-                data.findings.forEach(f => {
-                    const c = f.severity === "CRITICAL" ? "#ff4444" : f.severity === "HIGH" ? "#ffaa00" : f.severity === "MEDIUM" ? "#4488ff" : "#00ff88";
-                    html += '<div style="border-left:3px solid ' + c + ';padding:6px;margin:4px 0;background:#0d0d0d">';
-                    html += '<span style="color:' + c + ';font-weight:bold">[' + f.severity + '] ' + f.category + '</span><br>';
-                    html += '<span style="color:#ccc">' + f.issue + '</span><br>';
-                    html += '<span style="color:#888">Fix: ' + f.fix + '</span>';
-                    html += '</div>';
-                });
-                html += '</div>';
-            }
-            
-            // PDF Download
-            if (data.pdf_base64) {
-                const blob = new Blob([Uint8Array.from(atob(data.pdf_base64), c => c.charCodeAt(0))], {type: "application/pdf"});
-                const pdfUrl = URL.createObjectURL(blob);
-                html += '<a href="' + pdfUrl + '" download="security_report_' + data.domain + '.pdf" style="display:block;margin-top:15px;padding:12px;background:#ff4444;color:white;text-align:center;border-radius:8px;text-decoration:none;font-weight:bold">PDF Report Download Karo</a>';
-            }
-            
-            html += '</div>';
-            box.innerHTML += html;
-            box.scrollTop = box.scrollHeight;
-        } catch(e) {
-            box.innerHTML += '<div style="color:#ff4444">Error: ' + e.message + '</div>';
-        }
-        document.getElementById('auditBtn').disabled = false;
+    function switchChat(sid) {
+        currentSessionId = sid;
+        loadCurrentSession();
     }
 
-    async function runSiteReport() {
-        const domain = document.getElementById('hackInput').value.trim() || document.getElementById('hackMsg') && document.getElementById('hackMsg').value.trim();
-        const inp = document.querySelector('#tab-hack input[type=text]');
-        const domainVal = inp ? inp.value.trim() : '';
-        const key = getKey();
-        if (!domainVal || !key) return alert('Domain aur API key daalo!');
-        const box = document.getElementById('hackBox');
-        box.innerHTML += '<div style="color:#ff4444;margin:8px 0">Full Audit chal raha hai... (30-60 sec lagenge)</div>';
-        document.getElementById('auditBtn').disabled = true;
-        try {
-            const res = await fetch(API_BASE + '/sitereport?url=' + encodeURIComponent(domainVal), {headers: {'X-API-Key': key}});
-            const data = await res.json();
-            let h = '<div style="background:#1a1a1a;padding:15px;border-radius:8px;margin:8px 0;border:1px solid #ff4444">';
-            h += '<div style="color:#ff4444;font-size:1.1em;font-weight:bold">SECURITY REPORT: ' + data.domain + '</div>';
-            const sc = data.score >= 70 ? "#00ff88" : data.score >= 40 ? "#ffaa00" : "#ff4444";
-            h += '<div style="color:' + sc + ';font-size:2em;font-weight:bold">Score: ' + data.score + '/100</div>';
-            h += '<div style="color:#ccc;margin:8px 0">' + (data.ai_summary || "") + '</div>';
-            h += '<div style="color:#ff4444">Critical: ' + data.critical_count + ' | High: ' + data.high_count + ' | Total: ' + data.total_findings + '</div>';
-            if (data.findings) {
-                data.findings.forEach(f => {
-                    const c = f.severity === "CRITICAL" ? "#ff4444" : f.severity === "HIGH" ? "#ffaa00" : f.severity === "MEDIUM" ? "#4488ff" : "#00ff88";
-                    h += '<div style="border-left:3px solid ' + c + ';padding:6px;margin:4px 0;background:#0d0d0d">';
-                    h += '<span style="color:' + c + ';font-weight:bold">[' + f.severity + '] ' + f.category + '</span><br>';
-                    h += '<span style="color:#ccc">' + f.issue + '</span><br>';
-                    h += '<span style="color:#888">Fix: ' + f.fix + '</span></div>';
-                });
-            }
-            if (data.pdf_base64) {
-                const blob = new Blob([Uint8Array.from(atob(data.pdf_base64), c => c.charCodeAt(0))], {type: "application/pdf"});
-                const pdfUrl = URL.createObjectURL(blob);
-                h += '<a href="' + pdfUrl + '" download="security_report_' + data.domain + '.pdf" style="display:block;margin-top:15px;padding:12px;background:#ff4444;color:white;text-align:center;border-radius:8px;text-decoration:none;font-weight:bold">PDF Report Download Karo</a>';
-            }
-            h += '</div>';
-            box.innerHTML += h;
-            box.scrollTop = box.scrollHeight;
-        } catch(e) {
-            box.innerHTML += '<div style="color:#ff4444">Error: ' + e.message + '</div>';
+    function startNewChat() {
+        const newId = generateSessionId();
+        currentSessionId = newId;
+        sessions[newId] = { name: formatDate(new Date()), messages: [] };
+        saveSessionsToStorage();
+        loadCurrentSession();
+    }
+
+    // Add a message to current session
+    function addMessage(role, content, isToolResult = false) {
+        const msg = { role, content, timestamp: new Date().toISOString() };
+        currentMessages.push(msg);
+        saveSessionsToStorage();
+        renderChatMessages();
+    }
+
+    // Render messages in chat area
+    function renderChatMessages() {
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = '';
+        for (const msg of currentMessages) {
+            const isUser = msg.role === 'user';
+            const bubbleClass = isUser ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-200';
+            const alignClass = isUser ? 'justify-end' : 'justify-start';
+            const content = msg.content;
+            // Check if content contains JSON (tool result)
+            let displayContent = content;
+            try {
+                const parsed = JSON.parse(content);
+                displayContent = `<pre class="bg-gray-800 p-2 rounded text-xs overflow-auto">${JSON.stringify(parsed, null, 2)}</pre>`;
+            } catch(e) { /* not json */ }
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${alignClass}`;
+            messageDiv.innerHTML = `
+                <div class="max-w-3/4 p-3 rounded-lg ${bubbleClass} shadow">
+                    ${displayContent}
+                    <div class="text-xs mt-1 opacity-70">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                </div>
+            `;
+            container.appendChild(messageDiv);
         }
-        document.getElementById('auditBtn').disabled = false;
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // ========== API CALLS ==========
+    async function callAPI(endpoint, params = {}) {
+        const url = new URL(`${API_BASE}/${endpoint}`);
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+        const response = await fetch(url, {
+            headers: { 'X-API-Key': currentApiKey }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    async function callAPIPost(endpoint, body) {
+        const response = await fetch(`${API_BASE}/${endpoint}`, {
+            method: 'POST',
+            headers: { 'X-API-Key': currentApiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    }
+
+    // Tool execution: show input modal (simple prompt)
+    async function runTool(toolName) {
+        const paramsMap = {
+            loginbypass: { url: 'URL' },
+            jsbypass: { url: 'URL' },
+            xsstest: { url: 'URL' },
+            sqlinject: { url: 'URL' },
+            fullaudit: { domain: 'Domain' },
+            aggressiveattack: { domain: 'Domain' },
+            aggressive: { domain: 'Domain' },
+            webscan: { url: 'URL' },
+            headers: { url: 'URL' },
+            sslcheck: { domain: 'Domain' },
+            portscan: { domain: 'Domain' },
+            subdomains: { domain: 'Domain' },
+            whois: { domain: 'Domain' },
+            dns: { domain: 'Domain' },
+            netanalyze: { domain: 'Domain' },
+            techdetect: { url: 'URL' },
+            robots: { domain: 'Domain' },
+            dirscan: { domain: 'Domain' },
+            sensitivefiles: { domain: 'Domain' },
+            corscheck: { url: 'URL' },
+            cookiecheck: { url: 'URL' },
+            clickjack: { url: 'URL' },
+            ratelimit: { url: 'URL' },
+            redirecttest: { url: 'URL' },
+            passcheck: { password: 'Password' },
+            hashcrack: { hash_value: 'Hash' },
+            iprep: { ip: 'IP' },
+            jwtcheck: { token: 'JWT Token' },
+            apiscan: { url: 'URL' },
+            ask: { q: 'Question' },
+            webapp: { task: 'Web app description' },
+            agent: { task: 'Task description' },
+            breakcode: { code: 'Python code' },
+        };
+        const params = paramsMap[toolName];
+        if (!params) {
+            alert(`Tool ${toolName} not configured yet.`);
+            return;
+        }
+        const paramKeys = Object.keys(params);
+        const paramValues = {};
+        for (const key of paramKeys) {
+            const val = prompt(`Enter ${params[key]} for ${toolName}:`);
+            if (val === null) return; // cancel
+            paramValues[key] = val;
+        }
+        addMessage('user', `Running ${toolName} with ${JSON.stringify(paramValues)}`);
+        try {
+            let result;
+            if (toolName === 'breakcode') {
+                result = await callAPIPost(toolName, paramValues);
+            } else {
+                result = await callAPI(toolName, paramValues);
+            }
+            addMessage('bot', JSON.stringify(result, null, 2), true);
+        } catch (error) {
+            addMessage('bot', `Error: ${error.message}`, true);
+        }
+    }
+
+    // Chat interaction using /chat endpoint
+    async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        addMessage('user', msg);
+        // Show typing indicator (optional)
+        try {
+            const response = await callAPI('chat', { msg, session: currentSessionId });
+            addMessage('bot', response.reply || 'No reply');
+        } catch (error) {
+            addMessage('bot', `Chat error: ${error.message}`);
+        }
+    }
+
+    // ========== UI HANDLERS ==========
+    document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
+
+    // Settings modal
+    const modal = document.getElementById('settingsModal');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettings = document.getElementById('closeSettingsBtn');
+    const saveSettings = document.getElementById('saveSettingsBtn');
+    const settingsApiKeyInput = document.getElementById('settingsApiKey');
+    const currentKeySpan = document.getElementById('currentApiKeyDisplay');
+
+    function updateApiKeyDisplay() {
+        currentKeySpan.textContent = currentApiKey.substring(0,4)+'****';
+    }
+    updateApiKeyDisplay();
+
+    settingsBtn.addEventListener('click', () => {
+        settingsApiKeyInput.value = currentApiKey;
+        modal.classList.remove('hidden');
+    });
+    closeSettings.addEventListener('click', () => modal.classList.add('hidden'));
+    saveSettings.addEventListener('click', () => {
+        const newKey = settingsApiKeyInput.value.trim();
+        if (newKey) {
+            currentApiKey = newKey;
+            localStorage.setItem('apiKey', currentApiKey);
+            updateApiKeyDisplay();
+        }
+        modal.classList.add('hidden');
+    });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.add('hidden');
+    });
+
+    // New chat button (could add, but we'll provide via "Clear all chats" maybe)
+    document.getElementById('clearAllChatsBtn').addEventListener('click', () => {
+        if (confirm('Delete ALL chat sessions? This cannot be undone.')) {
+            sessions = {};
+            currentSessionId = generateSessionId();
+            sessions[currentSessionId] = { name: formatDate(new Date()), messages: [] };
+            saveSessionsToStorage();
+            loadCurrentSession();
+        }
+    });
+
+    // Attach tool listeners
+    document.querySelectorAll('.tool-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tool = btn.dataset.tool;
+            runTool(tool);
+        });
+    });
+
+    // Initialize
+    loadCurrentSession();
+    // Optionally, if there are no messages, show a welcome message
+    if (currentMessages.length === 0) {
+        addMessage('bot', 'Hello! I am your Super AI assistant. Use the tools on the left or chat with me.');
     }
 </script>
 </body>
