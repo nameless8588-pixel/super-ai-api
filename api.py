@@ -2115,7 +2115,7 @@ SAFE_IMPORTS = {
     # third-party (whitelisted)
     "fastapi","requests","groq","openai","pydantic","bs4","beautifulsoup4",
     "cachetools","dotenv","uvicorn","starlette","aiohttp","httpx",
-    "google","anthropic",
+    "google","anthropic","ast","inspect","traceback","warnings","platform","signal","queue","asyncio","concurrent","multiprocessing","importlib","duckduckgo_search","PIL","numpy",
 }
 
 def validate_generated_code(code: str, tmp_path: str) -> dict:
