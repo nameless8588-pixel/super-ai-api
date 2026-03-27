@@ -2005,7 +2005,7 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
     }
 
 @app.get("/selfupgrade")
-def selfupgrade(instruction: str, mode: str = "append", api_key: str = Depends(verify_key)):
+def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verify_key)):
     import requests, base64, os, tempfile, subprocess
 
     # Step 1: GitHub se current file fetch karo
