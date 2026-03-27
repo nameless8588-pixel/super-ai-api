@@ -2389,3 +2389,16 @@ async def chat_function_fix_kr(
         return JSONResponse(content=json.dumps(result), media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/chatfixkr")
+async def chat_function_fix_kr(
+    key: str = Depends(verify_key)
+):
+    from fastapi import HTTPException
+    from fastapi.responses import JSONResponse
+    try:
+        # chat function fix kr logic here
+        result = {"message": "Chat function fix kr successful"}
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
