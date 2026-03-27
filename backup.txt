@@ -1,0 +1,1 @@
+67fee4d1033658013a8c99e38387757d38cd68d2|before_append: chat function fix kr
