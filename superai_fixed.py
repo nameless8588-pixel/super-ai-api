@@ -377,10 +377,6 @@ PROTECTED_ROUTES = {"/", "/health", "/selfupgrade", "/rollback", "/ask"}
 # ══════════════════════════════════════════════
 @app.get("/selfupgrade")
 def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verify_key)):
-    import re, logging
-
-    # Boss-only
-    if VALID_KEYS.get(key) != "boss":
         raise HTTPException(status_code=403, detail="selfupgrade sirf boss key se!")
 
     # FIX-5: Race condition lock
