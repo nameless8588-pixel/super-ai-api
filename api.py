@@ -2402,3 +2402,13 @@ async def chat_function_fix_kr(
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/chat")
+def chat(message: str, key: str = Depends(verify_key)):
+    from datetime import datetime
+    import json
+    session_data = {}
+    if 'conversation' not in session_data:
+        session_data['conversation'] = []
+    session_data['conversation'].append({"message": message, "time": datetime.now().strftime("%H:%M:%S")})
+    return {"session_details": session_data}
