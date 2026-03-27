@@ -62,14 +62,17 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
             errors.append(f"openrouter: {str(e)}")
 
     return {"response": "AI unavailable", "model": "none", "provider": "none", "errors": errors}
+import re
 import requests
 import logging
 import base64
 import sys
 import os
 import time
+import threading
 
 load_dotenv()
+_upgrade_lock = threading.Lock()
 cache = TTLCache(maxsize=100, ttl=3600)
 
 # AI Memory Database
@@ -2338,7 +2341,7 @@ def rollback(key: str = Depends(verify_key)):
         return {"error": "Git tree fetch failed"}
 
     api_blob_sha = next(
-        (item["sha"] for item in tree_resp.json().get("tree", []) if item["path"] == "superai_fixed.py"),
+        (item["sha"] for item in tree_resp.json().get("tree", []) if item["path"] == "api.py"),
         None
     )
     if not api_blob_sha:
