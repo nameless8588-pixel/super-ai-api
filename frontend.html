@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 3px; }
@@ -27,35 +26,38 @@
 <div class="flex h-full">
     <!-- LEFT SIDEBAR -->
     <aside class="w-80 bg-gray-800 flex flex-col overflow-hidden border-r border-gray-700">
-        <!-- Sidebar Header -->
         <div class="p-4 border-b border-gray-700 flex items-center justify-between">
             <h2 class="text-xl font-bold text-green-400">Super AI</h2>
-            <button id="settingsBtn" class="text-gray-400 hover:text-white transition">
-                <i class="fas fa-ellipsis-v text-xl"></i>
-            </button>
+            <div class="flex gap-2">
+                <button id="newChatBtn" class="text-gray-400 hover:text-green-400 transition" title="New Chat">
+                    <i class="fas fa-plus text-lg"></i>
+                </button>
+                <button id="settingsBtn" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-ellipsis-v text-xl"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Tools Accordion -->
         <div class="flex-1 overflow-y-auto p-2">
             <details class="mb-4" open>
                 <summary class="cursor-pointer text-green-400 font-semibold mb-2 flex items-center gap-2">
                     <i class="fas fa-folder-open"></i> Tools
                 </summary>
                 <div class="ml-4 space-y-1">
-                    <!-- Bypass Tools -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">üîì Bypass</div>
+                    <!-- Bypass -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ì¥ì Bypass</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="loginbypass">Login Bypass (HTML)</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="jsbypass">JS Bypass (JSON/API)</button>
 
-                    <!-- Web Vulnerabilities -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">üíâ Web Vulns</div>
+                    <!-- Web Vulns -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ì≤â Web Vulns</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="xsstest">XSS Test</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sqlinject">SQL Injection</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="dirscan">Directory Scan</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sensitivefiles">Sensitive Files</button>
 
-                    <!-- Security Headers & Misc -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">üõ°Ô∏è Security</div>
+                    <!-- Security -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ìª°Ô∏è Security</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="headers">Security Headers</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="corscheck">CORS Check</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="cookiecheck">Cookie Check</button>
@@ -63,8 +65,8 @@
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="ratelimit">Rate Limit Test</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="redirecttest">Open Redirect</button>
 
-                    <!-- Network / Infrastructure -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">üåê Network</div>
+                    <!-- Network -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ìºê Network</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webscan">Web Scan</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sslcheck">SSL Check</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="portscan">Port Scan</button>
@@ -75,14 +77,14 @@
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="techdetect">Tech Detect</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="robots">Robots.txt</button>
 
-                    <!-- Aggressive / Full Audit -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">‚ö° Aggressive</div>
+                    <!-- Aggressive -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">‚ö° Aggressive</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="fullaudit">Full Audit</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="aggressiveattack">Aggressive Attack</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="aggressive">Advanced Aggressive</button>
 
-                    <!-- Credentials / Passwords -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">üîë Credentials</div>
+                    <!-- Credentials -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ì¥ë Credentials</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="passcheck">Password Strength</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="hashcrack">Hash Crack</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="iprep">IP Reputation</button>
@@ -90,18 +92,24 @@
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="apiscan">API Endpoint Scan</button>
 
                     <!-- AI Tools -->
-                    <div class="font-medium text-gray-300 mt-2 mb-1 text-sm">ü§ñ AI</div>
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">Ì¥ñ AI</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="ask">Ask AI</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="create">Code Generator</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webapp">Generate Web App</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="breakcode">Code Breaker</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="agent">AI Agent</button>
+
+                    <!-- System ‚Äî SELFUPGRADE & ROLLBACK -->
+                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">‚öôÔ∏è System</div>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm text-yellow-400" data-tool="selfupgrade">Ì¥ß Self Upgrade (AI)</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm text-red-400" data-tool="rollback">‚Ü©Ô∏è Rollback (Boss Only)</button>
                 </div>
             </details>
 
             <!-- Old Chats -->
             <div class="mt-4">
                 <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-green-400 font-semibold"><i class="fas fa-history mr-2"></i>Old Chats</h3>
+                    <h3 class="text-green-400 font-semibold text-sm"><i class="fas fa-history mr-2"></i>Old Chats</h3>
                     <button id="clearAllChatsBtn" class="text-xs text-red-400 hover:text-red-300">Clear all</button>
                 </div>
                 <div id="chatSessionsList" class="space-y-1"></div>
@@ -109,25 +117,44 @@
         </div>
     </aside>
 
-    <!-- RIGHT MAIN: CHAT AREA -->
+    <!-- MAIN CHAT AREA -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <!-- Chat Header -->
-        <div class="p-4 border-b border-gray-700 bg-gray-800">
-            <div class="flex items-center justify-between">
-                <h1 class="text-lg font-semibold">AI Assistant</h1>
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-700 bg-gray-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h1 class="text-lg font-semibold" id="chatTitle">AI Assistant</h1>
+                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            </div>
+            <div class="flex items-center gap-4">
+                <select id="modelSelect" class="bg-gray-700 text-gray-200 text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-green-500">
+                    <optgroup label="Groq (Free)">
+                        <option value="auto">Auto (Groq)</option>
+                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                    </optgroup>
+                    <optgroup label="Claude (OpenRouter Key chahiye)">
+                        <option value="anthropic/claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                        <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku</option>
+                    </optgroup>
+                    <optgroup label="Gemini">
+                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash</option>
+                    </optgroup>
+                </select>
                 <div class="text-sm text-gray-400">
-                    <i class="fas fa-key mr-1"></i> API Key: <span id="currentApiKeyDisplay">****</span>
+                    <i class="fas fa-key mr-1"></i> <span id="currentApiKeyDisplay">****</span>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Messages -->
+        <!-- Messages -->
         <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
-        <!-- Input Area -->
+        <!-- Input -->
         <div class="p-4 border-t border-gray-700 bg-gray-800">
             <div class="flex gap-2">
-                <input type="text" id="chatInput" placeholder="Ask me anything, or click a tool from the sidebar..." class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input type="text" id="chatInput" placeholder="Kuch bhi poocho..." 
+                    class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
                 <button id="sendBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition flex items-center gap-2">
                     <i class="fas fa-paper-plane"></i> Send
                 </button>
@@ -136,13 +163,20 @@
     </main>
 </div>
 
-<!-- Settings Modal (hidden by default) -->
-<div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden transition-all">
+<!-- Settings Modal -->
+<div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-gray-800 rounded-lg p-6 w-96 shadow-xl border border-gray-700">
         <h3 class="text-xl font-bold mb-4 text-green-400">Settings</h3>
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">API Key</label>
-            <input type="text" id="settingsApiKey" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+            <label class="block text-sm font-medium mb-1">Super AI API Key</label>
+            <input type="text" id="settingsApiKey" placeholder="SUPER-AI-FREE-001"
+                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+            <p class="text-xs text-gray-500 mt-1">Default: SUPER-AI-FREE-001</p>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Boss API Key (Rollback ke liye)</label>
+            <input type="password" id="settingsBossKey" placeholder="Boss key..."
+                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
         </div>
         <div class="flex justify-end gap-2">
             <button id="saveSettingsBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Save</button>
@@ -151,313 +185,380 @@
     </div>
 </div>
 
+<!-- Selfupgrade Modal -->
+<div id="upgradeModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 rounded-lg p-6 w-[500px] shadow-xl border border-yellow-700">
+        <h3 class="text-xl font-bold mb-2 text-yellow-400">Ì¥ß Self Upgrade</h3>
+        <p class="text-gray-400 text-sm mb-4">AI ko batao kya naya endpoint banana hai ‚Äî woh khud code likhega aur GitHub pe push karega!</p>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Instruction</label>
+            <textarea id="upgradeInstruction" rows="3" placeholder="e.g. add a weather endpoint that takes city as input and returns temperature"
+                class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"></textarea>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Mode</label>
+            <select id="upgradeMode" class="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm w-full">
+                <option value="append">Append (Naya endpoint add karo) ‚úÖ Safe</option>
+                <option value="modify">Modify (Existing endpoint edit karo) ‚ö†Ô∏è Risky</option>
+            </select>
+        </div>
+        <div id="upgradeResult" class="hidden mb-4 p-3 bg-gray-900 rounded text-sm text-gray-300 max-h-32 overflow-auto"></div>
+        <div class="flex justify-end gap-2">
+            <button id="runUpgradeBtn" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded font-semibold">Ì∫Ä Upgrade Karo</button>
+            <button id="closeUpgradeBtn" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // ========== CONFIG ==========
-    const API_BASE = 'https://super-ai-api.onrender.com';
-    let currentApiKey = localStorage.getItem('apiKey') || 'SUPER-AI-FREE-001';
-    let currentSessionId = localStorage.getItem('currentSessionId') || generateSessionId();
-    let sessions = JSON.parse(localStorage.getItem('chatSessions') || '{}');
-    let currentMessages = [];
+const API_BASE = 'https://super-ai-api.onrender.com';
+let currentApiKey = localStorage.getItem('sai_apiKey') || 'SUPER-AI-FREE-001';
+let bossKey = localStorage.getItem('sai_bossKey') || '';
+let currentSessionId = localStorage.getItem('currentSessionId') || generateSessionId();
+let sessions = JSON.parse(localStorage.getItem('chatSessions') || '{}');
+let currentMessages = [];
+let currentModel = localStorage.getItem('sai_model') || 'auto';
 
-    // Helper: generate random session ID
-    function generateSessionId() {
-        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+function generateSessionId() {
+    return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+}
+
+function loadCurrentSession() {
+    if (!sessions[currentSessionId]) {
+        sessions[currentSessionId] = { name: new Date().toLocaleString(), messages: [] };
     }
+    currentMessages = sessions[currentSessionId].messages;
+    renderChatMessages();
+    updateChatSessionsList();
+    saveToStorage();
+}
 
-    // Load chat messages for current session
-    function loadCurrentSession() {
-        if (!sessions[currentSessionId]) {
-            sessions[currentSessionId] = { name: formatDate(new Date()), messages: [] };
-        }
-        currentMessages = sessions[currentSessionId].messages;
-        renderChatMessages();
-        updateChatSessionsList();
-        saveSessionsToStorage();
-    }
+function saveToStorage() {
+    localStorage.setItem('chatSessions', JSON.stringify(sessions));
+    localStorage.setItem('currentSessionId', currentSessionId);
+}
 
-    // Save sessions to localStorage
-    function saveSessionsToStorage() {
-        localStorage.setItem('chatSessions', JSON.stringify(sessions));
-        localStorage.setItem('currentSessionId', currentSessionId);
-    }
-
-    // Format date for chat session name
-    function formatDate(date) {
-        return date.toLocaleString();
-    }
-
-    // Update old chats sidebar
-    function updateChatSessionsList() {
-        const container = document.getElementById('chatSessionsList');
-        container.innerHTML = '';
-        const sessionIds = Object.keys(sessions);
-        // Sort by newest first (based on creation timestamp in sessionId)
-        sessionIds.sort((a,b) => {
-            const aTime = parseInt(a.split('_')[1]) || 0;
-            const bTime = parseInt(b.split('_')[1]) || 0;
-            return bTime - aTime;
-        });
-        for (const sid of sessionIds) {
-            const session = sessions[sid];
-            const firstMsg = session.messages.find(m => m.role === 'user')?.content || 'Empty chat';
-            const shortMsg = firstMsg.length > 30 ? firstMsg.substring(0,30)+'...' : firstMsg;
-            const li = document.createElement('div');
-            li.className = 'p-2 rounded cursor-pointer hover:bg-gray-700 flex justify-between items-center group';
-            li.innerHTML = `
-                <div class="flex-1 truncate">
-                    <div class="text-sm font-medium">${session.name}</div>
-                    <div class="text-xs text-gray-400 truncate">${shortMsg}</div>
-                </div>
-                <button class="delete-chat opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 mr-1" data-sid="${sid}">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                </button>
-            `;
-            li.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-chat')) return;
-                switchChat(sid);
-            });
-            const delBtn = li.querySelector('.delete-chat');
-            if (delBtn) delBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteChatSession(sid);
-            });
-            container.appendChild(li);
-        }
-    }
-
-    function deleteChatSession(sid) {
-        if (sid === currentSessionId) {
-            // switch to a new session
-            const newId = generateSessionId();
-            sessions[newId] = { name: formatDate(new Date()), messages: [] };
-            currentSessionId = newId;
-            loadCurrentSession();
-        }
-        delete sessions[sid];
-        saveSessionsToStorage();
-        updateChatSessionsList();
-        if (currentSessionId !== sid) {
-            // if we deleted other session, just refresh list
-            loadCurrentSession(); // reload to ensure current messages correct
-        }
-    }
-
-    function switchChat(sid) {
-        currentSessionId = sid;
-        loadCurrentSession();
-    }
-
-    function startNewChat() {
-        const newId = generateSessionId();
-        currentSessionId = newId;
-        sessions[newId] = { name: formatDate(new Date()), messages: [] };
-        saveSessionsToStorage();
-        loadCurrentSession();
-    }
-
-    // Add a message to current session
-    function addMessage(role, content, isToolResult = false) {
-        const msg = { role, content, timestamp: new Date().toISOString() };
-        currentMessages.push(msg);
-        saveSessionsToStorage();
-        renderChatMessages();
-    }
-
-    // Render messages in chat area
-    function renderChatMessages() {
-        const container = document.getElementById('chatMessages');
-        container.innerHTML = '';
-        for (const msg of currentMessages) {
-            const isUser = msg.role === 'user';
-            const bubbleClass = isUser ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-200';
-            const alignClass = isUser ? 'justify-end' : 'justify-start';
-            const content = msg.content;
-            // Check if content contains JSON (tool result)
-            let displayContent = content;
-            try {
-                const parsed = JSON.parse(content);
-                displayContent = `<pre class="bg-gray-800 p-2 rounded text-xs overflow-auto">${JSON.stringify(parsed, null, 2)}</pre>`;
-            } catch(e) { /* not json */ }
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${alignClass}`;
-            messageDiv.innerHTML = `
-                <div class="max-w-3/4 p-3 rounded-lg ${bubbleClass} shadow">
-                    ${displayContent}
-                    <div class="text-xs mt-1 opacity-70">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-                </div>
-            `;
-            container.appendChild(messageDiv);
-        }
-        container.scrollTop = container.scrollHeight;
-    }
-
-    // ========== API CALLS ==========
-    async function callAPI(endpoint, params = {}) {
-        const url = new URL(`${API_BASE}/${endpoint}`);
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-        const response = await fetch(url, {
-            headers: { 'X-API-Key': currentApiKey }
-        });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-    }
-
-    async function callAPIPost(endpoint, body) {
-        const response = await fetch(`${API_BASE}/${endpoint}`, {
-            method: 'POST',
-            headers: { 'X-API-Key': currentApiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    }
-
-    // Tool execution: show input modal (simple prompt)
-    async function runTool(toolName) {
-        const paramsMap = {
-            loginbypass: { url: 'URL' },
-            jsbypass: { url: 'URL' },
-            xsstest: { url: 'URL' },
-            sqlinject: { url: 'URL' },
-            fullaudit: { domain: 'Domain' },
-            aggressiveattack: { domain: 'Domain' },
-            aggressive: { domain: 'Domain' },
-            webscan: { url: 'URL' },
-            headers: { url: 'URL' },
-            sslcheck: { domain: 'Domain' },
-            portscan: { domain: 'Domain' },
-            subdomains: { domain: 'Domain' },
-            whois: { domain: 'Domain' },
-            dns: { domain: 'Domain' },
-            netanalyze: { domain: 'Domain' },
-            techdetect: { url: 'URL' },
-            robots: { domain: 'Domain' },
-            dirscan: { domain: 'Domain' },
-            sensitivefiles: { domain: 'Domain' },
-            corscheck: { url: 'URL' },
-            cookiecheck: { url: 'URL' },
-            clickjack: { url: 'URL' },
-            ratelimit: { url: 'URL' },
-            redirecttest: { url: 'URL' },
-            passcheck: { password: 'Password' },
-            hashcrack: { hash_value: 'Hash' },
-            iprep: { ip: 'IP' },
-            jwtcheck: { token: 'JWT Token' },
-            apiscan: { url: 'URL' },
-            ask: { q: 'Question' },
-            webapp: { task: 'Web app description' },
-            agent: { task: 'Task description' },
-            breakcode: { code: 'Python code' },
-        };
-        const params = paramsMap[toolName];
-        if (!params) {
-            alert(`Tool ${toolName} not configured yet.`);
-            return;
-        }
-        const paramKeys = Object.keys(params);
-        const paramValues = {};
-        for (const key of paramKeys) {
-            const val = prompt(`Enter ${params[key]} for ${toolName}:`);
-            if (val === null) return; // cancel
-            paramValues[key] = val;
-        }
-        addMessage('user', `Running ${toolName} with ${JSON.stringify(paramValues)}`);
-        try {
-            let result;
-            if (toolName === 'breakcode') {
-                result = await callAPIPost(toolName, paramValues);
-            } else {
-                result = await callAPI(toolName, paramValues);
-            }
-            addMessage('bot', JSON.stringify(result, null, 2), true);
-        } catch (error) {
-            addMessage('bot', `Error: ${error.message}`, true);
-        }
-    }
-
-    // Chat interaction using /chat endpoint
-    async function sendChatMessage() {
-        const input = document.getElementById('chatInput');
-        const msg = input.value.trim();
-        if (!msg) return;
-        input.value = '';
-        addMessage('user', msg);
-        // Show typing indicator (optional)
-        try {
-            const response = await callAPI('chat', { msg, session: currentSessionId });
-            addMessage('bot', response.reply || 'No reply');
-        } catch (error) {
-            addMessage('bot', `Chat error: ${error.message}`);
-        }
-    }
-
-    // ========== UI HANDLERS ==========
-    document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
-    document.getElementById('chatInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendChatMessage();
+function updateChatSessionsList() {
+    const container = document.getElementById('chatSessionsList');
+    container.innerHTML = '';
+    const ids = Object.keys(sessions).sort((a,b) => {
+        return (parseInt(b.split('_')[1])||0) - (parseInt(a.split('_')[1])||0);
     });
-
-    // Settings modal
-    const modal = document.getElementById('settingsModal');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const closeSettings = document.getElementById('closeSettingsBtn');
-    const saveSettings = document.getElementById('saveSettingsBtn');
-    const settingsApiKeyInput = document.getElementById('settingsApiKey');
-    const currentKeySpan = document.getElementById('currentApiKeyDisplay');
-
-    function updateApiKeyDisplay() {
-        currentKeySpan.textContent = currentApiKey.substring(0,4)+'****';
+    for (const sid of ids) {
+        const session = sessions[sid];
+        const firstMsg = session.messages.find(m => m.role === 'user')?.content || 'Empty chat';
+        const shortMsg = firstMsg.length > 28 ? firstMsg.substring(0,28)+'...' : firstMsg;
+        const div = document.createElement('div');
+        div.className = `p-2 rounded cursor-pointer hover:bg-gray-700 flex justify-between items-center group ${sid === currentSessionId ? 'bg-gray-700 border-l-2 border-green-500' : ''}`;
+        div.innerHTML = `
+            <div class="flex-1 truncate" onclick="switchChat('${sid}')">
+                <div class="text-xs font-medium text-gray-300">${session.name}</div>
+                <div class="text-xs text-gray-500 truncate">${shortMsg}</div>
+            </div>
+            <button class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 ml-1 text-xs" onclick="deleteChatSession('${sid}')">
+                <i class="fas fa-trash-alt"></i>
+            </button>`;
+        container.appendChild(div);
     }
-    updateApiKeyDisplay();
+}
 
-    settingsBtn.addEventListener('click', () => {
-        settingsApiKeyInput.value = currentApiKey;
-        modal.classList.remove('hidden');
-    });
-    closeSettings.addEventListener('click', () => modal.classList.add('hidden'));
-    saveSettings.addEventListener('click', () => {
-        const newKey = settingsApiKeyInput.value.trim();
-        if (newKey) {
-            currentApiKey = newKey;
-            localStorage.setItem('apiKey', currentApiKey);
-            updateApiKeyDisplay();
-        }
-        modal.classList.add('hidden');
-    });
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.add('hidden');
-    });
-
-    // New chat button (could add, but we'll provide via "Clear all chats" maybe)
-    document.getElementById('clearAllChatsBtn').addEventListener('click', () => {
-        if (confirm('Delete ALL chat sessions? This cannot be undone.')) {
-            sessions = {};
-            currentSessionId = generateSessionId();
-            sessions[currentSessionId] = { name: formatDate(new Date()), messages: [] };
-            saveSessionsToStorage();
-            loadCurrentSession();
-        }
-    });
-
-    // Attach tool listeners
-    document.querySelectorAll('.tool-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tool = btn.dataset.tool;
-            runTool(tool);
-        });
-    });
-
-    // Initialize
+function switchChat(sid) {
+    currentSessionId = sid;
     loadCurrentSession();
-    // Optionally, if there are no messages, show a welcome message
-    if (currentMessages.length === 0) {
-        addMessage('bot', 'Hello! I am your Super AI assistant. Use the tools on the left or chat with me.');
+}
+
+function deleteChatSession(sid) {
+    if (sid === currentSessionId) {
+        startNewChat();
     }
+    delete sessions[sid];
+    saveToStorage();
+    updateChatSessionsList();
+}
+
+function startNewChat() {
+    const newId = generateSessionId();
+    currentSessionId = newId;
+    sessions[newId] = { name: new Date().toLocaleString(), messages: [] };
+    saveToStorage();
+    loadCurrentSession();
+}
+
+function addMessage(role, content) {
+    currentMessages.push({ role, content, timestamp: new Date().toISOString() });
+    if (role === 'user' && currentMessages.filter(m=>m.role==='user').length === 1) {
+        sessions[currentSessionId].name = content.substring(0,25) + (content.length>25?'...':'');
+    }
+    saveToStorage();
+    renderChatMessages();
+}
+
+function renderChatMessages() {
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '';
+    if (currentMessages.length === 0) {
+        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-600">
+            <i class="fas fa-robot text-4xl mb-3"></i>
+            <p class="text-lg">Super AI ready hai!</p>
+            <p class="text-sm mt-1">Left sidebar se tool choose karo ya seedha chat karo</p>
+        </div>`;
+        return;
+    }
+    for (const msg of currentMessages) {
+        const isUser = msg.role === 'user';
+        let displayContent = msg.content;
+        try {
+            const parsed = JSON.parse(msg.content);
+            displayContent = `<pre class="bg-gray-900 p-3 rounded text-xs overflow-auto max-h-64">${JSON.stringify(parsed, null, 2)}</pre>`;
+        } catch(e) {
+            displayContent = msg.content.replace(/\n/g, '<br>');
+        }
+        const div = document.createElement('div');
+        div.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+        div.innerHTML = `
+            <div class="max-w-2xl p-3 rounded-lg shadow ${isUser ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-200'}">
+                ${displayContent}
+                <div class="text-xs mt-1 opacity-50">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+            </div>`;
+        container.appendChild(div);
+    }
+    container.scrollTop = container.scrollHeight;
+}
+
+async function callAPI(endpoint, params = {}) {
+    const url = new URL(`${API_BASE}/${endpoint}`);
+    Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+    const res = await fetch(url, { headers: { 'X-API-Key': currentApiKey } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    return await res.json();
+}
+
+async function callAPIPost(endpoint, body) {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'X-API-Key': currentApiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+}
+
+const TOOL_PARAMS = {
+    loginbypass:    { url: 'Target URL (e.g. https://example.com/login)' },
+    jsbypass:       { url: 'Target URL' },
+    xsstest:        { url: 'Target URL' },
+    sqlinject:      { url: 'Target URL' },
+    fullaudit:      { domain: 'Domain (e.g. example.com)' },
+    aggressiveattack: { domain: 'Domain' },
+    aggressive:     { domain: 'Domain' },
+    webscan:        { url: 'URL' },
+    headers:        { url: 'URL' },
+    sslcheck:       { domain: 'Domain' },
+    portscan:       { domain: 'Domain' },
+    subdomains:     { domain: 'Domain' },
+    whois:          { domain: 'Domain' },
+    dns:            { domain: 'Domain' },
+    netanalyze:     { domain: 'Domain' },
+    techdetect:     { url: 'URL' },
+    robots:         { domain: 'Domain' },
+    dirscan:        { domain: 'Domain' },
+    sensitivefiles: { domain: 'Domain' },
+    corscheck:      { url: 'URL' },
+    cookiecheck:    { url: 'URL' },
+    clickjack:      { url: 'URL' },
+    ratelimit:      { url: 'URL' },
+    redirecttest:   { url: 'URL' },
+    passcheck:      { password: 'Password check karna hai' },
+    hashcrack:      { hash_value: 'Hash value' },
+    iprep:          { ip: 'IP Address' },
+    jwtcheck:       { token: 'JWT Token' },
+    apiscan:        { url: 'URL' },
+    ask:            { q: 'Sawaal kya hai?' },
+    create:         { task: 'Kya code banana hai?', filename: 'Filename (e.g. app.py)' },
+    webapp:         { task: 'Web app description' },
+    agent:          { task: 'Agent ko kya karna hai?' },
+    breakcode:      null,
+};
+
+async function runTool(toolName) {
+    // Selfupgrade special modal
+    if (toolName === 'selfupgrade') {
+        document.getElementById('upgradeModal').classList.remove('hidden');
+        document.getElementById('upgradeResult').classList.add('hidden');
+        document.getElementById('upgradeInstruction').value = '';
+        return;
+    }
+
+    // Rollback ‚Äì boss key check
+    if (toolName === 'rollback') {
+        const key = bossKey || prompt('Boss API Key daalo (rollback ke liye):');
+        if (!key) return;
+        addMessage('user', 'Rollback kar raha hoon...');
+        try {
+            const savedKey = currentApiKey;
+            currentApiKey = key;
+            const result = await callAPI('rollback', {});
+            currentApiKey = savedKey;
+            addMessage('bot', JSON.stringify(result, null, 2));
+        } catch(e) {
+            addMessage('bot', `Rollback error: ${e.message}`);
+        }
+        return;
+    }
+
+    const params = TOOL_PARAMS[toolName];
+    if (params === undefined) {
+        addMessage('bot', `Tool "${toolName}" configure nahi hai abhi.`);
+        return;
+    }
+
+    // breakcode ‚Äî POST
+    if (toolName === 'breakcode') {
+        const code = prompt('Python code paste karo:');
+        if (!code) return;
+        addMessage('user', `Code breaker chal raha hai...`);
+        try {
+            const result = await callAPIPost('breakcode', { code });
+            addMessage('bot', JSON.stringify(result, null, 2));
+        } catch(e) { addMessage('bot', `Error: ${e.message}`); }
+        return;
+    }
+
+    // Normal tools
+    const paramValues = {};
+    for (const [key, label] of Object.entries(params)) {
+        const val = prompt(`${label}:`);
+        if (val === null) return;
+        paramValues[key] = val;
+    }
+
+    addMessage('user', `Ì¥ß ${toolName} ‚Üí ${JSON.stringify(paramValues)}`);
+
+    // Loading indicator
+    const loadDiv = document.createElement('div');
+    loadDiv.id = 'loading-msg';
+    loadDiv.className = 'flex justify-start';
+    loadDiv.innerHTML = `<div class="bg-gray-700 p-3 rounded-lg text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Running ${toolName}...</div>`;
+    document.getElementById('chatMessages').appendChild(loadDiv);
+    document.getElementById('chatMessages').scrollTop = 99999;
+
+    try {
+        const result = await callAPI(toolName, paramValues);
+        loadDiv.remove();
+        addMessage('bot', JSON.stringify(result, null, 2));
+    } catch(e) {
+        loadDiv.remove();
+        addMessage('bot', `Error: ${e.message}`);
+    }
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    addMessage('user', msg);
+
+    const loadDiv = document.createElement('div');
+    loadDiv.className = 'flex justify-start';
+    loadDiv.innerHTML = `<div class="bg-gray-700 p-3 rounded-lg text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Soch raha hoon...</div>`;
+    document.getElementById('chatMessages').appendChild(loadDiv);
+    document.getElementById('chatMessages').scrollTop = 99999;
+
+    try {
+        const model = document.getElementById('modelSelect').value;
+        const data = await callAPI('ask', { q: msg, model: model });
+        loadDiv.remove();
+        const reply = data.jawab || data.response || 'No reply';
+        const modelUsed = data.model || model;
+        addMessage('bot', reply + `\n\n_[${modelUsed}]_`);
+    } catch(e) {
+        loadDiv.remove();
+        addMessage('bot', `Error: ${e.message}`);
+    }
+}
+
+document.getElementById('runUpgradeBtn').addEventListener('click', async () => {
+    const instruction = document.getElementById('upgradeInstruction').value.trim();
+    const mode = document.getElementById('upgradeMode').value;
+    if (!instruction) { alert('Instruction daalo!'); return; }
+
+    const btn = document.getElementById('runUpgradeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Kaam chal raha hai...';
+
+    const resultDiv = document.getElementById('upgradeResult');
+    resultDiv.classList.remove('hidden');
+    resultDiv.textContent = 'AI code generate kar raha hai...';
+
+    try {
+        const data = await callAPI('selfupgrade', { instruction, mode });
+        resultDiv.innerHTML = data.status === 'success'
+            ? `<span class="text-green-400">‚úÖ Success!</span><br>Added code:<br><code class="text-xs">${data.added_code || ''}</code>`
+            : `<span class="text-red-400">‚ùå Error: ${data.error || JSON.stringify(data)}</span>`;
+        if (data.status === 'success') {
+            addMessage('bot', `‚úÖ Self Upgrade successful!\nInstruction: ${instruction}\nMode: ${mode}\n\nAdded code:\n${data.added_code || ''}\n\nRender pe auto-deploy hoga 2-3 min mein!`);
+        }
+    } catch(e) {
+        resultDiv.innerHTML = `<span class="text-red-400">‚ùå ${e.message}</span>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = 'Ì∫Ä Upgrade Karo';
+});
+
+document.getElementById('closeUpgradeBtn').addEventListener('click', () => {
+    document.getElementById('upgradeModal').classList.add('hidden');
+});
+
+// Event listeners
+document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keypress', e => { if(e.key==='Enter') sendChatMessage(); });
+document.getElementById('newChatBtn').addEventListener('click', startNewChat);
+document.getElementById('clearAllChatsBtn').addEventListener('click', () => {
+    if (confirm('Saare chats delete karo?')) {
+        sessions = {};
+        currentSessionId = generateSessionId();
+        sessions[currentSessionId] = { name: new Date().toLocaleString(), messages: [] };
+        saveToStorage();
+        loadCurrentSession();
+    }
+});
+
+// Settings
+const modal = document.getElementById('settingsModal');
+document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('settingsApiKey').value = currentApiKey;
+    document.getElementById('settingsBossKey').value = bossKey;
+    modal.classList.remove('hidden');
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', () => modal.classList.add('hidden'));
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+    const k = document.getElementById('settingsApiKey').value.trim();
+    const bk = document.getElementById('settingsBossKey').value.trim();
+    if (k) { currentApiKey = k; localStorage.setItem('sai_apiKey', k); }
+    if (bk) { bossKey = bk; localStorage.setItem('sai_bossKey', bk); }
+    document.getElementById('currentApiKeyDisplay').textContent = currentApiKey.substring(0,4)+'****';
+    modal.classList.add('hidden');
+    alert('Settings save ho gayi!');
+});
+modal.addEventListener('click', e => { if(e.target===modal) modal.classList.add('hidden'); });
+
+// Model change save
+document.getElementById('modelSelect').addEventListener('change', e => {
+    localStorage.setItem('sai_model', e.target.value);
+});
+
+// Tool buttons
+document.querySelectorAll('.tool-item').forEach(btn => {
+    btn.addEventListener('click', () => runTool(btn.dataset.tool));
+});
+
+// Init
+document.getElementById('currentApiKeyDisplay').textContent = currentApiKey.substring(0,4)+'****';
+const savedModel = localStorage.getItem('sai_model') || 'auto';
+document.getElementById('modelSelect').value = savedModel;
+loadCurrentSession();
 </script>
 </body>
-</html><!-- Add Self Upgrade tool in AI section -->
-<div class="font-medium text-gray-300 mt-2 mb-1 text-sm">‚öôÔ∏è System</div>
-<button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="selfupgrade">Self Upgrade (AI)</button>
-<button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="rollback">Rollback (boss only)</button>
+</html>
