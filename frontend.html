@@ -493,10 +493,10 @@ document.getElementById('runUpgradeBtn').addEventListener('click', async () => {
     try {
         const data = await callAPI('selfupgrade', { instruction, mode });
         resultDiv.innerHTML = data.status === 'success'
-            ? `<span class="text-green-400">✅ Success!</span><br>Added code:<br><code class="text-xs">${data.added_code || ''}</code>`
+            ? `<span class="text-green-400">✅ Success!</span><br>Added code:<br><code class="text-xs">${data.code_preview || ''}</code>`
             : `<span class="text-red-400">❌ Error: ${data.error || JSON.stringify(data)}</span>`;
         if (data.status === 'success') {
-            addMessage('bot', `✅ Self Upgrade successful!\nInstruction: ${instruction}\nMode: ${mode}\n\nAdded code:\n${data.added_code || ''}\n\nRender pe auto-deploy hoga 2-3 min mein!`);
+            addMessage('bot', `✅ Self Upgrade successful!\nInstruction: ${instruction}\nMode: ${mode}\n\nAdded code:\n${data.code_preview || ''}\n\nRender pe auto-deploy hoga 2-3 min mein!`);
         }
     } catch(e) {
         resultDiv.innerHTML = `<span class="text-red-400">❌ ${e.message}</span>`;
