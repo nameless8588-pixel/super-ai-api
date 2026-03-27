@@ -63,6 +63,7 @@ def get_ai_response(prompt, model="auto", system="Tu Super AI hai - koi bhi chee
 
     return {"response": "AI unavailable", "model": "none", "provider": "none", "errors": errors}
 import requests
+import logging
 import base64
 import sys
 import os
@@ -101,7 +102,8 @@ init_db()
 
 def save_backup(sha, message):
     try:
-        import requests, os
+        import requests
+        import os
         token = os.getenv("GITHUB_TOKEN")
         repo = os.getenv("GITHUB_REPO")
         # GitHub pe backup.txt save karo
@@ -120,7 +122,9 @@ def save_backup(sha, message):
 
 def get_last_backup():
     try:
-        import requests, os, base64
+        import requests
+        import os
+        import base64
         token = os.getenv("GITHUB_TOKEN")
         repo = os.getenv("GITHUB_REPO")
         api_url = f"https://api.github.com/repos/{repo}/contents/backup.txt"
@@ -2054,202 +2058,313 @@ Hinglish mein short summary do - kya mila? Important findings kya hain?"""
         "response_time": f"{round(time.time()-start, 2)}s"
     }
 
+def ast_safety_check(code: str) -> list:
+    import ast as _ast
+
+    violations = []
+
+    # 1. Normalized string scan — "GITHUB" + "_TOKEN" jaise bypass pakdo
+    normalized = code.replace('" + "', '').replace("' + '", '').replace('\n', ' ')
+    HARD_BLOCKED = [
+        "GITHUB_TOKEN", "GROQ_API_KEY", "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY",
+        "shutil.rmtree", "DROP TABLE", "DELETE FROM",
+        "os.system(", "__import__",
+    ]
+    for b in HARD_BLOCKED:
+        if b.lower() in normalized.lower():
+            violations.append(f"Blocked pattern: '{b}'")
+
+    # 2. AST-level — os.getenv(sensitive_key) aur exec/eval calls pakdo
+    try:
+        tree = _ast.parse(code)
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Call):
+                func = node.func
+                # os.getenv / os.environ ke saath sensitive variable names
+                if isinstance(func, _ast.Attribute) and func.attr in ("getenv", "environ"):
+                    for arg in node.args:
+                        if isinstance(arg, _ast.Constant) and any(
+                            s in str(arg.value)
+                            for s in ["TOKEN", "SECRET", "KEY", "PASSWORD", "PASS"]
+                        ):
+                            violations.append(f"Sensitive env access: getenv('{arg.value}')")
+                # exec / eval / compile calls
+                if isinstance(func, _ast.Name) and func.id in ("exec", "eval", "compile"):
+                    violations.append(f"Dangerous builtin: {func.id}()")
+    except SyntaxError:
+        violations.append("Code parse nahi hua — syntax error")
+
+    return violations
+
+
+# ══════════════════════════════════════════════
+# FIX-2: Proper validation — syntax + import check
+# Temp file cleanup guaranteed (finally block)
+# ══════════════════════════════════════════════
+SAFE_IMPORTS = {
+    # stdlib
+    "os","sys","re","json","time","math","random","hashlib","datetime",
+    "base64","socket","ssl","subprocess","threading","collections",
+    "itertools","functools","pathlib","tempfile","urllib","http",
+    "string","struct","typing","io","copy","sqlite3","csv","logging",
+    "uuid","enum","abc","dataclasses","contextlib","shlex",
+    # third-party (whitelisted)
+    "fastapi","requests","groq","openai","pydantic","bs4","beautifulsoup4",
+    "cachetools","dotenv","uvicorn","starlette","aiohttp","httpx",
+    "google","anthropic",
+}
+
+def validate_generated_code(code: str, tmp_path: str) -> dict:
+    import ast as _ast, subprocess, sys
+
+    # Step 1: Syntax compile check
+    result = subprocess.run(
+        [sys.executable, "-m", "py_compile", tmp_path],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return {"ok": False, "reason": f"Syntax error: {result.stderr[:200]}"}
+
+    # Step 2: Import whitelist check via AST
+    try:
+        tree = _ast.parse(code)
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Import):
+                for alias in node.names:
+                    top = alias.name.split(".")[0]
+                    if top not in SAFE_IMPORTS:
+                        return {"ok": False, "reason": f"Unsafe import '{top}' — whitelist mein nahi"}
+            elif isinstance(node, _ast.ImportFrom):
+                if node.module:
+                    top = node.module.split(".")[0]
+                    if top not in SAFE_IMPORTS:
+                        return {"ok": False, "reason": f"Unsafe import '{top}' — whitelist mein nahi"}
+    except Exception as e:
+        return {"ok": False, "reason": f"AST scan failed: {e}"}
+
+    return {"ok": True, "reason": "All checks passed"}
+
+
+# ── FIX-6: Protected routes — modify/override allowed nahi ──
+PROTECTED_ROUTES = {"/", "/health", "/selfupgrade", "/rollback", "/ask"}
+
 @app.get("/selfupgrade")
 def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verify_key)):
-    import requests, base64, os, tempfile, subprocess
+    if VALID_KEYS.get(key) != "boss":
+        raise HTTPException(status_code=403, detail="selfupgrade sirf boss key se!")
 
-    # Step 1: GitHub se current file fetch karo
-    token = os.getenv("GITHUB_TOKEN")
-    repo = os.getenv("GITHUB_REPO")
-    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
-    headers = {"Authorization": f"token {token}"}
-    get_resp = requests.get(api_url, headers=headers, timeout=10)
-    sha = get_resp.json().get("sha", "")
-    current_decoded = base64.b64decode(get_resp.json().get("content", "")).decode("utf-8")
+    # FIX-5: Race condition lock
+    if not _upgrade_lock.acquire(blocking=False):
+        raise HTTPException(status_code=429, detail="Ek upgrade chal raha hai — baad mein try karo!")
 
-    # Step 2: Protected zones define karo
-    protected = [
-        "app = FastAPI",
-        "verify_key",
-        "VALID_KEYS",
-        "load_dotenv",
-        "api_key_header",
-        "CORSMiddleware",
-    ]
+    tmp_path = None
+    try:
+        token   = os.getenv("GITHUB_TOKEN")
+        repo    = os.getenv("GITHUB_REPO")
+        api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
+        hdrs    = {"Authorization": f"token {token}"}
 
-    # Step 3: AI se code generate karo
-    if mode == "append":
-        prompt = f"""Write ONLY a single FastAPI endpoint function for: {instruction}
-Rules:
-- Only @app.get or @app.post decorator + async def
-- Add relevant query parameters (e.g. city: str, amount: float, text: str)
-- All imports INSIDE the function
-- No imports outside function, no app=FastAPI(), no uvicorn
-- Return a meaningful dict with results
-- Max 25 lines
-Example:
-@app.get("/weather")
-async def get_weather(city: str, key: str = Depends(verify_key)):
-    import requests
-    return {{"city": city, "temp": "25C"}}"""
-    else:
-        prompt = f"""You are editing a FastAPI endpoint. Task: {instruction}
-STRICT RULES:
-- Return ONLY the modified function code (decorator + function only)
-- Do NOT return the whole file
-- Do NOT remove anything
-- No imports outside function
-- No app=FastAPI()
-- No markdown, just raw Python code
+        get_resp = requests.get(api_url, headers=hdrs, timeout=10)
+        if get_resp.status_code != 200:
+            return {"error": "GitHub se api.py fetch nahi hui"}
+
+        file_sha        = get_resp.json().get("sha", "")
+        current_decoded = base64.b64decode(get_resp.json().get("content", "")).decode("utf-8")
+
+        protected_markers = [
+            "app = FastAPI", "verify_key", "VALID_KEYS",
+            "load_dotenv", "api_key_header", "CORSMiddleware", "_upgrade_lock",
+        ]
+
+        # Mode validate
+        if mode not in ("append", "modify"):
+            return {"error": f"Invalid mode '{mode}' — sirf 'append' ya 'modify' allowed"}
+
+        # AI prompt
+        existing_routes = re.findall(r'@app\.(get|post)\("(/[^"]*)"\)', current_decoded)
+        existing_list   = ", ".join(r[1] for r in existing_routes)
+        similar         = get_similar_endpoints(instruction)
+        mem_ctx = ""
+        if similar:
+            mem_ctx = "Previous similar endpoints:\n" + "".join(
+                f"Route: {r}\nCode: {c[:200]}\n---\n" for r, c in similar
+            )
+
+        base_rules = """Rules:
+- Only @app.get or @app.post decorator + function
+- All imports INSIDE function body
+- No app=FastAPI(), no uvicorn, no top-level imports
+- Return meaningful dict
 - Max 30 lines"""
 
-    # Context: existing endpoints + memory
-    import re
-    existing_routes = re.findall(r'@app\.(get|post)\("(/[^"]*)"\)', current_decoded)
-    existing_list = ", ".join([r[1] for r in existing_routes])
-    similar = get_similar_endpoints(instruction)
-    memory_context = ""
-    if similar:
-        memory_context = "Previous similar endpoints for reference:\n"
-        for route, code in similar:
-            memory_context += f"Route: {route}\nCode: {code[:200]}\n---\n"
-    
-    full_prompt = f"""You are upgrading a FastAPI app.
-Existing endpoints: {existing_list}
-Verify_key function exists for API key auth: key: str = Depends(verify_key)
-{memory_context}
-Task: {prompt}"""
-
-    groq_key = os.getenv("GROQ_API_KEY")
-    groq_headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
-    groq_body = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": full_prompt}], "max_tokens": 8000}
-    groq_resp = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=groq_headers,
-        json=groq_body,
-        timeout=30
-    )
-    new_code = groq_resp.json()["choices"][0]["message"]["content"]
-    new_code = new_code.replace("```python", "").replace("```", "").strip()
-
-    # Step 4: Safety check
-    blocked = ["GITHUB_TOKEN", "GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY", "shutil.rmtree", "DROP TABLE", "DELETE FROM"]
-    for b in blocked:
-        if b in new_code:
-            return {"error": f"Blocked dangerous code: {b}"}
-
-    # Step 5: Protected zone check (sirf modify mode mein)
-    if mode == "NEVER_modify":
-        for p in protected:
-            if p in current_decoded and p not in new_code:
-                return {"error": f"Protected code removed: {p} - rejected!"}
-
-    # Step 6: Final code banao
-    if mode == "append":
-        final_code = current_decoded + "\n\n" + new_code
-
-    elif mode == "modify":
-        import re
-        # Route nikalo naye code se
-        func_match = re.search(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
-        if not func_match:
-            return {"error": "Generated code mein valid endpoint nahi mila!"}
-        
-        route = func_match.group(2)
-        
-        # Purana function dhundo — us route ka
-        pattern = rf'(?:@app\.(?:get|post)\("{re.escape(route)}"\).*?\ndef\s+\w+\([^)]*\):[\s\S]*?)(?=\n@app\.|\nif __name__|\Z)'
-        match = re.search(pattern, current_decoded, re.DOTALL)
-        
-        if match:
-            old_func = match.group(0)
-            # Protected zone check
-            for p in protected:
-                if p in old_func and p not in new_code:
-                    return {"error": f"Protected code tampered: {p}"}
-            
-            # Replace karo
-            final_code = current_decoded.replace(old_func, new_code + "\n\n")
-            
-            # Verify — route abhi bhi hai?
-            if route not in final_code:
-                return {"error": "Route replacement failed — safety rollback"}
+        if mode == "append":
+            task_prompt = f"Write ONE new FastAPI endpoint for: {instruction}\n{base_rules}"
         else:
-            # Route exist nahi karta — append karo
+            task_prompt = f"Modify an existing FastAPI endpoint. Task: {instruction}\n{base_rules}\n- Return ONLY the modified function (decorator + def)"
+
+        full_prompt = f"FastAPI app upgrade.\nExisting routes: {existing_list}\nverify_key exists: key: str = Depends(verify_key)\n{mem_ctx}\n{task_prompt}"
+
+        groq_resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}", "Content-Type": "application/json"},
+            json={"model": "llama-3.3-70b-versatile",
+                  "messages": [{"role": "user", "content": full_prompt}],
+                  "max_tokens": 8000},
+            timeout=30
+        )
+        new_code = groq_resp.json()["choices"][0]["message"]["content"]
+        new_code = new_code.replace("```python", "").replace("```", "").strip()
+
+        # ── FIX-7: AST safety check ──
+        violations = ast_safety_check(new_code)
+        if violations:
+            return {"error": "Safety check failed", "violations": violations}
+
+        # ── FIX-8 + FIX-6: AI generated routes check ──
+        generated_routes = re.findall(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
+        for _, route in generated_routes:
+            if route in PROTECTED_ROUTES:
+                return {"error": f"AI ne protected route '{route}' generate kiya — rejected!"}
+
+        # FIX-2: Temp file banao → validate → finally mein delete karo
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
+            tmp.write(new_code)
+            tmp_path = tmp.name
+
+        validation = validate_generated_code(new_code, tmp_path)
+        if not validation["ok"]:
+            return {"error": "Code validation failed", "reason": validation["reason"]}
+
+        # Final file banao
+        if mode == "append":
             final_code = current_decoded + "\n\n" + new_code
 
-    else:
-        return {"error": f"Invalid mode: {mode}. Use append or modify"}
+        else:  # modify
+            func_match = re.search(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
+            if not func_match:
+                return {"error": "Generated code mein valid @app.get/@app.post nahi mila"}
 
-    # Step 7: Syntax check
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as tmp:
-        tmp.write(final_code)
-        tmp_path = tmp.name
-    
-    result = subprocess.run(["python", "-m", "py_compile", tmp_path], capture_output=True, text=True)
-    os.unlink(tmp_path)
-    
-    if result.returncode != 0:
-        return {"error": "Syntax error in generated code", "details": result.stderr}
+            target_route = func_match.group(2)
 
-    # Step 8: GitHub pe push karo
-    encoded = base64.b64encode(final_code.encode()).decode()
-    push_resp = requests.put(api_url, headers=headers, json={
-        "message": f"selfupgrade({mode}): {instruction[:50]}",
-        "content": encoded,
-        "sha": sha
-    }, timeout=10)
+            # FIX-6: Protected route modify nahi hoga
+            if target_route in PROTECTED_ROUTES:
+                return {"error": f"'{target_route}' protected hai — modify nahi kar sakte!"}
 
-    if push_resp.status_code in [200, 201]:
-        save_backup(sha, f"before: {instruction[:50]}")
-        import re as _re
-        func_match = _re.search(r'@app\.(get|post)\("(/[^"]*)"\)', new_code)
-        if func_match:
-            save_endpoint(func_match.group(2), new_code, instruction)
-        return {"status": "success", "mode": mode, "added_code": new_code[:200]}
-    return {"error": "GitHub push failed", "status_code": push_resp.status_code}
+            pattern = rf'(?:@app\.(?:get|post)\("{re.escape(target_route)}"\)[\s\S]*?\ndef\s+\w+\([^)]*\):[\s\S]*?)(?=\n@app\.|\nif __name__|\Z)'
+            match   = re.search(pattern, current_decoded, re.DOTALL)
+            if match:
+                old_func = match.group(0)
+                # FIX-3: Protected zone check — "modify" mode mein actual check ──
+                for p in protected_markers:
+                    if p in old_func and p not in new_code:
+                        return {"error": f"Protected marker '{p}' remove ho raha hai — rejected!"}
+                final_code = current_decoded.replace(old_func, new_code + "\n\n")
+                if target_route not in final_code:
+                    return {"error": "Route replacement failed — rollback"}
+            else:
+                # Route nahi mila → append karo
+                final_code = current_decoded + "\n\n" + new_code
+
+        # GitHub push
+        encoded   = base64.b64encode(final_code.encode()).decode()
+        push_resp = requests.put(api_url, headers=hdrs, json={
+            "message": f"selfupgrade({mode}): {instruction[:50]}",
+            "content": encoded,
+            "sha":     file_sha
+        }, timeout=10)
+
+        if push_resp.status_code in [200, 201]:
+            # FIX-4 + FIX-10: Commit SHA save karo (blob SHA nahi)
+            commit_sha = push_resp.json().get("commit", {}).get("sha", file_sha)
+            save_backup(commit_sha, f"before_{mode}: {instruction[:40]}")
+
+            if generated_routes:
+                save_endpoint(generated_routes[0][1], new_code, instruction)
+
+            logging.info(f"[selfupgrade] tier={VALID_KEYS[key]} mode={mode} routes={[r[1] for r in generated_routes]} instr={instruction[:40]}")
+
+            return {
+                "status":        "success",
+                "mode":          mode,
+                "routes_added":  [r[1] for r in generated_routes],
+                "code_preview":  new_code[:400],
+            }
+
+        return {"error": "GitHub push failed", "http_status": push_resp.status_code}
+
+    finally:
+        # FIX-2 (bonus): Temp file guaranteed cleanup
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        # FIX-5: Lock release — hamesha
+        _upgrade_lock.release()
 
 
+# ══════════════════════════════════════════════
+# ROLLBACK  (FIX-4: Commit SHA → tree → blob)
+# ══════════════════════════════════════════════
 @app.get("/rollback")
 def rollback(key: str = Depends(verify_key)):
     if VALID_KEYS.get(key) != "boss":
         return {"error": "Only boss key can rollback!"}
-    import requests, base64, os
-    token = os.getenv("GITHUB_TOKEN")
-    repo = os.getenv("GITHUB_REPO")
-    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
-    headers = {"Authorization": f"token {token}"}
 
-    # Last backup sha lo
+    token   = os.getenv("GITHUB_TOKEN")
+    repo    = os.getenv("GITHUB_REPO")
+    api_url = f"https://api.github.com/repos/{repo}/contents/api.py"
+    hdrs    = {"Authorization": f"token {token}"}
+
     backup = get_last_backup()
     if not backup:
-        return {"error": "Koi backup nahi mila!"}
-    
-    sha_to_restore, message = backup
+        return {"error": "Koi backup nahi mila — pehle selfupgrade karo!"}
 
-    # GitHub se us commit ka content lo
-    commit_url = f"https://api.github.com/repos/{repo}/git/blobs/{sha_to_restore}"
-    blob_resp = requests.get(commit_url, headers=headers, timeout=10)
+    commit_sha, message = backup
+
+    # FIX-4: Commit → tree → api.py blob (correct path)
+    commit_resp = requests.get(
+        f"https://api.github.com/repos/{repo}/git/commits/{commit_sha}",
+        headers=hdrs, timeout=10
+    )
+    if commit_resp.status_code != 200:
+        return {"error": f"Commit fetch failed (status {commit_resp.status_code}) — SHA galat ho sakta hai"}
+
+    tree_sha  = commit_resp.json().get("tree", {}).get("sha", "")
+    tree_resp = requests.get(
+        f"https://api.github.com/repos/{repo}/git/trees/{tree_sha}",
+        headers=hdrs, timeout=10
+    )
+    if tree_resp.status_code != 200:
+        return {"error": "Git tree fetch failed"}
+
+    api_blob_sha = next(
+        (item["sha"] for item in tree_resp.json().get("tree", []) if item["path"] == "superai_fixed.py"),
+        None
+    )
+    if not api_blob_sha:
+        return {"error": "api.py us commit mein nahi mili!!"}
+
+    blob_resp = requests.get(
+        f"https://api.github.com/repos/{repo}/git/blobs/{api_blob_sha}",
+        headers=hdrs, timeout=10
+    )
     if blob_resp.status_code != 200:
-        return {"error": "Backup content nahi mila!"}
-    
-    old_content = base64.b64decode(blob_resp.json().get("content", "")).decode("utf-8")
+        return {"error": "api.py content blob fetch nahi hua"}
 
-    # Current sha lo
-    get_resp = requests.get(api_url, headers=headers, timeout=10)
-    current_sha = get_resp.json().get("sha", "")
+    old_content  = base64.b64decode(blob_resp.json().get("content", "")).decode("utf-8")
+    current_sha  = requests.get(api_url, headers=hdrs, timeout=10).json().get("sha", "")
+    encoded      = base64.b64encode(old_content.encode()).decode()
 
-    # Rollback push karo
-    encoded = base64.b64encode(old_content.encode()).decode()
-    push_resp = requests.put(api_url, headers=headers, json={
-        "message": f"rollback: restore to {message}",
+    push_resp = requests.put(api_url, headers=hdrs, json={
+        "message": f"rollback: restore to '{message}'",
         "content": encoded,
-        "sha": current_sha
+        "sha":     current_sha,
     }, timeout=10)
 
     if push_resp.status_code in [200, 201]:
         return {"status": "success", "restored_to": message}
-    return {"error": "Rollback failed", "details": push_resp.text[:200]}
+    return {"error": "Rollback push failed", "details": push_resp.text[:200]}
+
 
 if __name__ == "__main__":
     import uvicorn
