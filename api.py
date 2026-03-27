@@ -215,8 +215,13 @@ def health():
 
 @app.get("/ask")
 def ask(q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
-    if q in cache:
-        return {"sawal": q, "jawab": cache[q], "model": "cached", "cached": True}
+    # Cache sirf 10 min ke liye - fresh answers
+    import hashlib
+    cache_key = hashlib.md5(q.encode()).hexdigest()
+    if cache_key in cache:
+        cached = cache[cache_key]
+        if time.time() - cached.get("ts", 0) < 600:  # 10 min
+            return {"sawal": q, "jawab": cached["jawab"], "model": "cached", "cached": True}
     start = time.time()
     try:
         context = search_internet(q)
@@ -236,7 +241,7 @@ def ask(q: str, model: str = "auto", api_key: str = None, key: str = Depends(ver
     reply = response_text
     ai_errors = result.get("errors", []) if isinstance(result, dict) else []
     if reply != "AI unavailable":
-        cache[q] = reply
+        cache[cache_key] = {"jawab": reply, "ts": time.time()}
         save_memory(q, reply, True)
     return {"sawal": q, "jawab": reply, "model": ai_model_used, "response_time": f"{round(time.time()-start, 2)}s", "plan": VALID_KEYS[key], "errors": ai_errors}
 
@@ -344,15 +349,40 @@ def web_search(q: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"error": str(e)}
 
-chat_history = TTLCache(maxsize=500, ttl=3600)
+chat_history = TTLCache(maxsize=500, ttl=7200)
+
+# Persistent chat history - JSON file mein save
+import json as _json
+
+def load_chat_history(session):
+    try:
+        with open(f"chat_{session}.json", "r") as f:
+            return _json.load(f)
+    except:
+        return []
+
+def save_chat_history(session, history):
+    try:
+        with open(f"chat_{session}.json", "w") as f:
+            _json.dump(history[-20:], f)  # Last 20 messages save
+    except:
+        pass
 
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     start = time.time()
+    
+    # RAM mein nahi hai toh file se load karo
     if session not in chat_history:
-        chat_history[session] = []
+        chat_history[session] = load_chat_history(session)
+    
     chat_history[session].append({"role": "user", "content": msg})
+    
+    # File mein save karo
+    save_chat_history(session, chat_history[session])
+    
     history = chat_history[session][-10:]
+    
     # Context banao — pichli baatein yaad dilao
     context_summary = ""
     if len(chat_history[session]) > 2:
@@ -381,7 +411,8 @@ Tools: webscan, headers, sslcheck, whois, dns, portscan, subdomains, techdetect,
     )
     reply = response.choices[0].message.content.strip()
     chat_history[session].append({"role": "assistant", "content": reply})
-    return {"reply": reply, "response_time": f"{round(time.time()-start, 2)}s"}
+    save_chat_history(session, chat_history[session])
+    return {"reply": reply, "session": session, "response_time": f"{round(time.time()-start, 2)}s"}
 
 @app.post("/breakcode")
 def break_code(request: dict, key: str = Depends(verify_key)):
