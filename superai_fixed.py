@@ -564,7 +564,7 @@ def rollback(key: str = Depends(verify_key)):
         return {"error": "Git tree fetch failed"}
 
     api_blob_sha = next(
-        (item["sha"] for item in tree_resp.json().get("tree", []) if item["path"] == "api.py"),
+        (item["sha"] for item in tree_resp.json().get("tree", []) if item["path"] == "superai_fixed.py"),
         None
     )
     if not api_blob_sha:
