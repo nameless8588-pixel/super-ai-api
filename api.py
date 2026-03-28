@@ -2216,6 +2216,31 @@ def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verif
         raise HTTPException(status_code=429, detail="Ek upgrade chal raha hai — baad mein try karo!")
 
     tmp_path = None
+    # Step 0: AI se decide karwao kaunsi files edit karni hain
+    try:
+        decide_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": f"""Task: {instruction}
+            
+Decide karo:
+1. Kya api.py mein naya endpoint/change chahiye? (yes/no)
+2. Kya frontend.html mein UI change chahiye? (yes/no)
+
+Sirf JSON mein jawab do:
+{{"api": true/false, "frontend": true/false, "frontend_instruction": "what to change in frontend"}}"""}],
+            max_tokens=200
+        )
+        import json as _json
+        decide_text = decide_resp.choices[0].message.content.strip()
+        decide_text = decide_text.replace("```json","").replace("```","").strip()
+        decisions = _json.loads(decide_text)
+    except:
+        decisions = {"api": True, "frontend": False, "frontend_instruction": ""}
+
+    # Agar frontend bhi chahiye toh baad mein call karenge
+    _do_frontend = decisions.get("frontend", False)
+    _frontend_instruction = decisions.get("frontend_instruction", instruction)
+
     try:
         token   = os.getenv("GITHUB_TOKEN")
         repo    = os.getenv("GITHUB_REPO")
@@ -2342,11 +2367,39 @@ def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verif
 
             logging.info(f"[selfupgrade] tier={VALID_KEYS[key]} mode={mode} routes={[r[1] for r in generated_routes]} instr={instruction[:40]}")
 
+            # Auto frontend update agar zaroorat hai
+            frontend_status = "skipped"
+            if _do_frontend:
+                try:
+                    api_url_fe = f"https://api.github.com/repos/{repo}/contents/frontend.html"
+                    get_fe = requests.get(api_url_fe, headers=hdrs, timeout=10)
+                    if get_fe.status_code == 200:
+                        fe_sha = get_fe.json().get("sha","")
+                        current_html = base64.b64decode(get_fe.json().get("content","")).decode("utf-8")
+                        fe_prompt = f"Yeh frontend HTML hai:\n{current_html[:6000]}\n\nTask: {_frontend_instruction}\n\nSirf updated complete HTML return karo."
+                        fe_resp = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":fe_prompt}],
+                            max_tokens=8000
+                        )
+                        new_html = fe_resp.choices[0].message.content.strip()
+                        new_html = new_html.replace("```html","").replace("```","").strip()
+                        encoded_fe = base64.b64encode(new_html.encode()).decode()
+                        requests.put(api_url_fe, headers=hdrs, json={
+                            "message": f"auto frontend update: {instruction[:40]}",
+                            "content": encoded_fe,
+                            "sha": fe_sha
+                        }, timeout=10)
+                        frontend_status = "updated"
+                except:
+                    frontend_status = "failed"
+
             return {
                 "status":        "success",
                 "mode":          mode,
                 "routes_added":  [r[1] for r in generated_routes],
                 "code_preview":  new_code[:400],
+                "frontend":      frontend_status,
             }
 
         return {"error": "GitHub push failed", "http_status": push_resp.status_code}
