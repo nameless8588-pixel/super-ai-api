@@ -2605,3 +2605,4 @@ def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
         return {"error": "GitHub push failed"}
     except Exception as e:
         return {"error": str(e)}
+  
