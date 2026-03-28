@@ -156,6 +156,12 @@
             <div class="flex gap-2">
                 <input type="text" id="chatInput" placeholder="Kuch bhi poocho..." 
                     class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <button id="imageBtn" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition" title="Image Upload">
+                    <i class="fas fa-image"></i>
+                </button>
+                <button id="micBtn" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg transition" title="Voice Input">
+                    <i class="fas fa-microphone"></i>
+                </button>
                 <button id="sendBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition flex items-center gap-2">
                     <i class="fas fa-paper-plane"></i> Send
                 </button>
@@ -576,6 +582,59 @@ document.getElementById('modelSelect').addEventListener('change', e => {
 // Tool buttons
 document.querySelectorAll('.tool-item').forEach(btn => {
     btn.addEventListener('click', () => runTool(btn.dataset.tool));
+});
+
+// Image upload handler
+document.getElementById('imageBtn').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const base64 = ev.target.result.split(',')[1];
+            addMessage('user', 'Image analyze kar raha hoon...');
+            try {
+                const result = await callAPI('image_analyze', { image_string: base64 });
+                addMessage('bot', JSON.stringify(result, null, 2));
+            } catch(e) { addMessage('bot', 'Error: ' + e.message); }
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+});
+
+// Voice input handler
+document.getElementById('micBtn').addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const base64 = ev.target.result.split(',')[1];
+                addMessage('user', 'Voice message...');
+                try {
+                    const result = await callAPI('voice_assistant', { base64_audio: base64 });
+                    if (result.transcript) addMessage('user', result.transcript);
+                    if (result.reply) addMessage('bot', result.reply);
+                } catch(e) { addMessage('bot', 'Error: ' + e.message); }
+            };
+            reader.readAsDataURL(blob);
+        };
+        document.getElementById('micBtn').innerHTML = '<i class="fas fa-stop text-red-400"></i>';
+        mediaRecorder.start();
+        setTimeout(() => {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(t => t.stop());
+            document.getElementById('micBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+        }, 5000);
+    } catch(e) { alert('Mic access do!'); }
 });
 
 // Init
