@@ -2115,7 +2115,7 @@ SAFE_IMPORTS = {
     # third-party (whitelisted)
     "fastapi","requests","groq","openai","pydantic","bs4","beautifulsoup4",
     "cachetools","dotenv","uvicorn","starlette","aiohttp","httpx",
-    "google","anthropic","PIL","multipart","python_multipart","imghdr","mimetypes","filetype","magic","cv2","skimage","imageio","nltk","sklearn","scipy","numpy","pandas","PIL","flask","duckduckgo_search","spacy","transformers","torch","tensorflow","ast","inspect","traceback","warnings","platform","signal","queue","asyncio","concurrent","multiprocessing","importlib","duckduckgo_search","PIL","numpy",
+    "google","anthropic","PIL","multipart","torchvision","torch","tensorflow","keras","cv2","python_multipart","imghdr","mimetypes","filetype","magic","cv2","skimage","imageio","nltk","sklearn","scipy","numpy","pandas","PIL","flask","duckduckgo_search","spacy","transformers","torch","tensorflow","ast","inspect","traceback","warnings","platform","signal","queue","asyncio","concurrent","multiprocessing","importlib","duckduckgo_search","PIL","numpy",
 }
 
 def validate_generated_code(code: str, tmp_path: str) -> dict:
