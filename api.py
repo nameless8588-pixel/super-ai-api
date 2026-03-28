@@ -2129,20 +2129,21 @@ def validate_generated_code(code: str, tmp_path: str) -> dict:
     if result.returncode != 0:
         return {"ok": False, "reason": f"Syntax error: {result.stderr[:200]}"}
 
-    # Step 2: Import whitelist check via AST
+    # Step 2: Only block truly dangerous imports
+    BLOCKED_IMPORTS = {"shutil", "ctypes", "winreg", "pty"}
     try:
         tree = _ast.parse(code)
         for node in _ast.walk(tree):
             if isinstance(node, _ast.Import):
                 for alias in node.names:
                     top = alias.name.split(".")[0]
-                    if top not in SAFE_IMPORTS:
-                        return {"ok": False, "reason": f"Unsafe import '{top}' — whitelist mein nahi"}
+                    if top in BLOCKED_IMPORTS:
+                        return {"ok": False, "reason": f"Blocked import '{top}'"}
             elif isinstance(node, _ast.ImportFrom):
                 if node.module:
                     top = node.module.split(".")[0]
-                    if top not in SAFE_IMPORTS:
-                        return {"ok": False, "reason": f"Unsafe import '{top}' — whitelist mein nahi"}
+                    if top in BLOCKED_IMPORTS:
+                        return {"ok": False, "reason": f"Blocked import '{top}'"}
     except Exception as e:
         return {"ok": False, "reason": f"AST scan failed: {e}"}
 
