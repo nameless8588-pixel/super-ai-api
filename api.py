@@ -2544,3 +2544,39 @@ def chat(message: str, key: str = Depends(verify_key)):
         session_data['conversation'] = []
     session_data['conversation'].append({"message": message, "time": datetime.now().strftime("%H:%M:%S")})
     return {"session_details": session_data}
+
+@app.post("/frontend_upgrade")
+def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
+    if VALID_KEYS.get(key) != "boss":
+        raise HTTPException(status_code=403, detail="Sirf boss key se!")
+    try:
+        api_url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/frontend.html"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        get_resp = requests.get(api_url, headers=headers, timeout=10)
+        if get_resp.status_code != 200:
+            return {"error": "frontend.html fetch nahi hua"}
+        file_sha = get_resp.json().get("sha", "")
+        current_html = base64.b64decode(get_resp.json().get("content", "")).decode("utf-8")
+        fe_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": f"Yeh frontend HTML hai:
+{current_html[:8000]}
+
+Task: {instruction}
+
+Sirf updated complete HTML return karo, koi explanation nahi."}],
+            max_tokens=8000
+        )
+        new_html = fe_resp.choices[0].message.content.strip()
+        new_html = new_html.replace("```html", "").replace("```", "").strip()
+        encoded = base64.b64encode(new_html.encode()).decode()
+        push_resp = requests.put(api_url, headers=headers, json={
+            "message": f"frontend_upgrade: {instruction[:50]}",
+            "content": encoded,
+            "sha": file_sha
+        }, timeout=10)
+        if push_resp.status_code in [200, 201]:
+            return {"status": "success", "message": "Frontend update ho gaya! 2-3 min mein live hoga."}
+        return {"error": "GitHub push failed"}
+    except Exception as e:
+        return {"error": str(e)}
