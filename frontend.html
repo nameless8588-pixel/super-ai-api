@@ -98,6 +98,7 @@
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webapp">Generate Web App</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="breakcode">Code Breaker</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="agent">AI Agent</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="image_analyze"> Image Analyze</button>
 
                     <!-- System — SELFUPGRADE & ROLLBACK -->
                     <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">⚙️ System</div>
@@ -378,6 +379,7 @@ const TOOL_PARAMS = {
     webapp:         { task: 'Web app description' },
     agent:          { task: 'Agent ko kya karna hai?' },
     breakcode:      null,
+    image_analyze:  null,
 };
 
 async function runTool(toolName) {
@@ -409,6 +411,29 @@ async function runTool(toolName) {
     const params = TOOL_PARAMS[toolName];
     if (params === undefined) {
         addMessage('bot', `Tool "${toolName}" configure nahi hai abhi.`);
+        return;
+    }
+
+    // image_analyze — special
+    if (toolName === 'image_analyze') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const base64 = ev.target.result.split(',')[1];
+                addMessage('user', 'Image analyze kar raha hoon...');
+                try {
+                    const result = await callAPI('image_analyze', { image_string: base64 });
+                    addMessage('bot', JSON.stringify(result, null, 2));
+                } catch(e) { addMessage('bot', 'Error: ' + e.message); }
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
         return;
     }
 
