@@ -2174,6 +2174,10 @@ SAFE_IMPORTS = {
 def validate_generated_code(code: str, tmp_path: str) -> dict:
     import ast as _ast, subprocess, sys
 
+    # Step 0: Fix multiline fstrings
+    import re as _re
+    code = _re.sub(r"f"([^"]*)\n([^"]*)"", lambda m: m.group().replace(chr(10), " "), code)
+
     # Step 1: Syntax compile check
     result = subprocess.run(
         [sys.executable, "-m", "py_compile", tmp_path],
