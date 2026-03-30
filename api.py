@@ -2176,7 +2176,6 @@ def validate_generated_code(code: str, tmp_path: str) -> dict:
 
     # Step 0: Fix multiline fstrings
     import re as _re
-    code = _re.sub(r"f"([^"]*)\n([^"]*)"", lambda m: m.group().replace(chr(10), " "), code)
 
     # Step 1: Syntax compile check
     result = subprocess.run(
