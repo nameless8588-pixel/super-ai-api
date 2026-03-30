@@ -397,7 +397,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     msg_lower = msg.lower()
     real_data = ""
 
-    if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api"]):
+    if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api", "apna", "khud", "mera scan", "system scan"]):
         msg = msg + " super-ai-api.onrender.com"
         msg_lower = msg.lower()
 
