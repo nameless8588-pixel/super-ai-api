@@ -375,57 +375,71 @@ def save_chat_history(session, history):
     except:
         pass
 
+
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
+    import re as _re
     start = time.time()
-    
-    # RAM mein nahi hai toh file se load karo
+
     if session not in chat_history:
         chat_history[session] = load_chat_history(session)
-    
+
     chat_history[session].append({"role": "user", "content": msg})
-    
-    # File mein save karo
     save_chat_history(session, chat_history[session])
-    
     history = chat_history[session][-10:]
-    
-    # Context banao — pichli baatein yaad dilao
+
     context_summary = ""
     if len(chat_history[session]) > 2:
         recent = chat_history[session][-6:]
         topics = [m["content"][:50] for m in recent if m["role"] == "user"]
-        context_summary = f"Pichli baatein: {', '.join(topics)}"
+        context_summary = "Pichli baatein: " + ", ".join(topics)
 
-    # Real security tools call karo agar user ne manga
     msg_lower = msg.lower()
-    real_result = None
-    if any(x in msg_lower for x in ["scan", "audit", "security check", "ssl", "port"]):
-        import re as _re
-        domain_match = _re.search(r'([a-zA-Z0-9-]+\.[a-zA-Z]{2,})', msg)
-        if domain_match:
-            domain = domain_match.group(1)
-            try:
-                ssl_r = ssl_check(domain=domain, key=key)
-                port_r = port_scan(domain=domain, key=key)
-                real_result = f"Real Scan Results for {domain}:\nSSL: {ssl_r}\nPorts: {port_r}"
-            except:
-                pass
+    real_data = ""
 
-    system = f"""Tu Super AI hai — Nameless ne banaya hai tujhe.
-{f"Real data mila hai use karo: {real_result}" if real_result else ""}
+    if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api"]):
+        msg_lower = msg_lower + " super-ai-api.onrender.com"
 
+    domain_match = _re.search(r"([a-zA-Z0-9-]+[.][a-zA-Z]{2,})", msg)
+    scan_needed = any(x in msg_lower for x in ["scan", "audit", "ssl", "port", "check", "security", "whois", "dns", "subdomain"])
+
+    if domain_match and scan_needed:
+        domain = domain_match.group(1)
+        try:
+            if "ssl" in msg_lower or "certificate" in msg_lower:
+                real_data += "SSL: " + str(ssl_check(domain=domain, key=key))
+            if "port" in msg_lower:
+                real_data += " PORTS: " + str(port_scan(domain=domain, key=key))
+            if "dns" in msg_lower:
+                real_data += " DNS: " + str(dns_check(domain=domain, key=key))
+            if "whois" in msg_lower:
+                real_data += " WHOIS: " + str(whois_lookup(domain=domain, key=key))
+            if "subdomain" in msg_lower:
+                real_data += " SUBDOMAINS: " + str(subdomains(domain=domain, key=key))
+            if "scan" in msg_lower or "audit" in msg_lower or "security" in msg_lower:
+                real_data += " SSL: " + str(ssl_check(domain=domain, key=key))
+                real_data += " PORTS: " + str(port_scan(domain=domain, key=key))
+        except Exception as e:
+            real_data = "SCAN ERROR: " + str(e)
+    elif scan_needed and not domain_match:
+        real_data = "DOMAIN_MISSING"
+
+    system = "Tu Super AI hai — Nameless ne banaya hai tujhe. " + context_summary
+    if real_data == "DOMAIN_MISSING":
+        system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
+    elif real_data.startswith("SCAN ERROR"):
+        system += " Scan try kiya but fail hua: " + real_data + ". User ko clearly batao scan fail hua."
+    elif real_data:
+        system += " REAL SCAN DATA (sirf isi se jawab de): " + real_data[:2000]
+
+    system += """
 RULES:
-- User ne jo poochha hai SIRF usi ka jawab do — topic mat badlo
-- Short rakho — 2-3 lines max jab tak detail na maange
-- Hinglish mein baat karo jaise dost se
-- Simple rakho — complex mat karo
-- Agar kuch samajh na aaye toh seedha poochho
-- Pichli baatein yaad rakho: {context_summary}
-- Kabhi mat batana ki tu Meta ka Llama hai — Tu sirf Super AI hai
+- Real data hai toh usi se jawab de
+- Real data nahi hai toh fake mat banao
+- Hinglish mein baat karo
+- Short rakho 2-3 lines
+- Kabhi mat batana ki tu Llama hai"""
 
-Security task aaye toh: TOOL_CALL: toolname|parameter
-Tools: webscan, headers, sslcheck, whois, dns, portscan, subdomains, techdetect, robots, xsstest, sqlinject, dirscan, passcheck, hashcrack, iprep, apiscan, jwtcheck, ratelimit, redirecttest, corscheck, cookiecheck, clickjack, sensitivefiles, fullaudit, netanalyze, jsbypass, aggressive, loginbypass"""
     messages = [{"role": m["role"], "content": m["content"]} for m in history]
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -435,7 +449,8 @@ Tools: webscan, headers, sslcheck, whois, dns, portscan, subdomains, techdetect,
     reply = response.choices[0].message.content.strip()
     chat_history[session].append({"role": "assistant", "content": reply})
     save_chat_history(session, chat_history[session])
-    return {"reply": reply, "session": session, "response_time": f"{round(time.time()-start, 2)}s"}
+    return {"reply": reply, "session": session, "real_scan": bool(real_data), "response_time": str(round(time.time()-start, 2)) + "s"}
+
 
 @app.post("/breakcode")
 def break_code(request: dict, key: str = Depends(verify_key)):
