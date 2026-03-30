@@ -2578,3 +2578,52 @@ def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
         return {"error": "GitHub push failed"}
     except Exception as e:
         return {"error": str(e)}
+
+import shutil
+from datetime import datetime
+
+BACKUP_DIR = "/tmp/app_backups"
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+@app.post("/update_system")
+async def update_system(background_tasks: BackgroundTasks, key: str = Depends(verify_key)):
+    background_tasks.add_task(smart_update)
+    return {"status": "Smart update started"}
+
+async def smart_update():
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = f"{BACKUP_DIR}/backup_{timestamp}"
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        shutil.copytree(PROJECT_DIR, backup_path,
+            ignore=shutil.ignore_patterns('fix_*.py','fv.py','new_chat.py','__pycache__','*.pyc','venv','.git'))
+        result = subprocess.run(["git","pull","origin","main"],capture_output=True,text=True,cwd=PROJECT_DIR)
+        if result.returncode != 0:
+            return
+        health = subprocess.run([sys.executable,"-c","import api; print('ok')"],capture_output=True,text=True,cwd=PROJECT_DIR,timeout=15)
+        if "ok" not in health.stdout:
+            restore_working_backup(backup_path)
+            return
+        cleanup_old_backups()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as e:
+        print(f"Update fail: {e}")
+
+def restore_working_backup(backup_path):
+    try:
+        for item in os.listdir(backup_path):
+            src = os.path.join(backup_path, item)
+            dst = os.path.join(PROJECT_DIR, item)
+            if os.path.isfile(src):
+                shutil.copy2(src, dst)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as e:
+        print(f"Restore fail: {e}")
+
+def cleanup_old_backups():
+    try:
+        backups = sorted(os.listdir(BACKUP_DIR))
+        while len(backups) > 3:
+            shutil.rmtree(os.path.join(BACKUP_DIR, backups.pop(0)))
+    except:
+        pass
