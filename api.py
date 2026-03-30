@@ -377,6 +377,30 @@ def save_chat_history(session, history):
 
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
+    import re as _re
+    msg_lower = msg.lower()
+    domain_match = _re.search(r"([a-zA-Z0-9-]+\.[a-zA-Z]{2,})", msg)
+    if domain_match and any(x in msg_lower for x in ["scan", "audit", "ssl", "port", "check", "security"]):
+        domain = domain_match.group(1)
+        try:
+            ssl_result = ssl_check(domain=domain, key=key)
+            port_result = port_scan(domain=domain, key=key)
+            real_data = "REAL SCAN DATA - " + str(ssl_result) + " PORTS: " + str(port_result)
+            if session not in chat_history:
+                chat_history[session] = load_chat_history(session)
+            chat_history[session].append({"role": "user", "content": msg})
+            save_chat_history(session, chat_history[session])
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": "Tu Super AI hai. Real scan data ke basis pe answer de, kuch invent mat kar."}, {"role": "user", "content": "Real data: " + real_data + "\nUser ka sawal: " + msg}],
+                max_tokens=600
+            )
+            reply = response.choices[0].message.content.strip()
+            chat_history[session].append({"role": "assistant", "content": reply})
+            save_chat_history(session, chat_history[session])
+            return {"reply": reply, "session": session, "real_scan": True}
+        except Exception as e:
+            pass
     start = time.time()
     
     # RAM mein nahi hai toh file se load karo
