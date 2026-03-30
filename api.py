@@ -377,52 +377,6 @@ def save_chat_history(session, history):
 
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
-    import re as _re
-    msg_lower = msg.lower()
-    if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api"]):
-        msg = msg + " super-ai-api.onrender.com"
-        msg_lower = msg.lower()
-    domain_match = _re.search(r"([a-zA-Z0-9-]+\.[a-zA-Z]{2,})", msg)
-    scan_attempted = any(x in msg_lower for x in ["scan", "audit", "ssl", "port", "check", "security"])
-    if domain_match and scan_attempted:
-        domain = domain_match.group(1)
-        try:
-            ssl_result = ssl_check(domain=domain, key=key)
-            port_result = port_scan(domain=domain, key=key)
-            real_data = "REAL SCAN DATA - " + str(ssl_result) + " PORTS: " + str(port_result)
-        except Exception as scan_err:
-            real_data = "SCAN FAILED: " + str(scan_err)
-    elif scan_attempted and not domain_match:
-        real_data = "ERROR: Domain nahi mila — user se domain poochho, fake results mat do"
-    if session not in chat_history:
-        chat_history[session] = load_chat_history(session)
-    chat_history[session].append({"role": "user", "content": msg})
-    save_chat_history(session, chat_history[session])
-    try:
-            pass
-    import re as _re
-    msg_lower = msg.lower()
-    if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api"]):
-        msg = msg + " super-ai-api.onrender.com"
-        msg_lower = msg.lower()
-    domain_match = _re.search(r"([a-zA-Z0-9-]+\.[a-zA-Z]{2,})", msg)
-    scan_attempted = any(x in msg_lower for x in ["scan", "audit", "ssl", "port", "check", "security"])
-    if domain_match and scan_attempted:
-        domain = domain_match.group(1)
-        try:
-            ssl_result = ssl_check(domain=domain, key=key)
-            port_result = port_scan(domain=domain, key=key)
-            real_data = "REAL SCAN DATA - " + str(ssl_result) + " PORTS: " + str(port_result)
-        except Exception as scan_err:
-            real_data = "SCAN FAILED: " + str(scan_err)
-    elif scan_attempted and not domain_match:
-        real_data = "ERROR: Domain nahi mila — user se domain poochho, fake results mat do"
-    if session not in chat_history:
-        chat_history[session] = load_chat_history(session)
-    chat_history[session].append({"role": "user", "content": msg})
-    save_chat_history(session, chat_history[session])
-    try:
-            pass
     start = time.time()
     
     # RAM mein nahi hai toh file se load karo
@@ -2281,31 +2235,6 @@ def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verif
         raise HTTPException(status_code=429, detail="Ek upgrade chal raha hai — baad mein try karo!")
 
     tmp_path = None
-    # Step 0: AI se decide karwao kaunsi files edit karni hain
-    try:
-        decide_resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": f"""Task: {instruction}
-            
-Decide karo:
-1. Kya api.py mein naya endpoint/change chahiye? (yes/no)
-2. Kya frontend.html mein UI change chahiye? (yes/no)
-
-Sirf JSON mein jawab do:
-{{"api": true/false, "frontend": true/false, "frontend_instruction": "what to change in frontend"}}"""}],
-            max_tokens=200
-        )
-        import json as _json
-        decide_text = decide_resp.choices[0].message.content.strip()
-        decide_text = decide_text.replace("```json","").replace("```","").strip()
-        decisions = _json.loads(decide_text)
-    except:
-        decisions = {"api": True, "frontend": False, "frontend_instruction": ""}
-
-    # Agar frontend bhi chahiye toh baad mein call karenge
-    _do_frontend = decisions.get("frontend", False)
-    _frontend_instruction = decisions.get("frontend_instruction", instruction)
-
     # Step 0: AI se decide karwao kaunsi files edit karni hain
     try:
         decide_resp = client.chat.completions.create(
