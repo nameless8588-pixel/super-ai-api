@@ -431,7 +431,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     elif real_data.startswith("SCAN ERROR"):
         system += " Scan try kiya but fail hua: " + real_data + ". User ko clearly batao scan fail hua."
     elif real_data:
-        system += " REAL SCAN DATA (sirf isi se jawab de): " + real_data[:2000]
+        system += " REAL SCAN DATA (poori details de, kuch bhi chupao mat, sab kuch batao): " + real_data[:3000]
 
     system += """
 RULES:
