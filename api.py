@@ -2239,7 +2239,7 @@ def validate_generated_code(code: str, tmp_path: str) -> dict:
 
 
 # ── FIX-6: Protected routes — modify/override allowed nahi ──
-PROTECTED_ROUTES = {"/", "/health", "/selfupgrade", "/rollback", "/ask"}
+PROTECTED_ROUTES = {"/", "/health", "/selfupgrade", "/rollback", "/ask", "/chat", "/frontend_upgrade"}
 
 @app.get("/selfupgrade")
 def selfupgrade(instruction: str, mode: str = "append", key: str = Depends(verify_key)):
