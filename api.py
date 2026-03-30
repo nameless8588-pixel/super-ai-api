@@ -431,7 +431,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     elif real_data.startswith("SCAN ERROR"):
         system += " Scan try kiya but fail hua: " + real_data + ". User ko clearly batao scan fail hua."
     elif real_data:
-        system += " REAL SCAN DATA (poori details de, kuch bhi chupao mat, sab kuch batao): " + real_data[:3000]
+        system += " REAL SCAN DATA - SIRF YAHI DATA HAI, KUCH EXTRA MAT BANAO: " + real_data[:3000] + " -- IMPORTANT: Sirf upar wala real data batao. Koi bhi extra scan ya tool ka zikar mat karo jo is data mein nahi hai. Fake results = BANNED."
 
     system += """
 RULES:
