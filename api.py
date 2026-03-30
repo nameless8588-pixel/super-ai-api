@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
@@ -2586,7 +2586,7 @@ BACKUP_DIR = "/tmp/app_backups"
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.post("/update_system")
-async def update_system(background_tasks: BackgroundTasks, key: str = Depends(verify_key)):
+async def update_system(background_tasks: BackgroundTasks = None, key: str = Depends(verify_key)):
     background_tasks.add_task(smart_update)
     return {"status": "Smart update started"}
 
