@@ -397,7 +397,23 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
         topics = [m["content"][:50] for m in recent if m["role"] == "user"]
         context_summary = f"Pichli baatein: {', '.join(topics)}"
 
+    # Real security tools call karo agar user ne manga
+    msg_lower = msg.lower()
+    real_result = None
+    if any(x in msg_lower for x in ["scan", "audit", "security check", "ssl", "port"]):
+        import re as _re
+        domain_match = _re.search(r'([a-zA-Z0-9-]+\.[a-zA-Z]{2,})', msg)
+        if domain_match:
+            domain = domain_match.group(1)
+            try:
+                ssl_r = ssl_check(domain=domain, key=key)
+                port_r = port_scan(domain=domain, key=key)
+                real_result = f"Real Scan Results for {domain}:\nSSL: {ssl_r}\nPorts: {port_r}"
+            except:
+                pass
+
     system = f"""Tu Super AI hai — Nameless ne banaya hai tujhe.
+{f"Real data mila hai use karo: {real_result}" if real_result else ""}
 
 RULES:
 - User ne jo poochha hai SIRF usi ka jawab do — topic mat badlo
