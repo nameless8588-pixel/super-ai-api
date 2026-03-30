@@ -394,20 +394,11 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             real_data = "SCAN FAILED: " + str(scan_err)
     elif scan_attempted and not domain_match:
         real_data = "ERROR: Domain nahi mila — user se domain poochho, fake results mat do"
-            if session not in chat_history:
-                chat_history[session] = load_chat_history(session)
-            chat_history[session].append({"role": "user", "content": msg})
-            save_chat_history(session, chat_history[session])
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "system", "content": "Tu Super AI hai. Real scan data ke basis pe answer de, kuch invent mat kar."}, {"role": "user", "content": "Real data: " + real_data + "\nUser ka sawal: " + msg}],
-                max_tokens=600
-            )
-            reply = response.choices[0].message.content.strip()
-            chat_history[session].append({"role": "assistant", "content": reply})
-            save_chat_history(session, chat_history[session])
-            return {"reply": reply, "session": session, "real_scan": True}
-        except Exception as e:
+    if session not in chat_history:
+        chat_history[session] = load_chat_history(session)
+    chat_history[session].append({"role": "user", "content": msg})
+    save_chat_history(session, chat_history[session])
+    try:
             pass
     import re as _re
     msg_lower = msg.lower()
@@ -426,20 +417,11 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             real_data = "SCAN FAILED: " + str(scan_err)
     elif scan_attempted and not domain_match:
         real_data = "ERROR: Domain nahi mila — user se domain poochho, fake results mat do"
-            if session not in chat_history:
-                chat_history[session] = load_chat_history(session)
-            chat_history[session].append({"role": "user", "content": msg})
-            save_chat_history(session, chat_history[session])
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "system", "content": "Tu Super AI hai. Real scan data ke basis pe answer de, kuch invent mat kar."}, {"role": "user", "content": "Real data: " + real_data + "\nUser ka sawal: " + msg}],
-                max_tokens=600
-            )
-            reply = response.choices[0].message.content.strip()
-            chat_history[session].append({"role": "assistant", "content": reply})
-            save_chat_history(session, chat_history[session])
-            return {"reply": reply, "session": session, "real_scan": True}
-        except Exception as e:
+    if session not in chat_history:
+        chat_history[session] = load_chat_history(session)
+    chat_history[session].append({"role": "user", "content": msg})
+    save_chat_history(session, chat_history[session])
+    try:
             pass
     start = time.time()
     
