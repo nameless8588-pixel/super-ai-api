@@ -2541,44 +2541,11 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
 
 
-@app.post("/chatfixkr")
-async def chat_function_fix_kr(
-    request: Request, 
-    key: str = Depends(verify_key)
-):
-    from fastapi import Request, HTTPException
-    from fastapi.responses import JSONResponse
-    import json
-    try:
-        data = await request.json()
-        # Implement chat function fix kr logic here
-        result = {"status": "success", "message": "Chat function fix kr applied"}
-        return JSONResponse(content=json.dumps(result), media_type="application/json")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/chatfixkr")
-async def chat_function_fix_kr(
-    key: str = Depends(verify_key)
-):
-    from fastapi import HTTPException
-    from fastapi.responses import JSONResponse
-    try:
-        # chat function fix kr logic here
-        result = {"message": "Chat function fix kr successful"}
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/chat")
-def chat(message: str, key: str = Depends(verify_key)):
-    from datetime import datetime
-    import json
-    session_data = {}
-    if 'conversation' not in session_data:
-        session_data['conversation'] = []
-    session_data['conversation'].append({"message": message, "time": datetime.now().strftime("%H:%M:%S")})
-    return {"session_details": session_data}
+
+
+
 
 @app.post("/frontend_upgrade")
 def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
