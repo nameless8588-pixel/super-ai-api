@@ -2541,21 +2541,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
 
 
-@app.post("/chatfixkr")
-async def chat_function_fix_kr(
-    request: Request, 
-    key: str = Depends(verify_key)
-):
-    from fastapi import Request, HTTPException
-    from fastapi.responses import JSONResponse
-    import json
-    try:
-        data = await request.json()
-        # Implement chat function fix kr logic here
-        result = {"status": "success", "message": "Chat function fix kr applied"}
-        return JSONResponse(content=json.dumps(result), media_type="application/json")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 
