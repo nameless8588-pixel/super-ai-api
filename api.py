@@ -2536,11 +2536,6 @@ def rollback(key: str = Depends(verify_key)):
     return {"error": "Rollback push failed", "details": push_resp.text[:200]}
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
-
-
 @app.post("/chatfixkr")
 async def chat_function_fix_kr(
     request: Request, 
@@ -2557,6 +2552,7 @@ async def chat_function_fix_kr(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.post("/chatfixkr")
 async def chat_function_fix_kr(
     key: str = Depends(verify_key)
@@ -2570,6 +2566,7 @@ async def chat_function_fix_kr(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.post("/chat")
 def chat(message: str, key: str = Depends(verify_key)):
     from datetime import datetime
@@ -2579,6 +2576,7 @@ def chat(message: str, key: str = Depends(verify_key)):
         session_data['conversation'] = []
     session_data['conversation'].append({"message": message, "time": datetime.now().strftime("%H:%M:%S")})
     return {"session_details": session_data}
+
 
 @app.post("/frontend_upgrade")
 def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
@@ -2611,3 +2609,8 @@ def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
         return {"error": "GitHub push failed"}
     except Exception as e:
         return {"error": str(e)}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
+
