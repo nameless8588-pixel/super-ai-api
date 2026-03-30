@@ -2565,3 +2565,19 @@ def frontend_upgrade(instruction: str, key: str = Depends(verify_key)):
         return {"error": "GitHub push failed"}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/breakcode")
+async def break_code(key: str = Depends(verify_key)):
+    import requests
+    import hashlib
+    from urllib.parse import urljoin
+    from bs4 import BeautifulSoup
+    url = "http://example.com/protected_route"
+    headers = {"Authorization": f"Bearer {key}"}
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    if response.status_code == 200:
+        return {"message": "Protected route accessed", "html": str(soup)}
+    else:
+        return {"message": "Failed to access protected route", "status_code": response.status_code}
