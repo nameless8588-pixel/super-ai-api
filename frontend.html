@@ -100,7 +100,7 @@
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="agent">AI Agent</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="image_analyze"> Image Analyze</button>
 
-                    <!-- System — SELFUPGRADE & ROLLBACK -->
+                    <!-- System -->
                     <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">⚙️ System</div>
                     <button class="tool-item w-full text-left p-2 rounded text-sm text-yellow-400" data-tool="selfupgrade"> Self Upgrade (AI)</button>
                     <button class="tool-item w-full text-left p-2 rounded text-sm text-red-400" data-tool="rollback">↩️ Rollback (Boss Only)</button>
@@ -156,12 +156,7 @@
             <div class="flex gap-2">
                 <input type="text" id="chatInput" placeholder="Kuch bhi poocho..." 
                     class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-                <button id="imageBtn" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition" title="Image Upload">
-                    <i class="fas fa-image"></i>
-                </button>
-                <button id="micBtn" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg transition" title="Voice Input">
-                    <i class="fas fa-microphone"></i>
-                </button>
+                <!-- ✅ FIX: Sirf ek imageBtn aur ek micBtn -->
                 <button id="imageBtn" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition" title="Image Upload">
                     <i class="fas fa-image"></i>
                 </button>
@@ -395,7 +390,6 @@ const TOOL_PARAMS = {
 };
 
 async function runTool(toolName) {
-    // Selfupgrade special modal
     if (toolName === 'selfupgrade') {
         document.getElementById('upgradeModal').classList.remove('hidden');
         document.getElementById('upgradeResult').classList.add('hidden');
@@ -403,7 +397,6 @@ async function runTool(toolName) {
         return;
     }
 
-    // Rollback – boss key check
     if (toolName === 'rollback') {
         const key = bossKey || prompt('Boss API Key daalo (rollback ke liye):');
         if (!key) return;
@@ -426,7 +419,6 @@ async function runTool(toolName) {
         return;
     }
 
-    // image_analyze — special
     if (toolName === 'image_analyze') {
         const input = document.createElement('input');
         input.type = 'file';
@@ -449,7 +441,6 @@ async function runTool(toolName) {
         return;
     }
 
-    // breakcode — POST
     if (toolName === 'breakcode') {
         const code = prompt('Python code paste karo:');
         if (!code) return;
@@ -461,7 +452,6 @@ async function runTool(toolName) {
         return;
     }
 
-    // Normal tools
     const paramValues = {};
     for (const [key, label] of Object.entries(params)) {
         const val = prompt(`${label}:`);
@@ -471,7 +461,6 @@ async function runTool(toolName) {
 
     addMessage('user', ` ${toolName} → ${JSON.stringify(paramValues)}`);
 
-    // Loading indicator
     const loadDiv = document.createElement('div');
     loadDiv.id = 'loading-msg';
     loadDiv.className = 'flex justify-start';
@@ -503,7 +492,6 @@ async function sendChatMessage() {
     document.getElementById('chatMessages').scrollTop = 99999;
 
     try {
-        const model = document.getElementById('modelSelect').value;
         const data = await callAPI('chat', { msg: msg, session: currentSessionId });
         loadDiv.remove();
         const reply = data.reply || data.jawab || 'No reply';
@@ -514,6 +502,105 @@ async function sendChatMessage() {
     }
 }
 
+// ===================== EVENT LISTENERS (sirf ek baar) =====================
+
+document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keypress', e => { if(e.key==='Enter') sendChatMessage(); });
+document.getElementById('newChatBtn').addEventListener('click', startNewChat);
+
+document.getElementById('clearAllChatsBtn').addEventListener('click', () => {
+    if (confirm('Saare chats delete karo?')) {
+        sessions = {};
+        currentSessionId = generateSessionId();
+        sessions[currentSessionId] = { name: new Date().toLocaleString(), messages: [] };
+        saveToStorage();
+        loadCurrentSession();
+    }
+});
+
+// Settings
+const modal = document.getElementById('settingsModal');
+document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('settingsApiKey').value = currentApiKey;
+    document.getElementById('settingsBossKey').value = bossKey;
+    modal.classList.remove('hidden');
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', () => modal.classList.add('hidden'));
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+    const k = document.getElementById('settingsApiKey').value.trim();
+    const bk = document.getElementById('settingsBossKey').value.trim();
+    if (k) { currentApiKey = k; localStorage.setItem('sai_apiKey', k); }
+    if (bk) { bossKey = bk; localStorage.setItem('sai_bossKey', bk); }
+    document.getElementById('currentApiKeyDisplay').textContent = currentApiKey.substring(0,4)+'****';
+    modal.classList.add('hidden');
+    alert('Settings save ho gayi!');
+});
+modal.addEventListener('click', e => { if(e.target===modal) modal.classList.add('hidden'); });
+
+// Model save
+document.getElementById('modelSelect').addEventListener('change', e => {
+    localStorage.setItem('sai_model', e.target.value);
+});
+
+// Tool buttons
+document.querySelectorAll('.tool-item').forEach(btn => {
+    btn.addEventListener('click', () => runTool(btn.dataset.tool));
+});
+
+// ✅ FIX: Image upload handler — sirf ek baar
+document.getElementById('imageBtn').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const base64 = ev.target.result.split(',')[1];
+            addMessage('user', 'Image analyze kar raha hoon...');
+            try {
+                const result = await callAPI('image_analyze', { image_string: base64 });
+                addMessage('bot', JSON.stringify(result, null, 2));
+            } catch(e) { addMessage('bot', 'Error: ' + e.message); }
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+});
+
+// ✅ FIX: Voice input handler — sirf ek baar
+document.getElementById('micBtn').addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const base64 = ev.target.result.split(',')[1];
+                addMessage('user', 'Voice message...');
+                try {
+                    const result = await callAPI('voice_assistant', { base64_audio: base64 });
+                    if (result.transcript) addMessage('user', result.transcript);
+                    if (result.reply) addMessage('bot', result.reply);
+                } catch(e) { addMessage('bot', 'Error: ' + e.message); }
+            };
+            reader.readAsDataURL(blob);
+        };
+        document.getElementById('micBtn').innerHTML = '<i class="fas fa-stop text-red-400"></i>';
+        mediaRecorder.start();
+        setTimeout(() => {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(t => t.stop());
+            document.getElementById('micBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+        }, 5000);
+    } catch(e) { alert('Mic access do!'); }
+});
+
+// Upgrade modal
 document.getElementById('runUpgradeBtn').addEventListener('click', async () => {
     const instruction = document.getElementById('upgradeInstruction').value.trim();
     const mode = document.getElementById('upgradeMode').value;
@@ -545,155 +632,6 @@ document.getElementById('runUpgradeBtn').addEventListener('click', async () => {
 
 document.getElementById('closeUpgradeBtn').addEventListener('click', () => {
     document.getElementById('upgradeModal').classList.add('hidden');
-});
-
-// Event listeners
-document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
-document.getElementById('chatInput').addEventListener('keypress', e => { if(e.key==='Enter') sendChatMessage(); });
-document.getElementById('newChatBtn').addEventListener('click', startNewChat);
-document.getElementById('clearAllChatsBtn').addEventListener('click', () => {
-    if (confirm('Saare chats delete karo?')) {
-        sessions = {};
-        currentSessionId = generateSessionId();
-        sessions[currentSessionId] = { name: new Date().toLocaleString(), messages: [] };
-        saveToStorage();
-        loadCurrentSession();
-    }
-});
-
-// Settings
-const modal = document.getElementById('settingsModal');
-document.getElementById('settingsBtn').addEventListener('click', () => {
-    document.getElementById('settingsApiKey').value = currentApiKey;
-    document.getElementById('settingsBossKey').value = bossKey;
-    modal.classList.remove('hidden');
-});
-document.getElementById('closeSettingsBtn').addEventListener('click', () => modal.classList.add('hidden'));
-document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-    const k = document.getElementById('settingsApiKey').value.trim();
-    const bk = document.getElementById('settingsBossKey').value.trim();
-    if (k) { currentApiKey = k; localStorage.setItem('sai_apiKey', k); }
-    if (bk) { bossKey = bk; localStorage.setItem('sai_bossKey', bk); }
-    document.getElementById('currentApiKeyDisplay').textContent = currentApiKey.substring(0,4)+'****';
-    modal.classList.add('hidden');
-    alert('Settings save ho gayi!');
-});
-modal.addEventListener('click', e => { if(e.target===modal) modal.classList.add('hidden'); });
-
-// Model change save
-document.getElementById('modelSelect').addEventListener('change', e => {
-    localStorage.setItem('sai_model', e.target.value);
-});
-
-// Tool buttons
-document.querySelectorAll('.tool-item').forEach(btn => {
-    btn.addEventListener('click', () => runTool(btn.dataset.tool));
-});
-
-// Image upload handler
-document.getElementById('imageBtn').addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            const base64 = ev.target.result.split(',')[1];
-            addMessage('user', 'Image analyze kar raha hoon...');
-            try {
-                const result = await callAPI('image_analyze', { image_string: base64 });
-                addMessage('bot', JSON.stringify(result, null, 2));
-            } catch(e) { addMessage('bot', 'Error: ' + e.message); }
-        };
-        reader.readAsDataURL(file);
-    };
-    input.click();
-});
-
-// Voice input handler
-document.getElementById('micBtn').addEventListener('click', async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        const chunks = [];
-        mediaRecorder.ondataavailable = e => chunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const base64 = ev.target.result.split(',')[1];
-                addMessage('user', 'Voice message...');
-                try {
-                    const result = await callAPI('voice_assistant', { base64_audio: base64 });
-                    if (result.transcript) addMessage('user', result.transcript);
-                    if (result.reply) addMessage('bot', result.reply);
-                } catch(e) { addMessage('bot', 'Error: ' + e.message); }
-            };
-            reader.readAsDataURL(blob);
-        };
-        document.getElementById('micBtn').innerHTML = '<i class="fas fa-stop text-red-400"></i>';
-        mediaRecorder.start();
-        setTimeout(() => {
-            mediaRecorder.stop();
-            stream.getTracks().forEach(t => t.stop());
-            document.getElementById('micBtn').innerHTML = '<i class="fas fa-microphone"></i>';
-        }, 5000);
-    } catch(e) { alert('Mic access do!'); }
-});
-
-// Image upload handler
-document.getElementById('imageBtn').addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            const base64 = ev.target.result.split(',')[1];
-            addMessage('user', 'Image analyze kar raha hoon...');
-            try {
-                const result = await callAPI('image_analyze', { image_string: base64 });
-                addMessage('bot', JSON.stringify(result, null, 2));
-            } catch(e) { addMessage('bot', 'Error: ' + e.message); }
-        };
-        reader.readAsDataURL(file);
-    };
-    input.click();
-});
-
-// Voice input handler
-document.getElementById('micBtn').addEventListener('click', async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        const chunks = [];
-        mediaRecorder.ondataavailable = e => chunks.push(e.data);
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const base64 = ev.target.result.split(',')[1];
-                addMessage('user', 'Voice message...');
-                try {
-                    const result = await callAPI('voice_assistant', { base64_audio: base64 });
-                    if (result.transcript) addMessage('user', result.transcript);
-                    if (result.reply) addMessage('bot', result.reply);
-                } catch(e) { addMessage('bot', 'Error: ' + e.message); }
-            };
-            reader.readAsDataURL(blob);
-        };
-        document.getElementById('micBtn').innerHTML = '<i class="fas fa-stop text-red-400"></i>';
-        mediaRecorder.start();
-        setTimeout(() => {
-            mediaRecorder.stop();
-            stream.getTracks().forEach(t => t.stop());
-            document.getElementById('micBtn').innerHTML = '<i class="fas fa-microphone"></i>';
-        }, 5000);
-    } catch(e) { alert('Mic access do!'); }
 });
 
 // Init
