@@ -2309,6 +2309,31 @@ Sirf JSON mein jawab do:
     _do_frontend = decisions.get("frontend", False)
     _frontend_instruction = decisions.get("frontend_instruction", instruction)
 
+    # Step 0: AI se decide karwao kaunsi files edit karni hain
+    try:
+        decide_resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": f"""Task: {instruction}
+            
+Decide karo:
+1. Kya api.py mein naya endpoint/change chahiye? (yes/no)
+2. Kya frontend.html mein UI change chahiye? (yes/no)
+
+Sirf JSON mein jawab do:
+{{"api": true/false, "frontend": true/false, "frontend_instruction": "what to change in frontend"}}"""}],
+            max_tokens=200
+        )
+        import json as _json
+        decide_text = decide_resp.choices[0].message.content.strip()
+        decide_text = decide_text.replace("```json","").replace("```","").strip()
+        decisions = _json.loads(decide_text)
+    except:
+        decisions = {"api": True, "frontend": False, "frontend_instruction": ""}
+
+    # Agar frontend bhi chahiye toh baad mein call karenge
+    _do_frontend = decisions.get("frontend", False)
+    _frontend_instruction = decisions.get("frontend_instruction", instruction)
+
     try:
         token   = os.getenv("GITHUB_TOKEN")
         repo    = os.getenv("GITHUB_REPO")
