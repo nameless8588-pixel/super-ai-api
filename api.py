@@ -398,7 +398,8 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     real_data = ""
 
     if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api"]):
-        msg_lower = msg_lower + " super-ai-api.onrender.com"
+        msg = msg + " super-ai-api.onrender.com"
+        msg_lower = msg.lower()
 
     domain_match = _re.search(r"([a-zA-Z0-9-]+[.][a-zA-Z]{2,})", msg)
     scan_needed = any(x in msg_lower for x in ["scan", "audit", "ssl", "port", "check", "security", "whois", "dns", "subdomain"])
