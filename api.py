@@ -2581,3 +2581,25 @@ async def break_code(key: str = Depends(verify_key)):
         return {"message": "Protected route accessed", "html": str(soup)}
     else:
         return {"message": "Failed to access protected route", "status_code": response.status_code}
+
+@app.post("/update_system")
+async def update_system(key: str = Depends(verify_key)):
+    import subprocess
+    import os
+    import sys
+    try:
+        # Stop the service to avoid conflicts during update
+        subprocess.run(["systemctl", "stop", "your_service_name"])
+        
+        # Update the package list
+        subprocess.run(["apt", "update", "-y"])
+        
+        # Upgrade the system
+        subprocess.run(["apt", "full-upgrade", "-y"])
+        
+        # Start the service again
+        subprocess.run(["systemctl", "start", "your_service_name"])
+        
+        return {"status": "success", "message": "System updated successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
