@@ -78,108 +78,49 @@
 
                     <!-- Aggressive -->
                     <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider"> Aggressive</div>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="aggressiveScan">Aggressive Scan</button>
+                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="update">Update</button>
                 </div>
             </details>
+            <form id="update-form" style="display: none;">
+                <label for="update-input">Enter update URL:</label>
+                <input type="text" id="update-input" name="update-input">
+                <button type="submit" class="tool-item w-full text-left p-2 rounded text-sm">Update</button>
+            </form>
         </div>
     </aside>
-    <!-- MAIN CONTENT -->
-    <div class="flex-1 p-4 overflow-y-auto">
-        <div id="error Messages" class="text-red-500 text-lg font-bold mb-2"></div>
-        <div id="chatLog" class="space-y-2">
+
+    <!-- CHAT WINDOW -->
+    <div class="flex-1 overflow-y-auto p-4">
+        <div id="chat-log" class="space-y-2">
             <!-- chat log will be displayed here -->
         </div>
-        <div id="inputField" class="mt-4">
-            <input type="text" id="userInput" class="w-full p-2 rounded text-sm" placeholder="Type a message...">
-            <button id="sendBtn" class="ml-2 bg-green-400 text-white p-2 rounded text-sm">Send</button>
-        </div>
+        <form id="chat-form">
+            <input type="text" id="chat-input" name="chat-input" placeholder="Type a message...">
+            <button type="submit" class="text-gray-400 hover:text-green-400 transition">
+                <i class="fas fa-paper-plane text-lg"></i>
+            </button>
+        </form>
     </div>
 </div>
+
 <script>
-    // Add event listeners to buttons
-    const toolButtons = document.querySelectorAll('.tool-item');
-    toolButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const toolName = button.getAttribute('data-tool');
-            // Send API request to the selected tool
-            fetch(`/api/${toolName}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error(`Error ${response.status}: ${response.statusText}`);
-                }
-            })
-            .then(data => {
-                console.log(data);
-                // Display the response in the chat log
-                const chatLog = document.getElementById('chatLog');
-                const message = document.createElement('div');
-                message.classList.add('chat-message', 'bot');
-                message.innerHTML = `
-                    <div class="message-bubble">
-                        <pre>${JSON.stringify(data, null, 2)}</pre>
-                    </div>
-                `;
-                chatLog.appendChild(message);
-            })
-            .catch(error => {
-                console.error(error);
-                // Display error message
-                const errorMessages = document.getElementById('errorMessages');
-                errorMessages.textContent = `Error: ${error.message}`;
-            });
-        });
+    // script to handle new endpoint will be written here
+    const updateButton = document.querySelector('button[data-tool="update"]');
+    const updateForm = document.getElementById('update-form');
+    const updateInput = document.getElementById('update-input');
+
+    updateButton.addEventListener('click', () => {
+        updateForm.style.display = 'block';
     });
 
-    // Add event listener to send button
-    const sendBtn = document.getElementById('sendBtn');
-    sendBtn.addEventListener('click', () => {
-        const userInput = document.getElementById('userInput');
-        const userMessage = userInput.value.trim();
-        if (userMessage) {
-            // Send API request to the server
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error(`Error ${response.status}: ${response.statusText}`);
-                }
-            })
-            .then(data => {
-                console.log(data);
-                // Display the response in the chat log
-                const chatLog = document.getElementById('chatLog');
-                const message = document.createElement('div');
-                message.classList.add('chat-message', 'bot');
-                message.innerHTML = `
-                    <div class="message-bubble">
-                        <pre>${JSON.stringify(data, null, 2)}</pre>
-                    </div>
-                `;
-                chatLog.appendChild(message);
-                // Clear user input field
-                userInput.value = '';
-            })
-            .catch(error => {
-                console.error(error);
-                // Display error message
-                const errorMessages = document.getElementById('errorMessages');
-                errorMessages.textContent = `Error: ${error.message}`;
-            });
-        }
+    updateForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const updateUrl = updateInput.value;
+        // call new endpoint with update URL
+        fetch(updateUrl)
+            .then((response) => response.json())
+            .then((data) => console.log(data))
+            .catch((error) => console.error(error));
     });
 </script>
 </body>
