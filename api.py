@@ -2586,9 +2586,43 @@ BACKUP_DIR = "/tmp/app_backups"
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.post("/update_system")
-async def update_system(background_tasks: BackgroundTasks = None, key: str = Depends(verify_key)):
+@app.post("/update_system")
+async def update_system(request: Request, background_tasks: BackgroundTasks = None, key: str = Depends(verify_key)):
+    body = await request.json()
+    task = body.get("task", "")
+    if not task:
+        return {"error": "task field required"}
+    try:
+        with open(__file__, "r") as fc:
+            current_code = fc.read()[-3000:]
+    except:
+        current_code = "Could not read"
+    probe_prompt = f"""Tu ek system upgrade assistant hai.
+CURRENT SYSTEM CODE:
+{current_code}
+USER TASK: {task}
+Analyze kar:
+1. Existing code ke saath compatible hai?
+2. Kaunse functions affect honge?
+3. Koi conflict?
+4. Clarification chahiye?
+Format:
+SAFE: yes/no
+CONFLICTS: ...
+QUESTIONS: ...
+CODE: (sirf agar SAFE=yes)"""
+    probe_resp = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role":"user","content":probe_prompt}],
+        max_tokens=2000
+    )
+    result = probe_resp.choices[0].message.content.strip()
+    if "SAFE: no" in result.lower():
+        return {"status": "conflict_detected", "analysis": result}
+    if "QUESTIONS:" in result and "CODE:" not in result:
+        return {"status": "clarification_needed", "questions": result}
     background_tasks.add_task(smart_update)
-    return {"status": "Smart update started"}
+    return {"status": "Smart update started", "analysis": result}
 
 async def smart_update():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
