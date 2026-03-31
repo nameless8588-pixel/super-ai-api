@@ -2719,13 +2719,13 @@ def cleanup_old_backups():
 
 @app.get("/weather/{city}")
 async def get_weather(city: str, key: str = Depends(verify_key)):
-    import requests
+    import requests, os
     import json
     base_url = "http://api.openweathermap.org/data/2.5/weather"
     params = {
         "q": city,
         "units": "metric",
-        "appid": key
+        "appid": os.getenv("OPENWEATHERMAP_API_KEY")
     }
     response = requests.get(base_url, params=params)
     data = response.json()
