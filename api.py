@@ -2641,9 +2641,8 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.post("/update_system")
 @app.post("/update_system")
-async def update_system(request: Request, background_tasks: BackgroundTasks = None, key: str = Depends(verify_key)):
-    body = await request.json()
-    task = body.get("task", "")
+async def update_system(background_tasks: BackgroundTasks = None, key: str = Depends(verify_key)):
+    task = "general upgrade"
     if not task:
         return {"error": "task field required"}
     try:
