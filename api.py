@@ -766,7 +766,7 @@ def robots_scan(domain: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"domain": domain, "robots_found": False, "error": str(e)}
 
-@app.get("/xsstest")
+@app.get("/xss_test")
 def xss_test(url: str, key: str = Depends(verify_key)):
     import urllib.request, urllib.parse
     start = time.time()
@@ -790,7 +790,7 @@ def xss_test(url: str, key: str = Depends(verify_key)):
     return {"url": url, "total_tests": len(payloads), "vulnerable_count": len(vulnerable), "results": results, "verdict": "VULNERABLE!" if vulnerable else "Safe", "response_time": f"{round(time.time()-start, 2)}s"}
 
 
-@app.get("/sqlinject")
+@app.get("/sql_test")
 def sql_inject(url: str, key: str = Depends(verify_key)):
     import urllib.request, urllib.parse
     start = time.time()
@@ -1314,7 +1314,7 @@ def network_analyze(domain: str, key: str = Depends(verify_key)):
     result["response_time"] = f"{round(time.time()-start, 2)}s"
     return {"domain": domain, "network_analysis": result}
 
-@app.get("/aggressive")
+@app.get("/deep_audit")
 def aggressive_attack(domain: str, key: str = Depends(verify_key)):
     start = time.time()
     domain = domain.replace("https://", "").replace("http://", "").split("/")[0]
@@ -1500,7 +1500,7 @@ Bypassed: {chr(10).join(results['bypassed'][:5])}"""
         "response_time": f"{round(time.time()-start, 2)}s"
     }
 
-@app.get("/aggressiveattack")
+@app.get("/security_probe")
 def aggressive_attack_v2(domain: str, key: str = Depends(verify_key)):
     import urllib.request
     start = time.time()
@@ -1651,7 +1651,7 @@ def aggressive_attack_v2(domain: str, key: str = Depends(verify_key)):
         "response_time": f"{round(time.time()-start, 2)}s"
     }
 
-@app.get("/loginbypass")
+@app.get("/auth_test")
 def login_bypass(url: str, key: str = Depends(verify_key)):
     import requests as req_lib
     from bs4 import BeautifulSoup
@@ -1763,7 +1763,7 @@ def login_bypass(url: str, key: str = Depends(verify_key)):
     except Exception as e:
         return {"status": "error", "error": str(e), "response_time": f"{round(time.time() - start, 2)}s"}
 
-@app.get("/jsbypass")
+@app.get("/js_auth_test")
 def js_bypass(url: str, key: str = Depends(verify_key)):
     import time
     import requests
