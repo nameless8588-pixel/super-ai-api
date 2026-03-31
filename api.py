@@ -2249,8 +2249,15 @@ def selfupgrade(instruction: str, mode: str = "append", session: str = "default"
         raise HTTPException(status_code=403, detail="selfupgrade sirf boss key se!")
 
     # PROBING PHASE
+    # Session file se load karo
+    session_file = f"session_{session}.json"
     if session not in upgrade_sessions:
-        upgrade_sessions[session] = {"messages": [], "status": "probing", "plan": None, "turn": 0}
+        import json as _js
+        try:
+            with open(session_file, "r") as _f:
+                upgrade_sessions[session] = _js.load(_f)
+        except:
+            upgrade_sessions[session] = {"messages": [], "status": "probing", "plan": None, "turn": 0}
 
     sess = upgrade_sessions[session]
 
@@ -2269,6 +2276,9 @@ def selfupgrade(instruction: str, mode: str = "append", session: str = "default"
         )
         reply = resp.choices[0].message.content.strip()
         sess["messages"].append({"role": "assistant", "content": reply})
+        import json as _js
+        with open(f"session_{session}.json", "w") as _f:
+            _js.dump(sess, _f)
 
         if "PLAN READY" in reply or sess["turn"] >= 3:
             sess["status"] = "ready"
