@@ -2715,3 +2715,23 @@ def cleanup_old_backups():
             shutil.rmtree(os.path.join(BACKUP_DIR, backups.pop(0)))
     except:
         pass
+
+
+@app.get("/weather/{city}")
+async def get_weather(city: str, key: str = Depends(verify_key)):
+    import requests
+    import json
+    base_url = "http://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": city,
+        "units": "metric",
+        "appid": key
+    }
+    response = requests.get(base_url, params=params)
+    data = response.json()
+    weather_data = {
+        "city": city,
+        "temperature": data["main"]["temp"],
+        "humidity": data["main"]["humidity"]
+    }
+    return weather_data
