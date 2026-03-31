@@ -2270,7 +2270,7 @@ def selfupgrade(instruction: str, mode: str = "append", session: str = "default"
         reply = resp.choices[0].message.content.strip()
         sess["messages"].append({"role": "assistant", "content": reply})
 
-        if "PLAN READY:" in reply:
+        if "PLAN READY" in reply:
             sess["status"] = "ready"
             sess["plan"] = reply
             return {
