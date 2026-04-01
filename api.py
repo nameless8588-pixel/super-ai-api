@@ -2508,6 +2508,29 @@ Sirf JSON mein jawab do:
                 except:
                     frontend_status = "failed"
 
+
+        # Auto git pull + backup
+        try:
+            import subprocess, shutil
+            from datetime import datetime
+            backup_dir = '/tmp/app_backups'
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_path = f'{backup_dir}/backup_{ts}'
+            os.makedirs(backup_dir, exist_ok=True)
+            shutil.copytree(
+                os.path.dirname(os.path.abspath(__file__)),
+                backup_path,
+                ignore=shutil.ignore_patterns('__pycache__','*.pyc','venv','.git')
+            )
+            pull = subprocess.run(['git','pull','origin','main'],
+                capture_output=True, text=True,
+                cwd=os.path.dirname(os.path.abspath(__file__)))
+            logging.info(f'[selfupgrade] git pull: {pull.stdout.strip()}')
+            backups = sorted(os.listdir(backup_dir))
+            while len(backups) > 3:
+                shutil.rmtree(os.path.join(backup_dir, backups.pop(0)))
+        except Exception as git_err:
+            logging.warning(f'[selfupgrade] git pull skip: {git_err}')
             return {
                 "status":        "success",
                 "mode":          mode,
