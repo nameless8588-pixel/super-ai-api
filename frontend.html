@@ -1,126 +1,1236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super AI Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 3px; }
-        .message pre { white-space: pre-wrap; word-wrap: break-word; background: #1f2937; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; }
-        .tool-item { transition: all 0.2s; }
-        .tool-item:hover { background-color: #374151; }
-        .chat-message { margin-bottom: 1rem; display: flex; }
-        .chat-message.user { justify-content: flex-end; }
-        .chat-message.bot { justify-content: flex-start; }
-        .message-bubble { max-width: 80%; padding: 0.75rem; border-radius: 1rem; }
-        .chat-message.user .message-bubble { background-color: #10b981; color: white; border-bottom-right-radius: 0; }
-        .chat-message.bot .message-bubble { background-color: #1f2937; color: #e5e7eb; border-bottom-left-radius: 0; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #00ff88;
+    --accent2: #ff3366;
+    --accent3: #3366ff;
+    --text: #e0e0f0;
+    --text2: #7070a0;
+    --font-mono: 'Space Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar-header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  #sidebar-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  #sidebar-header p { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+  #api-key-box {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  #api-key-box input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  #nav-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #nav-list::-webkit-scrollbar { width: 4px; }
+  #nav-list::-webkit-scrollbar-track { background: transparent; }
+  #nav-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .nav-section {
+    padding: 6px 16px 2px;
+    font-size: 9px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .nav-item {
+    padding: 7px 16px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text2);
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(0,255,136,0.05);
+  }
+  .nav-item .badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 4px;
+    background: var(--surface2);
+    color: var(--text2);
+  }
+  .nav-item.boss .badge { background: rgba(255,51,102,0.2); color: var(--accent2); }
+
+  /* MAIN */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  #topbar {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+  }
+  #topbar-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+  }
+  #topbar-route {
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(0,255,136,0.08);
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+
+  /* PANELS */
+  #panels {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  #panels::-webkit-scrollbar { width: 4px; }
+  #panels::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CHAT PANEL */
+  #chat-panel { display: none; flex-direction: column; height: 100%; }
+  #chat-panel.active { display: flex; }
+  #chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #chat-messages::-webkit-scrollbar { width: 4px; }
+  #chat-messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .msg {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    animation: fadeIn 0.2s ease;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: rgba(0,255,136,0.12);
+    border: 1px solid rgba(0,255,136,0.25);
+    color: var(--text);
+  }
+  .msg.ai {
+    align-self: flex-start;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .msg.system {
+    align-self: center;
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-size: 11px;
+    max-width: 100%;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+  #chat-input-area {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+  }
+  #chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    outline: none;
+    resize: none;
+    height: 40px;
+    transition: border-color 0.2s;
+  }
+  #chat-input:focus { border-color: var(--accent); }
+  #chat-send {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 0 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    transition: opacity 0.2s;
+  }
+  #chat-send:hover { opacity: 0.85; }
+
+  /* FORM PANEL */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 700px;
+  }
+  .form-desc {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .form-row { margin-bottom: 12px; }
+  .form-row label {
+    display: block;
+    font-size: 10px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .form-row input, .form-row textarea, .form-row select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-row input:focus, .form-row textarea:focus { border-color: var(--accent); }
+  .form-row textarea { resize: vertical; min-height: 80px; }
+
+  .btn-run {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+  }
+  .btn-run:hover { opacity: 0.85; }
+  .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-danger {
+    background: var(--accent2);
+    color: #fff;
+  }
+  .btn-boss {
+    background: var(--accent3);
+    color: #fff;
+  }
+
+  /* RESULT */
+  .result-box {
+    margin-top: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 11px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+  }
+  .result-box.show { display: block; }
+  .result-box.success { border-color: rgba(0,255,136,0.3); }
+  .result-box.error { border-color: rgba(255,51,102,0.3); color: var(--accent2); }
+
+  .loading {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SELFUPGRADE SPECIAL */
+  .probe-status {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+    font-size: 11px;
+    display: none;
+  }
+  .probe-status.show { display: block; }
+  .probe-turn {
+    font-size: 10px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  .probe-reply { line-height: 1.6; color: var(--text); }
+  .probe-actions { margin-top: 10px; display: flex; gap: 8px; }
+
+  /* HOME */
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .home-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .home-card:hover {
+    border-color: var(--accent);
+    background: rgba(0,255,136,0.04);
+    transform: translateY(-1px);
+  }
+  .home-card h3 { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+  .home-card p { font-size: 10px; color: var(--text2); line-height: 1.4; }
+  .home-card .tag {
+    display: inline-block;
+    font-size: 8px;
+    padding: 2px 5px;
+    border-radius: 2px;
+    margin-top: 6px;
+    background: var(--surface2);
+    color: var(--text2);
+  }
+  .home-card .tag.security { color: var(--accent2); background: rgba(255,51,102,0.1); }
+  .home-card .tag.ai { color: var(--accent); background: rgba(0,255,136,0.1); }
+  .home-card .tag.boss { color: var(--accent3); background: rgba(51,102,255,0.1); }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 16px;
+  }
+</style>
 </head>
-<body class="bg-gray-900 text-gray-200 font-sans h-screen overflow-hidden">
+<body>
 
-<div class="flex h-full">
-    <!-- LEFT SIDEBAR -->
-    <aside class="w-80 bg-gray-800 flex flex-col overflow-hidden border-r border-gray-700">
-        <div class="p-4 border-b border-gray-700 flex items-center justify-between">
-            <h2 class="text-xl font-bold text-green-400">Super AI</h2>
-            <div class="flex gap-2">
-                <button id="newChatBtn" class="text-gray-400 hover:text-green-400 transition" title="New Chat">
-                    <i class="fas fa-plus text-lg"></i>
-                </button>
-                <button id="settingsBtn" class="text-gray-400 hover:text-white transition">
-                    <i class="fas fa-ellipsis-v text-xl"></i>
-                </button>
-            </div>
-        </div>
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>⚡ Super AI</h1>
+    <p>v6.0 — All Systems Online</p>
+  </div>
+  <div id="api-key-box">
+    <input type="password" id="global-key" placeholder="X-API-Key..." value="SUPER-AI-FREE-001"/>
+  </div>
+  <div id="nav-list">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showPanel('home')">🏠 Home</div>
+    <div class="nav-item" onclick="showPanel('chat')">💬 Chat</div>
+    <div class="nav-item" onclick="showPanel('ask')">❓ Ask AI</div>
 
-        <div class="flex-1 overflow-y-auto p-2">
-            <details class="mb-4" open>
-                <summary class="cursor-pointer text-green-400 font-semibold mb-2 flex items-center gap-2">
-                    <i class="fas fa-folder-open"></i> Tools
-                </summary>
-                <div class="ml-4 space-y-1">
-                    <!-- Bypass -->
-                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider"> Bypass</div>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="loginbypass">Login Bypass (HTML)</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="jsbypass">JS Bypass (JSON/API)</button>
+    <div class="nav-section">Security</div>
+    <div class="nav-item" onclick="showPanel('webscan')">🔍 Web Scan</div>
+    <div class="nav-item" onclick="showPanel('fullaudit')">📋 Full Audit</div>
+    <div class="nav-item" onclick="showPanel('sslcheck')">🔒 SSL Check</div>
+    <div class="nav-item" onclick="showPanel('portscan')">🚪 Port Scan</div>
+    <div class="nav-item" onclick="showPanel('subdomains')">🌐 Subdomains</div>
+    <div class="nav-item" onclick="showPanel('whois')">📖 WHOIS</div>
+    <div class="nav-item" onclick="showPanel('dns')">🔗 DNS Lookup</div>
+    <div class="nav-item" onclick="showPanel('headers')">📨 Headers</div>
+    <div class="nav-item" onclick="showPanel('techdetect')">🛠 Tech Detect</div>
+    <div class="nav-item" onclick="showPanel('robots')">🤖 Robots.txt</div>
+    <div class="nav-item" onclick="showPanel('netanalyze')">📡 Network Analyze</div>
+    <div class="nav-item" onclick="showPanel('dirscan')">📁 Dir Scan</div>
+    <div class="nav-item" onclick="showPanel('sensitivefiles')">🗂 Sensitive Files</div>
+    <div class="nav-item" onclick="showPanel('apiscan')">🔌 API Scan</div>
 
-                    <!-- Web Vulns -->
-                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider"> Web Vulns</div>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="xsstest">XSS Test</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sqlinject">SQL Injection</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="dirscan">Directory Scan</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sensitivefiles">Sensitive Files</button>
+    <div class="nav-section">Vuln Tests</div>
+    <div class="nav-item" onclick="showPanel('xss')">⚡ XSS Test</div>
+    <div class="nav-item" onclick="showPanel('sqlinject')">💉 SQL Inject</div>
+    <div class="nav-item" onclick="showPanel('corscheck')">🌍 CORS Check</div>
+    <div class="nav-item" onclick="showPanel('cookiecheck')">🍪 Cookie Check</div>
+    <div class="nav-item" onclick="showPanel('clickjack')">🖱 Clickjacking</div>
+    <div class="nav-item" onclick="showPanel('redirecttest')">↩ Redirect Test</div>
+    <div class="nav-item" onclick="showPanel('ratelimit')">⏱ Rate Limit</div>
+    <div class="nav-item" onclick="showPanel('jwtcheck')">🎫 JWT Check</div>
 
-                    <!-- Security -->
-                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">️ Security</div>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="headers">Security Headers</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="corscheck">CORS Check</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="cookiecheck">Cookie Check</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="clickjack">Clickjacking Test</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="ratelimit">Rate Limit Test</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="redirecttest">Open Redirect</button>
+    <div class="nav-section">Attack Tools</div>
+    <div class="nav-item" onclick="showPanel('deep_audit')">💣 Deep Audit</div>
+    <div class="nav-item" onclick="showPanel('security_probe')">🕵 Security Probe</div>
+    <div class="nav-item" onclick="showPanel('auth_test')">🔓 Auth Test</div>
+    <div class="nav-item" onclick="showPanel('js_auth_test')">🔐 JS Auth Test</div>
+    <div class="nav-item" onclick="showPanel('breakcode')">🔨 Break Code</div>
 
-                    <!-- Network -->
-                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider"> Network</div>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="webscan">Web Scan</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="sslcheck">SSL Check</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="portscan">Port Scan</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="subdomains">Subdomains</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="whois">WHOIS</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="dns">DNS Lookup</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="netanalyze">Network Analyze</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="techdetect">Tech Detect</button>
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" data-tool="robots">Robots.txt</button>
+    <div class="nav-section">Utilities</div>
+    <div class="nav-item" onclick="showPanel('passcheck')">🔑 Password Check</div>
+    <div class="nav-item" onclick="showPanel('hashcrack')">💠 Hash Crack</div>
+    <div class="nav-item" onclick="showPanel('iprep')">📍 IP Reputation</div>
+    <div class="nav-item" onclick="showPanel('weather')">🌤 Weather</div>
+    <div class="nav-item" onclick="showPanel('search')">🔎 Web Search</div>
 
-                    <!-- Aggressive -->
-                    <div class="font-medium text-gray-400 mt-2 mb-1 text-xs uppercase tracking-wider">
-                    <!-- City Input Field -->
-                    <input type="text" id="city" placeholder="Enter City" class="w-full p-2 rounded text-sm">
-                    <button class="tool-item w-full text-left p-2 rounded text-sm" id="getWeather">Get Weather</button>
-                    <!-- Temperature Display -->
-                    <p id="temperature" class="text-lg font-bold text-green-400">Temperature: <span id="tempValue">-</span>°C</p>
-                    <!-- Humidity Display -->
-                    <p id="humidity" class="text-lg font-bold text-green-400">Humidity: <span id="humidityValue">-</span>%</p>
-                </div>
-            </details>
-        </div>
-    </aside>
+    <div class="nav-section">AI Tools</div>
+    <div class="nav-item" onclick="showPanel('create')">⚙ Create Code</div>
+    <div class="nav-item" onclick="showPanel('webapp')">🌐 Web App</div>
+    <div class="nav-item" onclick="showPanel('analyze')">🧪 Analyze Code</div>
+    <div class="nav-item" onclick="showPanel('agent')">🤖 AI Agent</div>
 
-    <!-- RIGHT CONTENT -->
-    <div class="flex-1 overflow-y-auto p-4">
-        <div class="chat-message user">
-            <div class="message-bubble">
-                <p>Hello, how can I assist you today?</p>
-            </div>
-        </div>
-        <div class="chat-message bot">
-            <div class="message-bubble">
-                <p>I can help you with various tools and tasks. What would you like to do?</p>
-            </div>
-        </div>
-    </div>
+    <div class="nav-section">Admin <span style="color:var(--accent2)">★ Boss</span></div>
+    <div class="nav-item boss" onclick="showPanel('selfupgrade')">⚡ Self Upgrade <span class="badge boss">BOSS</span></div>
+    <div class="nav-item boss" onclick="showPanel('rollback')">⏪ Rollback <span class="badge boss">BOSS</span></div>
+    <div class="nav-item boss" onclick="showPanel('frontend_upgrade')">🎨 Frontend Upgrade <span class="badge boss">BOSS</span></div>
+  </div>
 </div>
 
+<div id="main">
+  <div id="topbar">
+    <div id="topbar-title">Home</div>
+    <div id="topbar-route">GET /</div>
+  </div>
+
+  <!-- HOME -->
+  <div id="panel-home" class="panel active" style="padding:20px; overflow-y:auto;">
+    <div class="page-title">Super AI Dashboard</div>
+    <div class="page-sub">Select a tool from the sidebar or click below</div>
+    <div class="home-grid">
+      <div class="home-card" onclick="showPanel('chat')"><h3>💬 Chat</h3><p>AI se baat karo</p><span class="tag ai">AI</span></div>
+      <div class="home-card" onclick="showPanel('ask')"><h3>❓ Ask AI</h3><p>Koi bhi sawaal poochho</p><span class="tag ai">AI</span></div>
+      <div class="home-card" onclick="showPanel('fullaudit')"><h3>📋 Full Audit</h3><p>Complete security scan</p><span class="tag security">Security</span></div>
+      <div class="home-card" onclick="showPanel('webscan')"><h3>🔍 Web Scan</h3><p>Website security check</p><span class="tag security">Security</span></div>
+      <div class="home-card" onclick="showPanel('deep_audit')"><h3>💣 Deep Audit</h3><p>Aggressive scan</p><span class="tag security">Security</span></div>
+      <div class="home-card" onclick="showPanel('auth_test')"><h3>🔓 Auth Test</h3><p>Login bypass test</p><span class="tag security">Security</span></div>
+      <div class="home-card" onclick="showPanel('agent')"><h3>🤖 AI Agent</h3><p>Task automation</p><span class="tag ai">AI</span></div>
+      <div class="home-card" onclick="showPanel('selfupgrade')"><h3>⚡ Self Upgrade</h3><p>AI ko upgrade karo</p><span class="tag boss">Boss</span></div>
+      <div class="home-card" onclick="showPanel('passcheck')"><h3>🔑 Password Check</h3><p>Password strength</p><span class="tag">Utility</span></div>
+      <div class="home-card" onclick="showPanel('weather')"><h3>🌤 Weather</h3><p>City weather data</p><span class="tag">Utility</span></div>
+      <div class="home-card" onclick="showPanel('create')"><h3>⚙ Create Code</h3><p>AI se code banwao</p><span class="tag ai">AI</span></div>
+      <div class="home-card" onclick="showPanel('hashcrack')"><h3>💠 Hash Crack</h3><p>Hash decode karo</p><span class="tag">Utility</span></div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="panel-chat" class="panel" style="display:none; flex-direction:column; height:100%;">
+    <div id="chat-messages">
+      <div class="msg system">— Super AI Chat — Session: <span id="chat-session-id">default</span> —</div>
+    </div>
+    <div id="chat-input-area">
+      <textarea id="chat-input" placeholder="Kuch bhi poochho..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+      <button id="chat-send" onclick="sendChat()">SEND</button>
+    </div>
+  </div>
+
+  <!-- ASK -->
+  <div id="panel-ask" class="panel">
+    <div class="form-card">
+      <div class="form-desc">AI se koi bhi sawaal poochho</div>
+      <div class="form-row"><label>Sawaal</label><input type="text" id="ask-q" placeholder="Kuch bhi likho..."/></div>
+      <div class="form-row"><label>Model</label>
+        <select id="ask-model">
+          <option value="auto">Auto</option>
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+          <option value="gemma2-9b-it">Gemma2 9B</option>
+        </select>
+      </div>
+      <button class="btn-run" onclick="runAsk()">ASK</button>
+      <div class="result-box" id="ask-result"></div>
+    </div>
+  </div>
+
+  <!-- WEBSCAN -->
+  <div id="panel-webscan" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Website ki security check karo — headers, sensitive files, SSL, aur zyada</div>
+      <div class="form-row"><label>URL</label><input type="text" id="webscan-url" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('webscan','webscan-url','url','/webscan')">SCAN</button>
+      <div class="result-box" id="webscan-result"></div>
+    </div>
+  </div>
+
+  <!-- FULL AUDIT -->
+  <div id="panel-fullaudit" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Complete security audit — SSL, headers, XSS, SQL, ports, files sab ek saath</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="fullaudit-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('fullaudit','fullaudit-domain','domain','/fullaudit')">FULL AUDIT</button>
+      <div class="result-box" id="fullaudit-result"></div>
+    </div>
+  </div>
+
+  <!-- SSL CHECK -->
+  <div id="panel-sslcheck" class="panel">
+    <div class="form-card">
+      <div class="form-desc">SSL certificate check karo</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="ssl-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('sslcheck','ssl-domain','domain','/sslcheck')">CHECK</button>
+      <div class="result-box" id="sslcheck-result"></div>
+    </div>
+  </div>
+
+  <!-- PORT SCAN -->
+  <div id="panel-portscan" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Open ports dhundho</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="port-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('portscan','port-domain','domain','/portscan')">SCAN PORTS</button>
+      <div class="result-box" id="portscan-result"></div>
+    </div>
+  </div>
+
+  <!-- SUBDOMAINS -->
+  <div id="panel-subdomains" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Subdomains dhundho</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="sub-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('subdomains','sub-domain','domain','/subdomains')">FIND SUBDOMAINS</button>
+      <div class="result-box" id="subdomains-result"></div>
+    </div>
+  </div>
+
+  <!-- WHOIS -->
+  <div id="panel-whois" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Domain WHOIS lookup</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="whois-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('whois','whois-domain','domain','/whois')">LOOKUP</button>
+      <div class="result-box" id="whois-result"></div>
+    </div>
+  </div>
+
+  <!-- DNS -->
+  <div id="panel-dns" class="panel">
+    <div class="form-card">
+      <div class="form-desc">DNS records check karo</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="dns-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('dns','dns-domain','domain','/dns')">DNS CHECK</button>
+      <div class="result-box" id="dns-result"></div>
+    </div>
+  </div>
+
+  <!-- HEADERS -->
+  <div id="panel-headers" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Security headers check karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="headers-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('headers','headers-url','url','/headers')">CHECK HEADERS</button>
+      <div class="result-box" id="headers-result"></div>
+    </div>
+  </div>
+
+  <!-- TECH DETECT -->
+  <div id="panel-techdetect" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Website ki technologies detect karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="tech-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('techdetect','tech-url','url','/techdetect')">DETECT</button>
+      <div class="result-box" id="techdetect-result"></div>
+    </div>
+  </div>
+
+  <!-- ROBOTS -->
+  <div id="panel-robots" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Robots.txt scan karo</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="robots-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('robots','robots-domain','domain','/robots')">SCAN</button>
+      <div class="result-box" id="robots-result"></div>
+    </div>
+  </div>
+
+  <!-- NETANALYZE -->
+  <div id="panel-netanalyze" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Network analysis karo</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="net-domain" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('netanalyze','net-domain','domain','/netanalyze')">ANALYZE</button>
+      <div class="result-box" id="netanalyze-result"></div>
+    </div>
+  </div>
+
+  <!-- DIR SCAN -->
+  <div id="panel-dirscan" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Hidden directories dhundho</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="dir-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('dirscan','dir-domain','domain','/dirscan')">SCAN DIRS</button>
+      <div class="result-box" id="dirscan-result"></div>
+    </div>
+  </div>
+
+  <!-- SENSITIVE FILES -->
+  <div id="panel-sensitivefiles" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Sensitive files exposed hain ya nahi check karo</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="sens-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('sensitivefiles','sens-domain','domain','/sensitivefiles')">CHECK FILES</button>
+      <div class="result-box" id="sensitivefiles-result"></div>
+    </div>
+  </div>
+
+  <!-- API SCAN -->
+  <div id="panel-apiscan" class="panel">
+    <div class="form-card">
+      <div class="form-desc">API endpoints dhundho aur test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="api-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('apiscan','api-url','url','/apiscan')">SCAN API</button>
+      <div class="result-box" id="apiscan-result"></div>
+    </div>
+  </div>
+
+  <!-- XSS -->
+  <div id="panel-xss" class="panel">
+    <div class="form-card">
+      <div class="form-desc">XSS vulnerability test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="xss-url" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('xss','xss-url','url','/xss_test')">TEST XSS</button>
+      <div class="result-box" id="xss-result"></div>
+    </div>
+  </div>
+
+  <!-- SQL INJECT -->
+  <div id="panel-sqlinject" class="panel">
+    <div class="form-card">
+      <div class="form-desc">SQL injection test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="sql-url" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('sqlinject','sql-url','url','/sql_test')">TEST SQL</button>
+      <div class="result-box" id="sqlinject-result"></div>
+    </div>
+  </div>
+
+  <!-- CORS -->
+  <div id="panel-corscheck" class="panel">
+    <div class="form-card">
+      <div class="form-desc">CORS misconfiguration check karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="cors-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('corscheck','cors-url','url','/corscheck')">CHECK CORS</button>
+      <div class="result-box" id="corscheck-result"></div>
+    </div>
+  </div>
+
+  <!-- COOKIE -->
+  <div id="panel-cookiecheck" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Cookie security check karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="cookie-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('cookiecheck','cookie-url','url','/cookiecheck')">CHECK COOKIES</button>
+      <div class="result-box" id="cookiecheck-result"></div>
+    </div>
+  </div>
+
+  <!-- CLICKJACK -->
+  <div id="panel-clickjack" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Clickjacking vulnerability check karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="cj-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('clickjack','cj-url','url','/clickjack')">CHECK</button>
+      <div class="result-box" id="clickjack-result"></div>
+    </div>
+  </div>
+
+  <!-- REDIRECT -->
+  <div id="panel-redirecttest" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Open redirect vulnerability test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="redirect-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('redirecttest','redirect-url','url','/redirecttest')">TEST REDIRECT</button>
+      <div class="result-box" id="redirecttest-result"></div>
+    </div>
+  </div>
+
+  <!-- RATE LIMIT -->
+  <div id="panel-ratelimit" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Rate limiting test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="rl-url" placeholder="example.com"/></div>
+      <button class="btn-run" onclick="runSingle('ratelimit','rl-url','url','/ratelimit')">TEST RATE LIMIT</button>
+      <div class="result-box" id="ratelimit-result"></div>
+    </div>
+  </div>
+
+  <!-- JWT -->
+  <div id="panel-jwtcheck" class="panel">
+    <div class="form-card">
+      <div class="form-desc">JWT token decode aur vulnerability check karo</div>
+      <div class="form-row"><label>JWT Token</label><input type="text" id="jwt-token" placeholder="eyJ..."/></div>
+      <button class="btn-run" onclick="runSingle('jwtcheck','jwt-token','token','/jwtcheck')">CHECK JWT</button>
+      <div class="result-box" id="jwtcheck-result"></div>
+    </div>
+  </div>
+
+  <!-- DEEP AUDIT -->
+  <div id="panel-deep_audit" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Aggressive deep security audit — SQL, XSS, admin panels, sensitive data sab</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="deep-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('deep_audit','deep-domain','domain','/deep_audit')">DEEP AUDIT</button>
+      <div class="result-box" id="deep_audit-result"></div>
+    </div>
+  </div>
+
+  <!-- SECURITY PROBE -->
+  <div id="panel-security_probe" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Security probe — attack simulation</div>
+      <div class="form-row"><label>Domain</label><input type="text" id="probe-domain" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('security_probe','probe-domain','domain','/security_probe')">PROBE</button>
+      <div class="result-box" id="security_probe-result"></div>
+    </div>
+  </div>
+
+  <!-- AUTH TEST -->
+  <div id="panel-auth_test" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Login bypass test karo — SQL injection + default credentials</div>
+      <div class="form-row"><label>URL</label><input type="text" id="auth-url" placeholder="example.com/login"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('auth_test','auth-url','url','/auth_test')">TEST AUTH</button>
+      <div class="result-box" id="auth_test-result"></div>
+    </div>
+  </div>
+
+  <!-- JS AUTH TEST -->
+  <div id="panel-js_auth_test" class="panel">
+    <div class="form-card">
+      <div class="form-desc">JavaScript-heavy login bypass test karo</div>
+      <div class="form-row"><label>URL</label><input type="text" id="jsauth-url" placeholder="example.com"/></div>
+      <button class="btn-run btn-danger" onclick="runSingle('js_auth_test','jsauth-url','url','/js_auth_test')">TEST JS AUTH</button>
+      <div class="result-box" id="js_auth_test-result"></div>
+    </div>
+  </div>
+
+  <!-- BREAK CODE -->
+  <div id="panel-breakcode" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Code ko test karo — brute force, SQL injection, env attacks</div>
+      <div class="form-row"><label>Python Code</label><textarea id="break-code" placeholder="def login(password): ..."></textarea></div>
+      <button class="btn-run btn-danger" onclick="runBreakCode()">BREAK CODE</button>
+      <div class="result-box" id="breakcode-result"></div>
+    </div>
+  </div>
+
+  <!-- PASS CHECK -->
+  <div id="panel-passcheck" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Password ki strength check karo</div>
+      <div class="form-row"><label>Password</label><input type="text" id="pass-val" placeholder="Enter password..."/></div>
+      <button class="btn-run" onclick="runSingle('passcheck','pass-val','password','/passcheck')">CHECK</button>
+      <div class="result-box" id="passcheck-result"></div>
+    </div>
+  </div>
+
+  <!-- HASH CRACK -->
+  <div id="panel-hashcrack" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Hash crack karo — MD5, SHA1, SHA256</div>
+      <div class="form-row"><label>Hash Value</label><input type="text" id="hash-val" placeholder="5f4dcc3b5aa765d61d8327deb882cf99"/></div>
+      <button class="btn-run" onclick="runSingle('hashcrack','hash-val','hash_value','/hashcrack')">CRACK</button>
+      <div class="result-box" id="hashcrack-result"></div>
+    </div>
+  </div>
+
+  <!-- IP REP -->
+  <div id="panel-iprep" class="panel">
+    <div class="form-card">
+      <div class="form-desc">IP reputation check karo</div>
+      <div class="form-row"><label>IP Address</label><input type="text" id="ip-val" placeholder="8.8.8.8"/></div>
+      <button class="btn-run" onclick="runSingle('iprep','ip-val','ip','/iprep')">CHECK IP</button>
+      <div class="result-box" id="iprep-result"></div>
+    </div>
+  </div>
+
+  <!-- WEATHER -->
+  <div id="panel-weather" class="panel">
+    <div class="form-card">
+      <div class="form-desc">City ka current weather dekho</div>
+      <div class="form-row"><label>City Name</label><input type="text" id="weather-city" placeholder="Delhi"/></div>
+      <button class="btn-run" onclick="runWeather()">GET WEATHER</button>
+      <div class="result-box" id="weather-result"></div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="panel-search" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Web search karo</div>
+      <div class="form-row"><label>Query</label><input type="text" id="search-q" placeholder="Search karo..."/></div>
+      <button class="btn-run" onclick="runSingle('search','search-q','q','/search')">SEARCH</button>
+      <div class="result-box" id="search-result"></div>
+    </div>
+  </div>
+
+  <!-- CREATE CODE -->
+  <div id="panel-create" class="panel">
+    <div class="form-card">
+      <div class="form-desc">AI se Python code banwao</div>
+      <div class="form-row"><label>Task</label><textarea id="create-task" placeholder="Kya banana hai..."></textarea></div>
+      <div class="form-row"><label>Filename</label><input type="text" id="create-file" value="ai_generated.py"/></div>
+      <button class="btn-run" onclick="runCreate()">CREATE</button>
+      <div class="result-box" id="create-result"></div>
+    </div>
+  </div>
+
+  <!-- WEBAPP -->
+  <div id="panel-webapp" class="panel">
+    <div class="form-card">
+      <div class="form-desc">AI se web app banwao</div>
+      <div class="form-row"><label>Task</label><textarea id="webapp-task" placeholder="Kaunsa web app banana hai..."></textarea></div>
+      <button class="btn-run" onclick="runSingle('webapp','webapp-task','task','/webapp')">BUILD APP</button>
+      <div class="result-box" id="webapp-result"></div>
+    </div>
+  </div>
+
+  <!-- ANALYZE -->
+  <div id="panel-analyze" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Code analyze karo aur fix karwao</div>
+      <div class="form-row"><label>Code</label><textarea id="analyze-code" placeholder="Code paste karo..."></textarea></div>
+      <button class="btn-run" onclick="runAnalyze()">ANALYZE</button>
+      <div class="result-box" id="analyze-result"></div>
+    </div>
+  </div>
+
+  <!-- AI AGENT -->
+  <div id="panel-agent" class="panel">
+    <div class="form-card">
+      <div class="form-desc">AI agent ko task do — woh khud code likhega aur run karega</div>
+      <div class="form-row"><label>Task</label><textarea id="agent-task" placeholder="Task batao..."></textarea></div>
+      <button class="btn-run" onclick="runSingle('agent','agent-task','task','/agent')">RUN AGENT</button>
+      <div class="result-box" id="agent-result"></div>
+    </div>
+  </div>
+
+  <!-- SELF UPGRADE -->
+  <div id="panel-selfupgrade" class="panel">
+    <div class="form-card">
+      <div class="form-desc">AI ko new feature add karne ke liye kaho — pehle concept samjhega, phir code likhega</div>
+      <div class="form-row"><label>Instruction</label><textarea id="upgrade-instruction" placeholder="Kya add karna hai..."></textarea></div>
+      <div class="form-row"><label>Mode</label>
+        <select id="upgrade-mode">
+          <option value="append">Append (naya endpoint)</option>
+          <option value="modify">Modify (existing change)</option>
+        </select>
+      </div>
+      <input type="hidden" id="upgrade-session" value=""/>
+      <input type="hidden" id="upgrade-status" value="probing"/>
+      <button class="btn-run btn-boss" onclick="runSelfUpgrade()">START UPGRADE</button>
+      <div class="probe-status" id="probe-status">
+        <div class="probe-turn">Turn: <span id="probe-turn">0</span> | Status: <span id="probe-status-text">probing</span></div>
+        <div class="probe-reply" id="probe-reply"></div>
+        <div class="probe-actions">
+          <input type="text" id="probe-answer" placeholder="Jawab do..." style="flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:var(--font-mono); font-size:12px; padding:8px; border-radius:4px; outline:none;"/>
+          <button class="btn-run btn-boss" style="margin-top:0;" onclick="answerProbe()">REPLY</button>
+        </div>
+      </div>
+      <div class="result-box" id="selfupgrade-result"></div>
+    </div>
+  </div>
+
+  <!-- ROLLBACK -->
+  <div id="panel-rollback" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Last backup pe rollback karo — Boss key required</div>
+      <button class="btn-run btn-danger" onclick="runRollback()">ROLLBACK NOW</button>
+      <div class="result-box" id="rollback-result"></div>
+    </div>
+  </div>
+
+  <!-- FRONTEND UPGRADE -->
+  <div id="panel-frontend_upgrade" class="panel">
+    <div class="form-card">
+      <div class="form-desc">Frontend ko AI se upgrade karo</div>
+      <div class="form-row"><label>Instruction</label><textarea id="fe-instruction" placeholder="Frontend mein kya change karna hai..."></textarea></div>
+      <button class="btn-run btn-boss" onclick="runFrontendUpgrade()">UPGRADE FRONTEND</button>
+      <div class="result-box" id="frontend_upgrade-result"></div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
 <script>
-    // Get Weather Button Click Event
-    document.getElementById('getWeather').addEventListener('click', function() {
-        var city = document.getElementById('city').value;
-        // API Call to Get Weather Data
-        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=YOUR_API_KEY`)
-        .then(response => response.json())
-        .then(data => {
-            var temperature = data.main.temp;
-            var humidity = data.main.humidity;
-            document.getElementById('tempValue').innerHTML = temperature;
-            document.getElementById('humidityValue').innerHTML = humidity;
-        })
-        .catch(error => console.error('Error:', error));
-    });
+const API_BASE = "https://super-ai-api.onrender.com";
+
+function getKey() {
+  return document.getElementById('global-key').value.trim();
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const panel = document.getElementById('panel-' + name);
+  if (!panel) return;
+
+  if (name === 'chat') {
+    panel.style.display = 'flex';
+    panel.classList.add('active');
+  } else if (name === 'home') {
+    panel.style.display = 'block';
+    panel.classList.add('active');
+  } else {
+    panel.style.display = 'block';
+    panel.classList.add('active');
+  }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+name+"'")) {
+      n.classList.add('active');
+    }
+  });
+
+  const titles = {
+    home:'Home', chat:'Chat', ask:'Ask AI', webscan:'Web Scan',
+    fullaudit:'Full Audit', sslcheck:'SSL Check', portscan:'Port Scan',
+    subdomains:'Subdomains', whois:'WHOIS', dns:'DNS Lookup',
+    headers:'Headers', techdetect:'Tech Detect', robots:'Robots.txt',
+    netanalyze:'Network Analyze', dirscan:'Dir Scan', sensitivefiles:'Sensitive Files',
+    apiscan:'API Scan', xss:'XSS Test', sqlinject:'SQL Inject',
+    corscheck:'CORS Check', cookiecheck:'Cookie Check', clickjack:'Clickjacking',
+    redirecttest:'Redirect Test', ratelimit:'Rate Limit', jwtcheck:'JWT Check',
+    deep_audit:'Deep Audit', security_probe:'Security Probe', auth_test:'Auth Test',
+    js_auth_test:'JS Auth Test', breakcode:'Break Code', passcheck:'Password Check',
+    hashcrack:'Hash Crack', iprep:'IP Reputation', weather:'Weather',
+    search:'Web Search', create:'Create Code', webapp:'Web App',
+    analyze:'Analyze Code', agent:'AI Agent', selfupgrade:'Self Upgrade',
+    rollback:'Rollback', frontend_upgrade:'Frontend Upgrade'
+  };
+  const routes = {
+    chat:'/chat', ask:'/ask', webscan:'/webscan', fullaudit:'/fullaudit',
+    sslcheck:'/sslcheck', portscan:'/portscan', subdomains:'/subdomains',
+    whois:'/whois', dns:'/dns', headers:'/headers', techdetect:'/techdetect',
+    robots:'/robots', netanalyze:'/netanalyze', dirscan:'/dirscan',
+    sensitivefiles:'/sensitivefiles', apiscan:'/apiscan', xss:'/xss_test',
+    sqlinject:'/sql_test', corscheck:'/corscheck', cookiecheck:'/cookiecheck',
+    clickjack:'/clickjack', redirecttest:'/redirecttest', ratelimit:'/ratelimit',
+    jwtcheck:'/jwtcheck', deep_audit:'/deep_audit', security_probe:'/security_probe',
+    auth_test:'/auth_test', js_auth_test:'/js_auth_test', breakcode:'/breakcode',
+    passcheck:'/passcheck', hashcrack:'/hashcrack', iprep:'/iprep',
+    weather:'/weather/{city}', search:'/search', create:'/create',
+    webapp:'/webapp', analyze:'/analyze', agent:'/agent',
+    selfupgrade:'/selfupgrade', rollback:'/rollback', frontend_upgrade:'/frontend_upgrade'
+  };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
+  document.getElementById('topbar-route').textContent = routes[name] || '/'+name;
+}
+
+function showResult(id, data, isError) {
+  const el = document.getElementById(id+'-result');
+  el.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+  el.className = 'result-box show ' + (isError ? 'error' : 'success');
+}
+
+function setLoading(btnEl, loading) {
+  if (loading) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<span class="loading"></span>Running...';
+  } else {
+    btnEl.disabled = false;
+    btnEl.innerHTML = btnEl.getAttribute('data-label') || 'RUN';
+  }
+}
+
+async function apiCall(endpoint, params, method='GET', body=null) {
+  const key = getKey();
+  let url = API_BASE + endpoint;
+  if (method === 'GET' && params) {
+    url += '?' + new URLSearchParams(params).toString();
+  }
+  const opts = {
+    method,
+    headers: { 'X-API-Key': key, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const resp = await fetch(url, opts);
+  return resp.json();
+}
+
+async function runSingle(panelId, inputId, paramName, endpoint) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) { alert('Value bharo pehle!'); return; }
+  const btn = event.target;
+  const origLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Running...';
+  try {
+    const data = await apiCall(endpoint, {[paramName]: val});
+    showResult(panelId, data, data.error);
+  } catch(e) {
+    showResult(panelId, 'Error: ' + e.message, true);
+  }
+  btn.disabled = false;
+  btn.textContent = origLabel;
+}
+
+async function runAsk() {
+  const q = document.getElementById('ask-q').value.trim();
+  const model = document.getElementById('ask-model').value;
+  if (!q) { alert('Sawaal likho!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Thinking...';
+  try {
+    const data = await apiCall('/ask', {q, model});
+    showResult('ask', data, data.error);
+  } catch(e) { showResult('ask', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'ASK';
+}
+
+async function runWeather() {
+  const city = document.getElementById('weather-city').value.trim();
+  if (!city) { alert('City name likho!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Fetching...';
+  try {
+    const data = await apiCall('/weather/' + encodeURIComponent(city), null);
+    showResult('weather', data, data.error || data.detail);
+  } catch(e) { showResult('weather', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'GET WEATHER';
+}
+
+async function runBreakCode() {
+  const code = document.getElementById('break-code').value.trim();
+  if (!code) { alert('Code paste karo!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Breaking...';
+  try {
+    const data = await apiCall('/breakcode', null, 'POST', {code});
+    showResult('breakcode', data, data.error);
+  } catch(e) { showResult('breakcode', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'BREAK CODE';
+}
+
+async function runCreate() {
+  const task = document.getElementById('create-task').value.trim();
+  const filename = document.getElementById('create-file').value.trim();
+  if (!task) { alert('Task likho!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Creating...';
+  try {
+    const data = await apiCall('/create', {task, filename});
+    showResult('create', data, data.error);
+  } catch(e) { showResult('create', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'CREATE';
+}
+
+async function runAnalyze() {
+  const code = document.getElementById('analyze-code').value.trim();
+  if (!code) { alert('Code paste karo!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+  try {
+    const data = await apiCall('/analyze', {code});
+    showResult('analyze', data, data.error);
+  } catch(e) { showResult('analyze', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'ANALYZE';
+}
+
+// CHAT
+let chatSession = 'session_' + Date.now();
+document.getElementById('chat-session-id').textContent = chatSession;
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addMsg(msg, 'user');
+  const typing = addMsg('...', 'ai');
+
+  try {
+    const data = await apiCall('/chat', {msg, session: chatSession});
+    typing.textContent = data.reply || JSON.stringify(data);
+  } catch(e) {
+    typing.textContent = 'Error: ' + e.message;
+    typing.classList.add('error');
+  }
+}
+
+function addMsg(text, type) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// SELF UPGRADE
+let upgradeSession = '';
+
+async function runSelfUpgrade() {
+  const instruction = document.getElementById('upgrade-instruction').value.trim();
+  const mode = document.getElementById('upgrade-mode').value;
+  if (!instruction) { alert('Instruction likho!'); return; }
+
+  upgradeSession = 'upg_' + Date.now();
+  document.getElementById('upgrade-session').value = upgradeSession;
+  document.getElementById('upgrade-status').value = 'probing';
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Starting...';
+
+  try {
+    const data = await apiCall('/selfupgrade', {instruction, mode, session: upgradeSession, confirm: 'no'});
+    handleUpgradeResponse(data);
+  } catch(e) { showResult('selfupgrade', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'START UPGRADE';
+}
+
+async function answerProbe() {
+  const answer = document.getElementById('probe-answer').value.trim();
+  if (!answer) return;
+  document.getElementById('probe-answer').value = '';
+
+  const session = document.getElementById('upgrade-session').value;
+  const status = document.getElementById('upgrade-status').value;
+  const mode = document.getElementById('upgrade-mode').value;
+
+  if (status === 'ready') {
+    // Confirm karo
+    const btn = event.target;
+    btn.disabled = true; btn.textContent = '⏳ Building...';
+    try {
+      const data = await apiCall('/selfupgrade', {
+        instruction: answer, mode, session, confirm: 'yes'
+      });
+      handleUpgradeResponse(data);
+    } catch(e) { showResult('selfupgrade', 'Error: '+e.message, true); }
+    btn.disabled = false; btn.textContent = 'REPLY';
+  } else {
+    try {
+      const data = await apiCall('/selfupgrade', {
+        instruction: answer, mode, session, confirm: 'no'
+      });
+      handleUpgradeResponse(data);
+    } catch(e) { showResult('selfupgrade', 'Error: '+e.message, true); }
+  }
+}
+
+function handleUpgradeResponse(data) {
+  const probeBox = document.getElementById('probe-status');
+  probeBox.classList.add('show');
+
+  document.getElementById('probe-turn').textContent = data.turn || '–';
+  document.getElementById('probe-status-text').textContent = data.status;
+  document.getElementById('probe-reply').textContent = data.reply || data.next_step || '';
+
+  if (data.status === 'plan_ready') {
+    document.getElementById('upgrade-status').value = 'ready';
+    document.getElementById('probe-answer').placeholder = 'Plan ready hai! Confirm karne ke liye kuch bhi type karo ya "yes" likho...';
+  } else if (data.status === 'success') {
+    document.getElementById('probe-status').classList.remove('show');
+    showResult('selfupgrade', data, false);
+  } else if (data.status === 'probing') {
+    document.getElementById('probe-answer').placeholder = 'AI ka jawab do...';
+  }
+}
+
+async function runRollback() {
+  if (!confirm('Rollback karna chahte ho?')) return;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Rolling back...';
+  try {
+    const data = await apiCall('/rollback', {});
+    showResult('rollback', data, data.error);
+  } catch(e) { showResult('rollback', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'ROLLBACK NOW';
+}
+
+async function runFrontendUpgrade() {
+  const instruction = document.getElementById('fe-instruction').value.trim();
+  if (!instruction) { alert('Instruction likho!'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Upgrading...';
+  try {
+    const data = await apiCall('/frontend_upgrade', null, 'POST', {instruction});
+    showResult('frontend_upgrade', data, data.error);
+  } catch(e) { showResult('frontend_upgrade', 'Error: '+e.message, true); }
+  btn.disabled = false; btn.textContent = 'UPGRADE FRONTEND';
+}
 </script>
 </body>
 </html>
