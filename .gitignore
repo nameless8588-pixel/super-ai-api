@@ -1,1 +1,3 @@
 fix*.py
+.env
+*.env
