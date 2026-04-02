@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from fastapi import FastAPI
-from fastapi import Depends, HTTPException, BackgroundTasks
+from fastapi import Depends, HTTPException, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
@@ -79,7 +79,10 @@ cache = TTLCache(maxsize=100, ttl=3600)
 
 # AI Memory Database
 import sqlite3
-def init_db():
+def try:
+    init_db()
+except Exception as e:
+    print(f"DB init warning: {e}"):
     conn = sqlite3.connect("ai_memory.db")
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS endpoints (
@@ -2786,7 +2789,7 @@ async def smart_update():
             restore_working_backup(backup_path)
             return
         cleanup_old_backups()
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        # os.execv(sys.executable, [sys.executable] + sys.argv)  # disabled - crashes render
     except Exception as e:
         print(f"Update fail: {e}")
 
@@ -2797,7 +2800,7 @@ def restore_working_backup(backup_path):
             dst = os.path.join(PROJECT_DIR, item)
             if os.path.isfile(src):
                 shutil.copy2(src, dst)
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        # os.execv(sys.executable, [sys.executable] + sys.argv)  # disabled - crashes render
     except Exception as e:
         print(f"Restore fail: {e}")
 
