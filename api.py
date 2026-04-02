@@ -395,8 +395,7 @@ def ddg_search(query, n=3):
         with DDGS() as d:
             for r in d.text(query, max_results=n):
                 s.append(r.get("title","") + ": " + r.get("body","")[:250])
-        return "
-".join(s)
+        return chr(10).join(s)
     except:
         return ""
 
