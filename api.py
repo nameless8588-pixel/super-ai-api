@@ -79,10 +79,10 @@ cache = TTLCache(maxsize=100, ttl=3600)
 
 # AI Memory Database
 import sqlite3
-def try:
+try:
     init_db()
 except Exception as e:
-    print(f"DB init warning: {e}"):
+    print(f"DB init warning: {e}")
     conn = sqlite3.connect("ai_memory.db")
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS endpoints (
@@ -396,6 +396,8 @@ def ddg_search(query, n=3):
             for r in d.text(query, max_results=n):
                 s.append(r.get("title","") + ": " + r.get("body","")[:250])
         return chr(10).join(s)
+    except:
+        return ""
 
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
@@ -432,12 +434,12 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
                 for r in d.text(msg, max_results=3):
                     snippets.append(r.get("title","") + ": " + r.get("body","")[:250])
             if snippets:
-                web_ctx = "
+                web_ctx = "[LIVE WEB DATA - " + cur_date + "]\n" + chr(10).join(snippets) + "\n[END]"
 
-[LIVE WEB DATA - " + cur_date + "]
-" + "
-".join(snippets) + "
-[END]"
+
+
+
+
                 search_used = True
         except:
             pass
