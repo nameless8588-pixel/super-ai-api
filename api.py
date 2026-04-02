@@ -79,10 +79,7 @@ cache = TTLCache(maxsize=100, ttl=3600)
 
 # AI Memory Database
 import sqlite3
-try:
-    init_db()
-except Exception as e:
-    print(f"DB init warning: {e}")
+def init_db():
     conn = sqlite3.connect("ai_memory.db")
     c = conn.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS endpoints (
@@ -91,22 +88,23 @@ except Exception as e:
         code TEXT,
         instruction TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )""")
+    """)
     c.execute("""CREATE TABLE IF NOT EXISTS failures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         instruction TEXT,
         error TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )""")
+    """)
     c.execute("""CREATE TABLE IF NOT EXISTS backups (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sha TEXT,
         commit_message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )""")
+    """)
     conn.commit()
     conn.close()
 init_db()
+
 
 def save_backup(sha, message):
     try:
