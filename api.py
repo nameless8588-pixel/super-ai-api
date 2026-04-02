@@ -88,19 +88,19 @@ def init_db():
         code TEXT,
         instruction TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    """)
+    )""")
     c.execute("""CREATE TABLE IF NOT EXISTS failures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         instruction TEXT,
         error TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    """)
+    )""")
     c.execute("""CREATE TABLE IF NOT EXISTS backups (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sha TEXT,
         commit_message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    """)
+    )""")
     conn.commit()
     conn.close()
 init_db()
