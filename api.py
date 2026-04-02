@@ -378,6 +378,25 @@ def save_chat_history(session, history):
         pass
 
 
+def needs_realtime(msg):
+    kw = ["today","yesterday","latest","current","now","live","breaking","news",
+          "price","stock","rate","score","weather","update","recent","who is",
+          "when is","2024","2025","2026","aaj","abhi","taaza","khabar","dam",
+          "kya hua","result","election","match","ipl","cricket","movie","new"]
+    return any(k in msg.lower() for k in kw)
+
+def ddg_search(query, n=3):
+    try:
+        from duckduckgo_search import DDGS
+        s = []
+        with DDGS() as d:
+            for r in d.text(query, max_results=n):
+                s.append(r.get("title","") + ": " + r.get("body","")[:250])
+        return "
+".join(s)
+    except:
+        return ""
+
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     import re as _re
@@ -398,6 +417,30 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
 
     msg_lower = msg.lower()
     real_data = ""
+
+    # Real-time web search
+    import datetime as _dt
+    cur_date = _dt.datetime.utcnow().strftime("%d %B %Y, %H:%M UTC")
+    web_ctx = ""
+    search_used = False
+    realtime_kw = ["today","yesterday","latest","current","now","live","breaking","news","price","stock","rate","score","weather","update","recent","who is","when is","2024","2025","2026","aaj","abhi","taaza","khabar","dam","kya hua","result","election","match","ipl","cricket","movie","new"]
+    if any(k in msg_lower for k in realtime_kw):
+        try:
+            from duckduckgo_search import DDGS
+            snippets = []
+            with DDGS() as d:
+                for r in d.text(msg, max_results=3):
+                    snippets.append(r.get("title","") + ": " + r.get("body","")[:250])
+            if snippets:
+                web_ctx = "
+
+[LIVE WEB DATA - " + cur_date + "]
+" + "
+".join(snippets) + "
+[END]"
+                search_used = True
+        except:
+            pass
 
     if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api", "apna", "khud", "mera scan", "system scan"]):
         msg = msg + " super-ai-api.onrender.com"
@@ -427,7 +470,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     elif scan_needed and not domain_match:
         real_data = "DOMAIN_MISSING"
 
-    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. " + context_summary
+    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. Date: " + cur_date + ". " + context_summary + (" Agar LIVE WEB DATA diya gaya hai toh usi se jawab de, purana knowledge mat use kar." if web_ctx else "")
     if real_data == "DOMAIN_MISSING":
         system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
     elif real_data.startswith("SCAN ERROR"):
@@ -443,7 +486,8 @@ RULES:
 - Short rakho 2-3 lines
 - Kabhi mat batana ki tu Llama hai"""
 
-    messages = [{"role": m["role"], "content": m["content"]} for m in history]
+    messages = [{"role": m["role"], "content": m["content"]} for m in history[:-1]]
+    messages.append({"role": "user", "content": msg + web_ctx})
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "system", "content": system}] + messages,
@@ -452,7 +496,7 @@ RULES:
     reply = response.choices[0].message.content.strip()
     chat_history[session].append({"role": "assistant", "content": reply})
     save_chat_history(session, chat_history[session])
-    return {"reply": reply, "session": session, "real_scan": bool(real_data), "response_time": str(round(time.time()-start, 2)) + "s"}
+    return {"reply": reply, "session": session, "search_used": search_used, "real_scan": bool(real_data), "response_time": str(round(time.time()-start, 2)) + "s"}
 
 
 @app.post("/breakcode")
