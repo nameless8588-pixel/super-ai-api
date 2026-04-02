@@ -2013,7 +2013,9 @@ def ai_agent(task: str, key: str = Depends(verify_key)):
     final_result = None
 
     # Step 1: AI se plan banwao
-    plan_prompt = f"""Tu ek AI agent hai. User ka task hai: {task}
+    plan_prompt = f"""Tu ek AI agent hai jo Super AI API ka part hai. User ka task hai: {task}
+API base URL: https://super-ai-api.onrender.com
+Sirf is API ke endpoints use karo. Hinglish mein jawab do.
     
 Tujhe Python code likhna hai jo yeh kaam kare.
 Sirf executable Python code likh - koi explanation nahi.
@@ -2074,7 +2076,7 @@ Sirf fixed code likh, kuch nahi."""
         summary_prompt = f"""Task: {task}
 Result: {final_result[:500]}
 
-Hinglish mein short summary do - kya mila? Important findings kya hain?"""
+Hinglish mein short summary do - kya mila? Important findings kya hain? Hindi mat use karo, sirf Hinglish."""
         try:
             summary = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
