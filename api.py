@@ -2056,9 +2056,13 @@ def ai_agent(task: str, key: str = Depends(verify_key)):
     # Step 1: AI se plan banwao
     plan_prompt = f"""Tu ek AI agent hai jo Super AI API ka part hai. User ka task hai: {task}
 API base URL: https://super-ai-api.onrender.com
+Har request mein header lagao: headers={"X-API-Key": "SUPER-AI-FREE-001"}
+Bina key ke 401 aayega.
 Available endpoints: /health, /ask, /create, /webapp, /webscan, /sslcheck, /whois, /dns, /portscan, /subdomains, /xsstest, /sqlinject, /dirscan, /passcheck, /hashcrack, /iprep, /apiscan, /jwtcheck, /ratelimit, /corscheck, /cookiecheck, /clickjack, /sensitivefiles, /fullaudit, /netanalyze, /aggressive, /loginbypass, /jsbypass, /selfupgrade, /rollback, /weather
 Inhi endpoints ko check karo, bahar ke URLs mat check karo.
 API base URL: https://super-ai-api.onrender.com
+Har request mein header lagao: headers={"X-API-Key": "SUPER-AI-FREE-001"}
+Bina key ke 401 aayega.
 Sirf is API ke endpoints use karo. Hinglish mein jawab do.
     
 Tujhe Python code likhna hai jo yeh kaam kare.
