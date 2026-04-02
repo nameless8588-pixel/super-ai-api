@@ -396,8 +396,6 @@ def ddg_search(query, n=3):
             for r in d.text(query, max_results=n):
                 s.append(r.get("title","") + ": " + r.get("body","")[:250])
         return chr(10).join(s)
-    except:
-        return ""
 
 @app.get("/chat")
 def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
