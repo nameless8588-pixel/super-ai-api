@@ -845,6 +845,7 @@ def directory_scan(domain: str, key: str = Depends(verify_key)):
 
 @app.get("/passcheck")
 def password_check(password: str, key: str = Depends(verify_key)):
+    import hashlib, urllib.request, math
     start = time.time()
     score = 0
     feedback = []
@@ -852,47 +853,87 @@ def password_check(password: str, key: str = Depends(verify_key)):
     if length >= 8: score += 1
     else: feedback.append("8+ characters chahiye")
     if length >= 12: score += 1
-    else: feedback.append("12+ characters better hai")
+    else: feedback.append("12+ characters better")
+    if length >= 16: score += 1
     if any(c.isupper() for c in password): score += 1
-    else: feedback.append("Uppercase letter add karo (A-Z)")
+    else: feedback.append("Uppercase add karo")
     if any(c.islower() for c in password): score += 1
-    else: feedback.append("Lowercase letter add karo (a-z)")
+    else: feedback.append("Lowercase add karo")
     if any(c.isdigit() for c in password): score += 1
-    else: feedback.append("Number add karo (0-9)")
-    if any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password): score += 1
-    else: feedback.append("Special character add karo (!@#$)")
-    common = ["password", "123456", "admin", "qwerty", "abc123", "letmein", "monkey", "1234567890"]
+    else: feedback.append("Number add karo")
+    if any(c in "!@#$%^&*()_+-=[]{}|" for c in password): score += 1
+    else: feedback.append("Special character add karo")
+    common = ["password","123456","admin","qwerty","abc123","letmein","monkey","1234567890","password123","iloveyou"]
     if password.lower() in common:
         score = 0
         feedback.append("Bahut common password hai!")
-    levels = {0: "Bahut Weak", 1: "Weak", 2: "Medium", 3: "Fair", 4: "Strong", 5: "Very Strong", 6: "Excellent!"}
-    return {"password_length": length, "score": f"{score}/6", "strength": levels.get(score, "Unknown"), "feedback": feedback, "response_time": f"{round(time.time()-start, 2)}s"}
+    charset = 0
+    if any(c.islower() for c in password): charset += 26
+    if any(c.isupper() for c in password): charset += 26
+    if any(c.isdigit() for c in password): charset += 10
+    if any(c in "!@#$%^&*" for c in password): charset += 32
+    entropy = round(length * math.log2(charset), 2) if charset > 0 else 0
+    pwned = False
+    pwned_count = 0
+    try:
+        sha1 = hashlib.sha1(password.encode()).hexdigest().upper()
+        prefix, suffix = sha1[:5], sha1[5:]
+        req = urllib.request.Request(f"https://api.pwnedpasswords.com/range/{prefix}", headers={"User-Agent": "Super-AI-API"})
+        resp = urllib.request.urlopen(req, timeout=5)
+        for line in resp.read().decode().splitlines():
+            h, count = line.split(":")
+            if h == suffix:
+                pwned = True
+                pwned_count = int(count)
+                break
+        if pwned:
+            score = max(0, score - 3)
+            feedback.append(f"DANGER: {pwned_count:,} baar breach mein mila!")
+    except: pass
+    score = max(0, min(score, 7))
+    levels = {0:"Bahut Weak",1:"Weak",2:"Below Average",3:"Average",4:"Fair",5:"Strong",6:"Very Strong",7:"Excellent!"}
+    return {"password_length": length, "score": f"{score}/7", "strength": levels.get(score,"Unknown"), "entropy_bits": entropy, "pwned": pwned, "pwned_count": pwned_count, "feedback": feedback if feedback else ["Strong password hai!"], "response_time": f"{round(time.time()-start,2)}s"}
 
 @app.get("/hashcrack")
 def hash_crack(hash_value: str, key: str = Depends(verify_key)):
+    import hashlib, urllib.request
     start = time.time()
-    import hashlib
-    common_passwords = ["password", "123456", "admin", "qwerty", "abc123", "letmein", "monkey", "1234", "test", "user", "root", "pass", "hello", "welcome", "login", "master", "dragon", "666666", "password1", "iloveyou", "sunshine", "princess", "football", "superman", "batman"]
-    hash_len = len(hash_value)
+    common_passwords = [
+        "password","123456","admin","qwerty","abc123","letmein","monkey","1234","test","user",
+        "root","pass","hello","welcome","login","master","dragon","666666","password1","iloveyou",
+        "sunshine","princess","football","superman","batman","password123","123456789","12345678",
+        "12345","1234567","000000","111111","123123","987654321","qwerty123","shadow","michael",
+        "ninja","mustang","jessica","charlie","donald","baseball","654321","access","hello123",
+        "letmein1","welcome1","monkey1","1q2w3e4r","qwertyuiop","zxcvbnm","azerty","asdfgh",
+        "trustno1","admin123","root123","toor","pass123","test123","guest","guest123","demo",
+        "changeme","secret","secret123","passw0rd","p@ssword","P@ssw0rd","Admin123","Welcome1"
+    ]
+    hash_len = len(hash_value.strip())
     hash_type = "Unknown"
     if hash_len == 32: hash_type = "MD5"
     elif hash_len == 40: hash_type = "SHA1"
     elif hash_len == 64: hash_type = "SHA256"
+    elif hash_len == 128: hash_type = "SHA512"
     cracked = None
+    tried = 0
     for p in common_passwords:
-        if hashlib.md5(p.encode()).hexdigest() == hash_value.lower():
-            cracked = p
-            hash_type = "MD5"
-            break
-        if hashlib.sha1(p.encode()).hexdigest() == hash_value.lower():
-            cracked = p
-            hash_type = "SHA1"
-            break
-        if hashlib.sha256(p.encode()).hexdigest() == hash_value.lower():
-            cracked = p
-            hash_type = "SHA256"
-            break
-    return {"hash": hash_value, "hash_type": hash_type, "cracked": cracked, "result": f"PASSWORD MILA: {cracked}" if cracked else "Nahi mila -- strong password hai!", "response_time": f"{round(time.time()-start, 2)}s"}
+        tried += 1
+        for v in [p, p.capitalize(), p.upper(), p+"1", p+"123", p+"!"]:
+            if hashlib.md5(v.encode()).hexdigest() == hash_value.lower(): cracked = v; hash_type = "MD5"; break
+            if hashlib.sha1(v.encode()).hexdigest() == hash_value.lower(): cracked = v; hash_type = "SHA1"; break
+            if hashlib.sha256(v.encode()).hexdigest() == hash_value.lower(): cracked = v; hash_type = "SHA256"; break
+            if hashlib.sha512(v.encode()).hexdigest() == hash_value.lower(): cracked = v; hash_type = "SHA512"; break
+        if cracked: break
+    online_result = None
+    if not cracked and hash_type == "MD5":
+        try:
+            req = urllib.request.Request(f"https://md5decrypt.net/Api/api.php?hash={hash_value}&hash_type=md5&email=test@test.com&code=code", headers={"User-Agent": "Mozilla/5.0"})
+            resp = urllib.request.urlopen(req, timeout=5)
+            result = resp.read().decode().strip()
+            if result and result != "NOTFOUND" and len(result) < 50: online_result = result
+        except: pass
+    final = cracked or online_result
+    return {"hash": hash_value, "hash_type": hash_type, "cracked": final, "method": "local" if cracked else "online" if online_result else "not_found", "wordlist_size": tried, "result": f"PASSWORD MILA: {final}" if final else "Nahi mila — strong hash hai!", "response_time": f"{round(time.time()-start,2)}s"}
 
 @app.get("/iprep")
 def ip_reputation(ip: str, key: str = Depends(verify_key)):
