@@ -1031,7 +1031,7 @@ async function apiCall(endpoint, params, method='GET', body=null) {
   return resp.json();
 }
 
-async function runSingle(panelId, inputId, paramName, endpoint) {
+async async function runSingle(panelId, inputId, paramName, endpoint) {
   const val = document.getElementById(inputId).value.trim();
   if (!val) { alert('Value bharo pehle!'); return; }
   const btn = event.target;
