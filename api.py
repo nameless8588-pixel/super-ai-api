@@ -189,7 +189,11 @@ def fetch_and_store(query, msg_lower):
         recent_kw = ["aaj","today","abhi","now","live","latest","current","breaking","score","price","rate","match"]
         tl = "d" if any(k in msg_lower for k in recent_kw) else "w"
         
-        search_query = query + " " + today
+        # Smart query
+        if any(k in msg_lower for k in ["ipl","cricket","match","score"]):
+            search_query = "IPL match today " + today + " team schedule result"
+        else:
+            search_query = query + " " + today
         snippets = []
         
         # Source 1: DDG
