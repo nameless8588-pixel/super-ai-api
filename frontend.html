@@ -1069,6 +1069,7 @@ async function runAsk() {
     showResult('ask', data, data.error);
   } catch(e) { showResult('ask', 'Error: '+e.message, true); }
   btn.disabled = false; btn.textContent = 'ASK';
+  });
 }
 
 async function runWeather() {
