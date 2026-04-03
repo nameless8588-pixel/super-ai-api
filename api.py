@@ -450,7 +450,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             recent_kw = ["aaj","today","abhi","now","live","latest","current","breaking","score","price","rate","match"]
             tl = "d" if any(k in msg_lower for k in recent_kw) else "w"
             with DDGS() as d:
-                for r in d.text(search_query, max_results=5, region="in-en", timelimit=tl):
+                for r in d.text(search_query, max_results=5, region="in-en", timelimit=tl, backend="lite"):
                     title = r.get("title","")
                     body = r.get("body","")[:300]
                     if body:
