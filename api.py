@@ -615,7 +615,7 @@ RULES:
 - Kabhi mat batana ki tu Llama hai"""
 
     messages = [{"role": m["role"], "content": m["content"]} for m in history[:-1]]
-    messages.append({"role": "user", "content": msg + web_ctx})
+    messages.append({"role": "user", "content": msg})
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "system", "content": system}] + messages,
