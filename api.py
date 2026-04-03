@@ -106,6 +106,114 @@ def init_db():
 init_db()
 
 
+def init_knowledge_db():
+    conn = sqlite3.connect("ai_memory.db")
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS knowledge (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query TEXT,
+        query_hash TEXT UNIQUE,
+        data TEXT,
+        source TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP
+    )""")
+    conn.commit()
+    conn.close()
+init_knowledge_db()
+
+def save_knowledge(query, data, source="ddg", ttl_minutes=60):
+    try:
+        import hashlib, datetime
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        qhash = hashlib.md5(query.lower().strip().encode()).hexdigest()
+        expires = (datetime.datetime.utcnow() + datetime.timedelta(minutes=ttl_minutes)).isoformat()
+        c.execute("INSERT OR REPLACE INTO knowledge (query, query_hash, data, source, expires_at) VALUES (?,?,?,?,?)",
+                  (query, qhash, data, source, expires))
+        conn.commit()
+        conn.close()
+    except: pass
+
+def get_knowledge(query):
+    try:
+        import hashlib, datetime
+        conn = sqlite3.connect("ai_memory.db")
+        c = conn.cursor()
+        qhash = hashlib.md5(query.lower().strip().encode()).hexdigest()
+        # Exact match
+        c.execute("SELECT data, source, expires_at FROM knowledge WHERE query_hash=?", (qhash,))
+        row = c.fetchone()
+        if row:
+            expires = datetime.datetime.fromisoformat(row[2])
+            if datetime.datetime.utcnow() < expires:
+                conn.close()
+                return {"data": row[0], "source": row[1], "cached": True}
+            else:
+                c.execute("DELETE FROM knowledge WHERE query_hash=?", (qhash,))
+                conn.commit()
+        # Similar match - keywords se
+        words = [w for w in query.lower().split() if len(w) > 3][:3]
+        for word in words:
+            c.execute("SELECT data, source, expires_at, query FROM knowledge WHERE query LIKE ? ORDER BY created_at DESC LIMIT 1", (f"%{word}%",))
+            row = c.fetchone()
+            if row:
+                expires = datetime.datetime.fromisoformat(row[2])
+                if datetime.datetime.utcnow() < expires:
+                    conn.close()
+                    return {"data": row[0], "source": row[1], "cached": True, "similar_query": row[3]}
+        conn.close()
+    except: pass
+    return None
+
+def fetch_and_store(query, msg_lower):
+    """DDG se fetch karo, multiple sources verify karo, DB mein store karo"""
+    try:
+        try:
+            from ddgs import DDGS
+        except:
+            from duckduckgo_search import DDGS
+        import datetime as _dt
+        today = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+        
+        # Smart timelimit
+        recent_kw = ["aaj","today","abhi","now","live","latest","current","breaking","score","price","rate","match"]
+        tl = "d" if any(k in msg_lower for k in recent_kw) else "w"
+        
+        search_query = query + " " + today
+        snippets = []
+        
+        # Source 1: DDG
+        with DDGS() as d:
+            for r in d.text(search_query, max_results=5, region="in-en", timelimit=tl, backend="lite"):
+                title = r.get("title","")
+                body = r.get("body","")[:300]
+                if body:
+                    snippets.append(f"[DDG] {title}: {body}")
+        
+        # Source 2: Wikipedia agar factual sawaal hai
+        fact_kw = ["kya hai","what is","kaun hai","who is","kab","when","kahan","where","kyun","why"]
+        if any(k in msg_lower for k in fact_kw):
+            try:
+                wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ','_')}"
+                req = __import__('urllib.request').request.Request(wiki_url, headers={"User-Agent":"Mozilla/5.0"})
+                res = __import__('urllib.request').request.urlopen(req, timeout=3)
+                wiki_data = __import__('json').loads(res.read().decode())
+                if wiki_data.get("extract"):
+                    snippets.append(f"[Wikipedia] {wiki_data['extract'][:400]}")
+            except: pass
+        
+        if snippets:
+            # Summarize - top 3 sources
+            combined = chr(10).join(snippets[:3])
+            # TTL - news ke liye 30 min, baaki ke liye 2 hours
+            ttl = 30 if tl == "d" else 120
+            save_knowledge(query, combined, source="ddg+wiki", ttl_minutes=ttl)
+            return combined
+    except Exception as e:
+        logging.warning(f"fetch_and_store failed: {e}")
+    return ""
+
 def save_backup(sha, message):
     try:
         import requests
@@ -437,30 +545,19 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     search_used = False
     realtime_kw = ["today","latest","current","now","live","breaking","price","stock","rate","score","weather","update","aaj","abhi","taaza","khabar","dam","result","election","match","ipl","cricket","release","launch","2025","2026"]
     if any(k in msg_lower for k in realtime_kw):
-        try:
-            try:
-                from ddgs import DDGS
-            except:
-                from duckduckgo_search import DDGS
-            import datetime as _dt2
-            today = _dt2.datetime.now(_dt2.timezone.utc).strftime("%Y-%m-%d")
-            search_query = msg + " " + today
-            snippets = []
-            # Smart timelimit - recent keywords pe "d", baaki pe None
-            recent_kw = ["aaj","today","abhi","now","live","latest","current","breaking","score","price","rate","match"]
-            tl = "d" if any(k in msg_lower for k in recent_kw) else "w"
-            with DDGS() as d:
-                for r in d.text(search_query, max_results=5, region="in-en", timelimit=tl, backend="lite"):
-                    title = r.get("title","")
-                    body = r.get("body","")[:300]
-                    if body:
-                        snippets.append(title + ": " + body)
-            if snippets:
-                web_ctx = "[LIVE WEB DATA - " + cur_date + "]\n" + chr(10).join(snippets) + "\n[END]"
+        # Step 1: Apni DB mein dhundho
+        cached = get_knowledge(msg)
+        if cached:
+            web_ctx = "=== CACHED DATA (source: " + cached["source"] + ") ===\n" + cached["data"]
+            search_used = True
+            logging.info(f"Knowledge cache HIT for: {msg[:50]}")
+        else:
+            # Step 2: Internet se fetch karo aur DB mein store karo
+            fetched = fetch_and_store(msg, msg_lower)
+            if fetched:
+                web_ctx = fetched
                 search_used = True
-        except Exception as _se:
-            web_ctx = ""
-            logging.warning(f"DDG search failed: {_se}")
+                logging.info(f"Knowledge fetched and stored for: {msg[:50]}")
 
     if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api", "apna", "khud", "mera scan", "system scan"]):
         msg = msg + " super-ai-api.onrender.com"
