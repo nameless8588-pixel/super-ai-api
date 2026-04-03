@@ -565,12 +565,15 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             search_used = True
             logging.info(f"Knowledge cache HIT for: {msg[:50]}")
         else:
-            # Step 2: Internet se fetch karo aur DB mein store karo
-            fetched = fetch_and_store(msg, msg_lower)
-            if fetched:
-                web_ctx = fetched
-                search_used = True
-                logging.info(f"Knowledge fetched and stored for: {msg[:50]}")
+            # Step 2: search_internet se fetch karo
+            try:
+                fetched = search_internet(msg)
+                if fetched and len(fetched) > 20:
+                    web_ctx = fetched
+                    search_used = True
+                    logging.info(f"search_internet used for: {msg[:50]}")
+            except Exception as se:
+                logging.warning(f"search_internet failed: {se}")
 
     if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api", "apna", "khud", "mera scan", "system scan"]):
         msg = msg + " super-ai-api.onrender.com"
