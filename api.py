@@ -489,7 +489,9 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     elif scan_needed and not domain_match:
         real_data = "DOMAIN_MISSING"
 
-    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. Date: " + cur_date + ". " + context_summary + (chr(10) + "LIVE WEB DATA (isi se jawab de, apna purana knowledge mat use kar):" + chr(10) + web_ctx if web_ctx else "")
+    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. Date: " + cur_date + ". " + context_summary
+    if web_ctx:
+        system += chr(10) + "=== REAL-TIME WEB DATA ===" + chr(10) + web_ctx + chr(10) + "=== END WEB DATA ===" + chr(10) + "IMPORTANT: Upar diya gaya REAL-TIME data use kar. Apna purana knowledge mat use kar. Is data se direct jawab de."
     if real_data == "DOMAIN_MISSING":
         system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
     elif real_data.startswith("SCAN ERROR"):
