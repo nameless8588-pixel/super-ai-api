@@ -101,6 +101,15 @@ def init_db():
         commit_message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS knowledge (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query TEXT,
+        query_hash TEXT UNIQUE,
+        data TEXT,
+        source TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP
+    )""")
     conn.commit()
     conn.close()
 init_db()
