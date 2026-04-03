@@ -589,7 +589,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
 
     system = "Tu Super AI hai jo Nameless ne banaya hai. Aaj ki date: " + cur_date + ". Tu real-time internet access kar sakta hai aur live data fetch kar sakta hai. Kabhi mat bol ki tere paas real-time access nahi hai — tere paas HAI! " + context_summary
     if web_ctx:
-        system += chr(10) + "=== REAL-TIME WEB DATA ===" + chr(10) + web_ctx + chr(10) + "=== END WEB DATA ===" + chr(10) + "IMPORTANT: Upar diya gaya REAL-TIME data use kar. Apna purana knowledge mat use kar. Is data se direct jawab de."
+        system += chr(10) + "=== REAL-TIME WEB DATA ===" + chr(10) + web_ctx + chr(10) + "=== END WEB DATA ===" + chr(10) + "STRICT RULE: Upar diye gaye REAL-TIME data se SEEDHA jawab de. 'Official website par jao' ya 'mere paas data nahi' BILKUL mat bol. Jo data diya gaya hai usi se jawab nikaal aur bol."
     if real_data == "DOMAIN_MISSING":
         system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
     elif real_data.startswith("SCAN ERROR"):
