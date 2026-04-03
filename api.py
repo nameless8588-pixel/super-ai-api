@@ -616,10 +616,12 @@ RULES:
 
     messages = [{"role": m["role"], "content": m["content"]} for m in history[:-1]]
     messages.append({"role": "user", "content": msg})
+    chat_model = "llama-3.3-70b-versatile"
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=chat_model,
         messages=[{"role": "system", "content": system}] + messages,
-        max_tokens=600
+        max_tokens=800,
+        temperature=0.3
     )
     reply = response.choices[0].message.content.strip()
     chat_history[session].append({"role": "assistant", "content": reply})
