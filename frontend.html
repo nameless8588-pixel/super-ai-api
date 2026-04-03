@@ -514,9 +514,9 @@
   <div id="panel-ask" class="panel">
     <div class="form-card">
       <div class="form-desc">AI se koi bhi sawaal poochho</div>
-      <div class="form-row"><label>Sawaal</label><input type="text" id="ask-q" placeholder="Kuch bhi likho..."/></div>
-      <div class="form-row"><label>Image (optional)</label><input type="file" id="ask-image" accept="image/*"/></div>
-      <div class="form-row"><label>Model</label>
+      <div class="form-row"><label for="ask-q">Sawaal</label><input type="text" id="ask-q" placeholder="Kuch bhi likho..."/></div>
+      <div class="form-row"><label for="ask-image">Image (optional)</label><input type="file" id="ask-image" accept="image/*"/></div>
+      <div class="form-row"><label for="ask-model">Model</label>
         <select id="ask-model">
           <option value="auto">Auto</option>
           <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
@@ -533,7 +533,7 @@
   <div id="panel-webscan" class="panel">
     <div class="form-card">
       <div class="form-desc">Website ki security check karo — headers, sensitive files, SSL, aur zyada</div>
-      <div class="form-row"><label>URL</label><input type="text" id="webscan-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="webscan-url">URL</label><input type="text" id="webscan-url" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('webscan','webscan-url','url','/webscan')">SCAN</button>
       <div class="result-box" id="webscan-result"></div>
     </div>
@@ -543,7 +543,7 @@
   <div id="panel-fullaudit" class="panel">
     <div class="form-card">
       <div class="form-desc">Complete security audit — SSL, headers, XSS, SQL, ports, files sab ek saath</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="fullaudit-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="fullaudit-domain">Domain</label><input type="text" id="fullaudit-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('fullaudit','fullaudit-domain','domain','/fullaudit')">FULL AUDIT</button>
       <div class="result-box" id="fullaudit-result"></div>
     </div>
@@ -553,7 +553,7 @@
   <div id="panel-sslcheck" class="panel">
     <div class="form-card">
       <div class="form-desc">SSL certificate check karo</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="ssl-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="ssl-domain">Domain</label><input type="text" id="ssl-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('sslcheck','ssl-domain','domain','/sslcheck')">CHECK</button>
       <div class="result-box" id="sslcheck-result"></div>
     </div>
@@ -563,7 +563,7 @@
   <div id="panel-portscan" class="panel">
     <div class="form-card">
       <div class="form-desc">Open ports dhundho</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="port-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="port-domain">Domain</label><input type="text" id="port-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('portscan','port-domain','domain','/portscan')">SCAN PORTS</button>
       <div class="result-box" id="portscan-result"></div>
     </div>
@@ -573,7 +573,7 @@
   <div id="panel-subdomains" class="panel">
     <div class="form-card">
       <div class="form-desc">Subdomains dhundho</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="sub-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="sub-domain">Domain</label><input type="text" id="sub-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('subdomains','sub-domain','domain','/subdomains')">FIND SUBDOMAINS</button>
       <div class="result-box" id="subdomains-result"></div>
     </div>
@@ -583,7 +583,7 @@
   <div id="panel-whois" class="panel">
     <div class="form-card">
       <div class="form-desc">Domain WHOIS lookup</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="whois-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="whois-domain">Domain</label><input type="text" id="whois-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('whois','whois-domain','domain','/whois')">LOOKUP</button>
       <div class="result-box" id="whois-result"></div>
     </div>
@@ -593,7 +593,7 @@
   <div id="panel-dns" class="panel">
     <div class="form-card">
       <div class="form-desc">DNS records check karo</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="dns-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="dns-domain">Domain</label><input type="text" id="dns-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('dns','dns-domain','domain','/dns')">DNS CHECK</button>
       <div class="result-box" id="dns-result"></div>
     </div>
@@ -603,7 +603,7 @@
   <div id="panel-headers" class="panel">
     <div class="form-card">
       <div class="form-desc">Security headers check karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="headers-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="headers-url">URL</label><input type="text" id="headers-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('headers','headers-url','url','/headers')">CHECK HEADERS</button>
       <div class="result-box" id="headers-result"></div>
     </div>
@@ -613,7 +613,7 @@
   <div id="panel-techdetect" class="panel">
     <div class="form-card">
       <div class="form-desc">Website ki technologies detect karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="tech-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="tech-url">URL</label><input type="text" id="tech-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('techdetect','tech-url','url','/techdetect')">DETECT</button>
       <div class="result-box" id="techdetect-result"></div>
     </div>
@@ -623,7 +623,7 @@
   <div id="panel-robots" class="panel">
     <div class="form-card">
       <div class="form-desc">Robots.txt scan karo</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="robots-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="robots-domain">Domain</label><input type="text" id="robots-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('robots','robots-domain','domain','/robots')">SCAN</button>
       <div class="result-box" id="robots-result"></div>
     </div>
@@ -633,7 +633,7 @@
   <div id="panel-netanalyze" class="panel">
     <div class="form-card">
       <div class="form-desc">Network analysis karo</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="net-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="net-domain">Domain</label><input type="text" id="net-domain" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('netanalyze','net-domain','domain','/netanalyze')">ANALYZE</button>
       <div class="result-box" id="netanalyze-result"></div>
     </div>
@@ -643,7 +643,7 @@
   <div id="panel-dirscan" class="panel">
     <div class="form-card">
       <div class="form-desc">Hidden directories dhundho</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="dir-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="dir-domain">Domain</label><input type="text" id="dir-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('dirscan','dir-domain','domain','/dirscan')">SCAN DIRS</button>
       <div class="result-box" id="dirscan-result"></div>
     </div>
@@ -653,7 +653,7 @@
   <div id="panel-sensitivefiles" class="panel">
     <div class="form-card">
       <div class="form-desc">Sensitive files exposed hain ya nahi check karo</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="sens-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="sens-domain">Domain</label><input type="text" id="sens-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('sensitivefiles','sens-domain','domain','/sensitivefiles')">CHECK FILES</button>
       <div class="result-box" id="sensitivefiles-result"></div>
     </div>
@@ -663,7 +663,7 @@
   <div id="panel-apiscan" class="panel">
     <div class="form-card">
       <div class="form-desc">API endpoints dhundho aur test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="api-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="api-url">URL</label><input type="text" id="api-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('apiscan','api-url','url','/apiscan')">SCAN API</button>
       <div class="result-box" id="apiscan-result"></div>
     </div>
@@ -673,7 +673,7 @@
   <div id="panel-xss" class="panel">
     <div class="form-card">
       <div class="form-desc">XSS vulnerability test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="xss-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="xss-url">URL</label><input type="text" id="xss-url" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('xss','xss-url','url','/xss_test')">TEST XSS</button>
       <div class="result-box" id="xss-result"></div>
     </div>
@@ -683,7 +683,7 @@
   <div id="panel-sqlinject" class="panel">
     <div class="form-card">
       <div class="form-desc">SQL injection test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="sql-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="sql-url">URL</label><input type="text" id="sql-url" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('sqlinject','sql-url','url','/sql_test')">TEST SQL</button>
       <div class="result-box" id="sqlinject-result"></div>
     </div>
@@ -693,7 +693,7 @@
   <div id="panel-corscheck" class="panel">
     <div class="form-card">
       <div class="form-desc">CORS misconfiguration check karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="cors-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="cors-url">URL</label><input type="text" id="cors-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('corscheck','cors-url','url','/corscheck')">CHECK CORS</button>
       <div class="result-box" id="corscheck-result"></div>
     </div>
@@ -703,7 +703,7 @@
   <div id="panel-cookiecheck" class="panel">
     <div class="form-card">
       <div class="form-desc">Cookie security check karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="cookie-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="cookie-url">URL</label><input type="text" id="cookie-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('cookiecheck','cookie-url','url','/cookiecheck')">CHECK COOKIES</button>
       <div class="result-box" id="cookiecheck-result"></div>
     </div>
@@ -713,7 +713,7 @@
   <div id="panel-clickjack" class="panel">
     <div class="form-card">
       <div class="form-desc">Clickjacking vulnerability check karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="cj-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="cj-url">URL</label><input type="text" id="cj-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('clickjack','cj-url','url','/clickjack')">CHECK</button>
       <div class="result-box" id="clickjack-result"></div>
     </div>
@@ -723,7 +723,7 @@
   <div id="panel-redirecttest" class="panel">
     <div class="form-card">
       <div class="form-desc">Open redirect vulnerability test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="redirect-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="redirect-url">URL</label><input type="text" id="redirect-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('redirecttest','redirect-url','url','/redirecttest')">TEST REDIRECT</button>
       <div class="result-box" id="redirecttest-result"></div>
     </div>
@@ -733,7 +733,7 @@
   <div id="panel-ratelimit" class="panel">
     <div class="form-card">
       <div class="form-desc">Rate limiting test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="rl-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="rl-url">URL</label><input type="text" id="rl-url" placeholder="example.com"/></div>
       <button class="btn-run" onclick="runSingle('ratelimit','rl-url','url','/ratelimit')">TEST RATE LIMIT</button>
       <div class="result-box" id="ratelimit-result"></div>
     </div>
@@ -743,7 +743,7 @@
   <div id="panel-jwtcheck" class="panel">
     <div class="form-card">
       <div class="form-desc">JWT token decode aur vulnerability check karo</div>
-      <div class="form-row"><label>JWT Token</label><input type="text" id="jwt-token" placeholder="eyJ..."/></div>
+      <div class="form-row"><label for="jwt-token">JWT Token</label><input type="text" id="jwt-token" placeholder="eyJ..."/></div>
       <button class="btn-run" onclick="runSingle('jwtcheck','jwt-token','token','/jwtcheck')">CHECK JWT</button>
       <div class="result-box" id="jwtcheck-result"></div>
     </div>
@@ -753,7 +753,7 @@
   <div id="panel-deep_audit" class="panel">
     <div class="form-card">
       <div class="form-desc">Aggressive deep security audit — SQL, XSS, admin panels, sensitive data sab</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="deep-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="deep-domain">Domain</label><input type="text" id="deep-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('deep_audit','deep-domain','domain','/deep_audit')">DEEP AUDIT</button>
       <div class="result-box" id="deep_audit-result"></div>
     </div>
@@ -763,7 +763,7 @@
   <div id="panel-security_probe" class="panel">
     <div class="form-card">
       <div class="form-desc">Security probe — attack simulation</div>
-      <div class="form-row"><label>Domain</label><input type="text" id="probe-domain" placeholder="example.com"/></div>
+      <div class="form-row"><label for="probe-domain">Domain</label><input type="text" id="probe-domain" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('security_probe','probe-domain','domain','/security_probe')">PROBE</button>
       <div class="result-box" id="security_probe-result"></div>
     </div>
@@ -773,7 +773,7 @@
   <div id="panel-auth_test" class="panel">
     <div class="form-card">
       <div class="form-desc">Login bypass test karo — SQL injection + default credentials</div>
-      <div class="form-row"><label>URL</label><input type="text" id="auth-url" placeholder="example.com/login"/></div>
+      <div class="form-row"><label for="auth-url">URL</label><input type="text" id="auth-url" placeholder="example.com/login"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('auth_test','auth-url','url','/auth_test')">TEST AUTH</button>
       <div class="result-box" id="auth_test-result"></div>
     </div>
@@ -783,7 +783,7 @@
   <div id="panel-js_auth_test" class="panel">
     <div class="form-card">
       <div class="form-desc">JavaScript-heavy login bypass test karo</div>
-      <div class="form-row"><label>URL</label><input type="text" id="jsauth-url" placeholder="example.com"/></div>
+      <div class="form-row"><label for="jsauth-url">URL</label><input type="text" id="jsauth-url" placeholder="example.com"/></div>
       <button class="btn-run btn-danger" onclick="runSingle('js_auth_test','jsauth-url','url','/js_auth_test')">TEST JS AUTH</button>
       <div class="result-box" id="js_auth_test-result"></div>
     </div>
@@ -793,7 +793,7 @@
   <div id="panel-breakcode" class="panel">
     <div class="form-card">
       <div class="form-desc">Code ko test karo — brute force, SQL injection, env attacks</div>
-      <div class="form-row"><label>Python Code</label><textarea id="break-code" placeholder="def login(password): ..."></textarea></div>
+      <div class="form-row"><label for="break-code">Python Code</label><textarea id="break-code" placeholder="def login(password): ..."></textarea></div>
       <button class="btn-run btn-danger" onclick="runBreakCode()">BREAK CODE</button>
       <div class="result-box" id="breakcode-result"></div>
     </div>
@@ -803,7 +803,7 @@
   <div id="panel-passcheck" class="panel">
     <div class="form-card">
       <div class="form-desc">Password ki strength check karo</div>
-      <div class="form-row"><label>Password</label><input type="text" id="pass-val" placeholder="Enter password..."/></div>
+      <div class="form-row"><label for="pass-val">Password</label><input type="text" id="pass-val" placeholder="Enter password..."/></div>
       <button class="btn-run" onclick="runSingle('passcheck','pass-val','password','/passcheck')">CHECK</button>
       <div class="result-box" id="passcheck-result"></div>
     </div>
@@ -813,7 +813,7 @@
   <div id="panel-hashcrack" class="panel">
     <div class="form-card">
       <div class="form-desc">Hash crack karo — MD5, SHA1, SHA256</div>
-      <div class="form-row"><label>Hash Value</label><input type="text" id="hash-val" placeholder="5f4dcc3b5aa765d61d8327deb882cf99"/></div>
+      <div class="form-row"><label for="hash-val">Hash Value</label><input type="text" id="hash-val" placeholder="5f4dcc3b5aa765d61d8327deb882cf99"/></div>
       <button class="btn-run" onclick="runSingle('hashcrack','hash-val','hash_value','/hashcrack')">CRACK</button>
       <div class="result-box" id="hashcrack-result"></div>
     </div>
@@ -823,7 +823,7 @@
   <div id="panel-iprep" class="panel">
     <div class="form-card">
       <div class="form-desc">IP reputation check karo</div>
-      <div class="form-row"><label>IP Address</label><input type="text" id="ip-val" placeholder="8.8.8.8"/></div>
+      <div class="form-row"><label for="ip-val">IP Address</label><input type="text" id="ip-val" placeholder="8.8.8.8"/></div>
       <button class="btn-run" onclick="runSingle('iprep','ip-val','ip','/iprep')">CHECK IP</button>
       <div class="result-box" id="iprep-result"></div>
     </div>
@@ -833,7 +833,7 @@
   <div id="panel-weather" class="panel">
     <div class="form-card">
       <div class="form-desc">City ka current weather dekho</div>
-      <div class="form-row"><label>City Name</label><input type="text" id="weather-city" placeholder="Delhi"/></div>
+      <div class="form-row"><label for="weather-city">City Name</label><input type="text" id="weather-city" placeholder="Delhi"/></div>
       <button class="btn-run" onclick="runWeather()">GET WEATHER</button>
       <div class="result-box" id="weather-result"></div>
     </div>
@@ -843,7 +843,7 @@
   <div id="panel-search" class="panel">
     <div class="form-card">
       <div class="form-desc">Web search karo</div>
-      <div class="form-row"><label>Query</label><input type="text" id="search-q" placeholder="Search karo..."/></div>
+      <div class="form-row"><label for="search-q">Query</label><input type="text" id="search-q" placeholder="Search karo..."/></div>
       <button class="btn-run" onclick="runSingle('search','search-q','q','/search')">SEARCH</button>
       <div class="result-box" id="search-result"></div>
     </div>
@@ -853,8 +853,8 @@
   <div id="panel-create" class="panel">
     <div class="form-card">
       <div class="form-desc">AI se Python code banwao</div>
-      <div class="form-row"><label>Task</label><textarea id="create-task" placeholder="Kya banana hai..."></textarea></div>
-      <div class="form-row"><label>Filename</label><input type="text" id="create-file" value="ai_generated.py"/></div>
+      <div class="form-row"><label for="create-task">Task</label><textarea id="create-task" placeholder="Kya banana hai..."></textarea></div>
+      <div class="form-row"><label for="create-file">Filename</label><input type="text" id="create-file" value="ai_generated.py"/></div>
       <button class="btn-run" onclick="runCreate()">CREATE</button>
       <div class="result-box" id="create-result"></div>
     </div>
@@ -864,7 +864,7 @@
   <div id="panel-webapp" class="panel">
     <div class="form-card">
       <div class="form-desc">AI se web app banwao</div>
-      <div class="form-row"><label>Task</label><textarea id="webapp-task" placeholder="Kaunsa web app banana hai..."></textarea></div>
+      <div class="form-row"><label for="webapp-task">Task</label><textarea id="webapp-task" placeholder="Kaunsa web app banana hai..."></textarea></div>
       <button class="btn-run" onclick="runSingle('webapp','webapp-task','task','/webapp')">BUILD APP</button>
       <div class="result-box" id="webapp-result"></div>
     </div>
@@ -874,8 +874,8 @@
   <div id="panel-analyze" class="panel">
     <div class="form-card">
       <div class="form-desc">Code analyze karo aur fix karwao</div>
-      <div class="form-row"><label>Code</label><textarea id="analyze-code" placeholder="Code paste karo..."></textarea></div>
-      <div class="form-row"><label>Image (optional)</label><input type="file" id="analyze-image" accept="image/*"/></div>
+      <div class="form-row"><label for="analyze-code">Code</label><textarea id="analyze-code" placeholder="Code paste karo..."></textarea></div>
+      <div class="form-row"><label for="analyze-image">Image (optional)</label><input type="file" id="analyze-image" accept="image/*"/></div>
       <button class="btn-run" onclick="runAnalyze()">ANALYZE</button>
       <div class="result-box" id="analyze-result"></div>
     </div>
@@ -885,7 +885,7 @@
   <div id="panel-agent" class="panel">
     <div class="form-card">
       <div class="form-desc">AI agent ko task do — woh khud code likhega aur run karega</div>
-      <div class="form-row"><label>Task</label><textarea id="agent-task" placeholder="Task batao..."></textarea></div>
+      <div class="form-row"><label for="agent-task">Task</label><textarea id="agent-task" placeholder="Task batao..."></textarea></div>
       <button class="btn-run" onclick="runSingle('agent','agent-task','task','/agent')">RUN AGENT</button>
       <div class="result-box" id="agent-result"></div>
     </div>
@@ -895,8 +895,8 @@
   <div id="panel-selfupgrade" class="panel">
     <div class="form-card">
       <div class="form-desc">AI ko new feature add karne ke liye kaho — pehle concept samjhega, phir code likhega</div>
-      <div class="form-row"><label>Instruction</label><textarea id="upgrade-instruction" placeholder="Kya add karna hai..."></textarea></div>
-      <div class="form-row"><label>Mode</label>
+      <div class="form-row"><label for="upgrade-instruction">Instruction</label><textarea id="upgrade-instruction" placeholder="Kya add karna hai..."></textarea></div>
+      <div class="form-row"><label for="upgrade-mode">Mode</label>
         <select id="upgrade-mode">
           <option value="append">Append (naya endpoint)</option>
           <option value="modify">Modify (existing change)</option>
@@ -930,7 +930,7 @@
   <div id="panel-frontend_upgrade" class="panel">
     <div class="form-card">
       <div class="form-desc">Frontend ko AI se upgrade karo</div>
-      <div class="form-row"><label>Instruction</label><textarea id="fe-instruction" placeholder="Frontend mein kya change karna hai..."></textarea></div>
+      <div class="form-row"><label for="fe-instruction">Instruction</label><textarea id="fe-instruction" placeholder="Frontend mein kya change karna hai..."></textarea></div>
       <button class="btn-run btn-boss" onclick="runFrontendUpgrade()">UPGRADE FRONTEND</button>
       <div class="result-box" id="frontend_upgrade-result"></div>
     </div>
