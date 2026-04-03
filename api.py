@@ -439,20 +439,21 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     if any(k in msg_lower for k in realtime_kw):
         try:
             try:
-            from ddgs import DDGS
-        except:
-            from duckduckgo_search import DDGS
+                from ddgs import DDGS
+            except:
+                from duckduckgo_search import DDGS
+            import datetime as _dt2
+            today = _dt2.datetime.now(_dt2.timezone.utc).strftime("%Y-%m-%d")
+            search_query = msg + " " + today
             snippets = []
             with DDGS() as d:
-                for r in d.text(msg, max_results=3):
-                    snippets.append(r.get("title","") + ": " + r.get("body","")[:250])
+                for r in d.text(search_query, max_results=5, region="in-en"):
+                    title = r.get("title","")
+                    body = r.get("body","")[:300]
+                    if body:
+                        snippets.append(title + ": " + body)
             if snippets:
                 web_ctx = "[LIVE WEB DATA - " + cur_date + "]\n" + chr(10).join(snippets) + "\n[END]"
-
-
-
-
-
                 search_used = True
         except:
             pass
