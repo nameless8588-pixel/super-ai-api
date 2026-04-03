@@ -389,16 +389,22 @@ def needs_realtime(msg):
           "kya hua","result","election","match","ipl","cricket","movie","new"]
     return any(k in msg.lower() for k in kw)
 
-def ddg_search(query, n=3):
+def ddg_search(query, n=5):
     try:
         try:
             from ddgs import DDGS
         except:
             from duckduckgo_search import DDGS
+        import datetime as _dt2
+        today = _dt2.datetime.utcnow().strftime("%Y-%m-%d")
+        search_query = query + " " + today
         s = []
         with DDGS() as d:
-            for r in d.text(query, max_results=n):
-                s.append(r.get("title","") + ": " + r.get("body","")[:250])
+            for r in d.text(search_query, max_results=n, region="in-en"):
+                title = r.get("title","")
+                body = r.get("body","")[:300]
+                if body:
+                    s.append(title + ": " + body)
         return chr(10).join(s)
     except:
         return ""
