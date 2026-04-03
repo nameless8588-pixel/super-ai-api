@@ -933,6 +933,13 @@
 </div><!-- end main -->
 
 <script>
+const API_BASE = "https://super-ai-api.onrender.com";
+
+function getKey() {
+  return document.getElementById('global-key').value.trim();
+}
+
+
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => {
     p.classList.remove('active');
@@ -952,12 +959,6 @@ function showPanel(name) {
     panel.classList.add('active');
   }
 
-}
-const API_BASE = "https://super-ai-api.onrender.com";
-
-function getKey() {
-  return document.getElementById('global-key').value.trim();
-}
 
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
