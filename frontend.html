@@ -1122,6 +1122,7 @@ async function runAnalyze() {
     showResult('analyze', data, data.error);
   } catch(e) { showResult('analyze', 'Error: '+e.message, true); }
   btn.disabled = false; btn.textContent = 'ANALYZE';
+  });
 }
 
 // CHAT
@@ -1148,6 +1149,7 @@ async function sendChat() {
     typing.textContent = 'Error: ' + e.message;
     typing.classList.add('error');
   }
+  });
 }
 
 function addMsg(text, type) {
