@@ -435,7 +435,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     cur_date = _dt.datetime.utcnow().strftime("%d %B %Y, %H:%M UTC")
     web_ctx = ""
     search_used = False
-    realtime_kw = ["today","yesterday","latest","current","now","live","breaking","news","price","stock","rate","score","weather","update","recent","who is","when is","2024","2025","2026","aaj","abhi","taaza","khabar","dam","kya hua","result","election","match","ipl","cricket","movie","new"]
+    realtime_kw = ["today","latest","current","now","live","breaking","price","stock","rate","score","weather","update","aaj","abhi","taaza","khabar","dam","result","election","match","ipl","cricket","release","launch","2025","2026"]
     if any(k in msg_lower for k in realtime_kw):
         try:
             try:
@@ -446,8 +446,11 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             today = _dt2.datetime.now(_dt2.timezone.utc).strftime("%Y-%m-%d")
             search_query = msg + " " + today
             snippets = []
+            # Smart timelimit - recent keywords pe "d", baaki pe None
+            recent_kw = ["aaj","today","abhi","now","live","latest","current","breaking","score","price","rate","match"]
+            tl = "d" if any(k in msg_lower for k in recent_kw) else "w"
             with DDGS() as d:
-                for r in d.text(search_query, max_results=5, region="in-en"):
+                for r in d.text(search_query, max_results=5, region="in-en", timelimit=tl):
                     title = r.get("title","")
                     body = r.get("body","")[:300]
                     if body:
@@ -486,7 +489,7 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     elif scan_needed and not domain_match:
         real_data = "DOMAIN_MISSING"
 
-    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. Date: " + cur_date + ". " + context_summary + (" Agar LIVE WEB DATA diya gaya hai toh usi se jawab de, purana knowledge mat use kar." if web_ctx else "")
+    system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. Date: " + cur_date + ". " + context_summary + (chr(10) + "LIVE WEB DATA (isi se jawab de, apna purana knowledge mat use kar):" + chr(10) + web_ctx if web_ctx else "")
     if real_data == "DOMAIN_MISSING":
         system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
     elif real_data.startswith("SCAN ERROR"):
