@@ -502,6 +502,8 @@
     </div>
     <div id="chat-input-area">
       <textarea id="chat-input" placeholder="Kuch bhi poochho..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+      <input type="file" id="chat-image" accept="image/*" style="display:none"/>
+      <button onclick="document.getElementById('chat-image').click()" style="padding:8px 12px;background:#2a2a3a;border:none;border-radius:8px;color:#aaa;cursor:pointer;">IMG</button>
       <button id="chat-send" onclick="sendChat()">SEND</button>
     </div>
   </div>
@@ -511,6 +513,7 @@
     <div class="form-card">
       <div class="form-desc">AI se koi bhi sawaal poochho</div>
       <div class="form-row"><label>Sawaal</label><input type="text" id="ask-q" placeholder="Kuch bhi likho..."/></div>
+      <div class="form-row"><label>Image (optional)</label><input type="file" id="ask-image" accept="image/*"/></div>
       <div class="form-row"><label>Model</label>
         <select id="ask-model">
           <option value="auto">Auto</option>
@@ -870,6 +873,7 @@
     <div class="form-card">
       <div class="form-desc">Code analyze karo aur fix karwao</div>
       <div class="form-row"><label>Code</label><textarea id="analyze-code" placeholder="Code paste karo..."></textarea></div>
+      <div class="form-row"><label>Image (optional)</label><input type="file" id="analyze-image" accept="image/*"/></div>
       <button class="btn-run" onclick="runAnalyze()">ANALYZE</button>
       <div class="result-box" id="analyze-result"></div>
     </div>
@@ -1056,9 +1060,12 @@ async function runAsk() {
   const model = document.getElementById('ask-model').value;
   if (!q) { alert('Sawaal likho!'); return; }
   const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Thinking...';
+  btn.disabled = true; btn.textContent = 'Thinking...';
+  const imgFile = document.getElementById('ask-image').files[0];
+  const getImg = imgFile ? new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result.split(',')[1]); fr.readAsDataURL(imgFile); }) : Promise.resolve(null);
+  getImg.then(async img => {
   try {
-    const data = await apiCall('/ask', {q, model});
+    const data = await apiCall('/ask', {q, model, image: img});
     showResult('ask', data, data.error);
   } catch(e) { showResult('ask', 'Error: '+e.message, true); }
   btn.disabled = false; btn.textContent = 'ASK';
@@ -1105,9 +1112,12 @@ async function runAnalyze() {
   const code = document.getElementById('analyze-code').value.trim();
   if (!code) { alert('Code paste karo!'); return; }
   const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+  btn.disabled = true; btn.textContent = 'Analyzing...';
+  const imgFile = document.getElementById('analyze-image').files[0];
+  const getImg = imgFile ? new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result.split(',')[1]); fr.readAsDataURL(imgFile); }) : Promise.resolve(null);
+  getImg.then(async img => {
   try {
-    const data = await apiCall('/analyze', {code});
+    const data = await apiCall('/analyze', {code, image: img});
     showResult('analyze', data, data.error);
   } catch(e) { showResult('analyze', 'Error: '+e.message, true); }
   btn.disabled = false; btn.textContent = 'ANALYZE';
@@ -1126,8 +1136,12 @@ async function sendChat() {
   addMsg(msg, 'user');
   const typing = addMsg('...', 'ai');
 
+  const imgFile = document.getElementById('chat-image').files[0];
+  const getImg = imgFile ? new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target.result.split(',')[1]); fr.readAsDataURL(imgFile); }) : Promise.resolve(null);
+  getImg.then(async img => {
+  document.getElementById('chat-image').value = '';
   try {
-    const data = await apiCall('/chat', {msg, session: chatSession});
+    const data = await apiCall('/chat', {msg, session: chatSession, image: img});
     typing.textContent = data.reply || JSON.stringify(data);
   } catch(e) {
     typing.textContent = 'Error: ' + e.message;
