@@ -933,12 +933,6 @@
 </div><!-- end main -->
 
 <script>
-const API_BASE = "https://super-ai-api.onrender.com";
-
-function getKey() {
-  return document.getElementById('global-key').value.trim();
-}
-
 function showPanel(name) {
   document.querySelectorAll('.panel').forEach(p => {
     p.classList.remove('active');
@@ -957,6 +951,13 @@ function showPanel(name) {
     panel.style.display = 'block';
     panel.classList.add('active');
   }
+
+const API_BASE = "https://super-ai-api.onrender.com";
+
+function getKey() {
+  return document.getElementById('global-key').value.trim();
+}
+
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => {
@@ -1031,7 +1032,7 @@ async function apiCall(endpoint, params, method='GET', body=null) {
   return resp.json();
 }
 
-async async function runSingle(panelId, inputId, paramName, endpoint) {
+async function runSingle(panelId, inputId, paramName, endpoint) {
   const val = document.getElementById(inputId).value.trim();
   if (!val) { alert('Value bharo pehle!'); return; }
   const btn = event.target;
