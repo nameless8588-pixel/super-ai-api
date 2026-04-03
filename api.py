@@ -458,8 +458,9 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
             if snippets:
                 web_ctx = "[LIVE WEB DATA - " + cur_date + "]\n" + chr(10).join(snippets) + "\n[END]"
                 search_used = True
-        except:
-            pass
+        except Exception as _se:
+            web_ctx = ""
+            logging.warning(f"DDG search failed: {_se}")
 
     if any(x in msg_lower for x in ["self scan", "apna scan", "khud scan", "apni api", "apna", "khud", "mera scan", "system scan"]):
         msg = msg + " super-ai-api.onrender.com"
