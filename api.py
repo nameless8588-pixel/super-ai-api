@@ -350,7 +350,10 @@ def analyze_code(code: str, key: str = Depends(verify_key)):
 def web_search(q: str, key: str = Depends(verify_key)):
     start = time.time()
     try:
-        from duckduckgo_search import DDGS
+        try:
+            from ddgs import DDGS
+        except:
+            from duckduckgo_search import DDGS
         results = []
         with DDGS() as ddgs:
             for r in ddgs.text(q, max_results=3):
@@ -388,7 +391,10 @@ def needs_realtime(msg):
 
 def ddg_search(query, n=3):
     try:
-        from duckduckgo_search import DDGS
+        try:
+            from ddgs import DDGS
+        except:
+            from duckduckgo_search import DDGS
         s = []
         with DDGS() as d:
             for r in d.text(query, max_results=n):
@@ -426,6 +432,9 @@ def chat(msg: str, session: str = "default", key: str = Depends(verify_key)):
     realtime_kw = ["today","yesterday","latest","current","now","live","breaking","news","price","stock","rate","score","weather","update","recent","who is","when is","2024","2025","2026","aaj","abhi","taaza","khabar","dam","kya hua","result","election","match","ipl","cricket","movie","new"]
     if any(k in msg_lower for k in realtime_kw):
         try:
+            try:
+            from ddgs import DDGS
+        except:
             from duckduckgo_search import DDGS
             snippets = []
             with DDGS() as d:
