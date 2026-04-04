@@ -195,8 +195,26 @@ except:
     def get_mistakes(): return []
 
 app = FastAPI(title="Super AI API", version="5.0")
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse as _JSONResponse
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+class LimitRequestSize(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        cl = request.headers.get("content-length")
+        if cl and int(cl) > 1000000:
+            return _JSONResponse(status_code=413, content={"error": "Too large"})
+        return await call_next(request)
+app.add_middleware(LimitRequestSize)
 # static mount removed
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://super-ai-api.onrender.com"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {k: v for k, v in {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}.items() if k is not None}
 api_key_header = APIKeyHeader(name="X-API-Key")
 
