@@ -2610,6 +2610,12 @@ def rollback(key: str = Depends(verify_key)):
     return {"error": "Rollback push failed", "details": push_resp.text[:200]}
 
 
+
+@app.get("/frontend", response_class=HTMLResponse)
+def frontend():
+    with open("frontend.html", encoding="utf-8") as f:
+        return f.read()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
