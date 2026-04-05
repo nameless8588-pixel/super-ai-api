@@ -201,7 +201,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.responses import JSONResponse as _JSONResponse
+from fastapi.responses import JSONResponse as _JSONResponse, HTMLResponse
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -2759,5 +2759,5 @@ async def get_weather(city: str, key: str = Depends(verify_key)):
         "temperature": data["main"]["temp"],
         "humidity": data["main"]["humidity"]
     }
-    return weather_datafrom fastapi.responses import HTMLResponse
+    return weather_data
 
