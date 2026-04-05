@@ -241,6 +241,7 @@ def health():
     return {"status": "ok"}
 
 @app.get("/ask")
+@limiter.limit("20/minute")
 def ask(q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
     # Cache sirf 10 min ke liye - fresh answers
     import hashlib
