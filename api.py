@@ -1,3 +1,4 @@
+from __future__ import annotations
 # -*- coding: utf-8 -*-
 from fastapi import FastAPI, Request
 from fastapi import Depends, HTTPException, BackgroundTasks
