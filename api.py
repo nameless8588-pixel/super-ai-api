@@ -242,7 +242,7 @@ def health():
 
 @app.get("/ask")
 @limiter.limit("20/minute")
-def ask(q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
+def ask(request: Request, q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
     # Cache sirf 10 min ke liye - fresh answers
     import hashlib
     cache_key = hashlib.md5(q.encode()).hexdigest()
