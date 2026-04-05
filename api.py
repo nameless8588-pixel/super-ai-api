@@ -215,7 +215,7 @@ class LimitRequestSize(BaseHTTPMiddleware):
         return await call_next(request)
 app.add_middleware(LimitRequestSize)
 # static mount removed
-app.add_middleware(CORSMiddleware, allow_origins=["https://super-ai-api.onrender.com", "http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://super-ai-api.onrender.com", "https://nameless8588-pixel.github.io", "http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {k: v for k, v in {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}.items() if k is not None}
 api_key_header = APIKeyHeader(name="X-API-Key")
 
