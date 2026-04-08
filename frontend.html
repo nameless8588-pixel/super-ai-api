@@ -1408,7 +1408,7 @@ function startRecognition() {
       orb.classList.add("listening");
       speak(["Ji, bataiye.","Haan bolo.","Sunn raha hoon.","Ji?","Bolo, main hoon."][Math.floor(Math.random()*5)]);
       showStatus("🎤 Command suno...", "#ff8800");
-      setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 8000);
+      setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 15000);
       return;
     }
 
@@ -1433,8 +1433,11 @@ function startRecognition() {
 
   recognition.start();
   isListening = true;
-  showStatus("CODELESS active 🤖");
-  speak("CODELESS ready hai. Mujhe awaz do.");
+  if(!window._codelessStarted) {
+    window._codelessStarted = true;
+    showStatus("CODELESS active 🤖");
+    speak("CODELESS ready hai. Mujhe awaz do.");
+  }
 }
 
 // Auto start
@@ -1450,7 +1453,7 @@ orb.addEventListener("click", () => {
     orb.classList.add("listening");
     speak(["Ji, bataiye.","Haan bolo.","Sunn raha hoon.","Ji?","Bolo, main hoon."][Math.floor(Math.random()*5)]);
     showStatus("🎤 Command suno...", "#ff8800");
-    setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 8000);
+    setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 15000);
   }
 });
 </script>
