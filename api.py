@@ -447,6 +447,15 @@ def chat(request: Request, msg: str, session: str = "default", key: str = Depend
     elif scan_needed and not domain_match:
         real_data = "DOMAIN_MISSING"
 
+    # General questions ke liye bhi search karo
+    if not real_data and not scan_needed:
+        try:
+            search_result = search_internet(msg)
+            if search_result:
+                real_data = search_result
+        except:
+            pass
+
     system = "Tu Super AI hai -- Nameless ne banaya hai tujhe. " + context_summary
     if real_data == "DOMAIN_MISSING":
         system += " User ne scan manga hai but domain nahi diya. User se poochho ki kaunsa domain scan karna hai. Fake results bilkul mat do."
