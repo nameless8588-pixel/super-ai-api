@@ -1258,5 +1258,200 @@ async function runFrontendUpgrade() {
   btn.disabled = false; btn.textContent = 'UPGRADE FRONTEND';
 }
 </script>
+
+<style>
+#codeless-orb {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #00ff88, #00aaff);
+  box-shadow: 0 0 20px #00ff88;
+  cursor: pointer;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  animation: pulse 2s infinite;
+}
+#codeless-orb.listening {
+  background: radial-gradient(circle, #ff0044, #ff8800);
+  box-shadow: 0 0 40px #ff0044;
+  animation: pulse-fast 0.5s infinite;
+}
+#codeless-status {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  background: rgba(0,0,0,0.8);
+  color: #00ff88;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: monospace;
+  font-size: 13px;
+  z-index: 9999;
+  display: none;
+}
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes pulse-fast {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+</style>
+
+<div id="codeless-orb">🤖</div>
+<div id="codeless-status">Listening...</div>
+
+<script>
+// ── CODELESS JARVIS ──
+const WAKE_WORD = "codeless";
+const orb = document.getElementById("codeless-orb");
+const status = document.getElementById("codeless-status");
+let isListening = false;
+let recognition;
+let commandMode = false;
+
+function speak(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "hi-IN";
+  utter.rate = 1.0;
+  utter.pitch = 1.0;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+function showStatus(msg, color="#00ff88") {
+  status.style.display = "block";
+  status.style.color = color;
+  status.innerText = msg;
+  setTimeout(() => status.style.display = "none", 3000);
+}
+
+async function handleCommand(cmd) {
+  cmd = cmd.toLowerCase().trim();
+  const apiKey = document.getElementById("apiKeyInput")?.value || localStorage.getItem("apiKey") || "";
+
+  // Tasks/history command
+  if(cmd.includes("task") || cmd.includes("kya kiya") || cmd.includes("history") || cmd.includes("batao")) {
+    speak("Main aapke completed tasks bata raha hoon.");
+    showStatus("Tasks fetching...");
+    try {
+      const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent("mere sare tasks aur history batao") + "&session=codeless", {
+        headers: {"X-API-Key": apiKey}
+      });
+      const data = await resp.json();
+      speak(data.reply);
+      showStatus("✅ " + data.reply.substring(0,50));
+    } catch(e) {
+      speak("Tasks fetch nahi ho sake.");
+    }
+    return;
+  }
+
+  // Security scan command
+  if(cmd.includes("scan") || cmd.includes("check")) {
+    const domainMatch = cmd.match(/([a-z0-9-]+\.[a-z]{2,})/);
+    if(domainMatch) {
+      speak("Scanning " + domainMatch[1] + " please wait.");
+      showStatus("Scanning " + domainMatch[1]);
+      try {
+        const resp = await fetch(API_BASE + "/sslcheck?domain=" + domainMatch[1], {
+          headers: {"X-API-Key": apiKey}
+        });
+        const data = await resp.json();
+        speak("SSL check complete. " + (data.valid ? "Certificate valid hai, " + data.days_left + " din baaki hain." : "Certificate invalid hai!"));
+      } catch(e) {
+        speak("Scan fail ho gaya.");
+      }
+      return;
+    }
+  }
+
+  // General AI command
+  showStatus("Processing: " + cmd);
+  try {
+    const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent(cmd) + "&session=codeless", {
+      headers: {"X-API-Key": apiKey}
+    });
+    const data = await resp.json();
+    speak(data.reply);
+    showStatus("✅ Done!");
+  } catch(e) {
+    speak("Kuch gadbad ho gayi.");
+  }
+}
+
+function startRecognition() {
+  if(!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+    showStatus("Browser speech support nahi hai!", "red");
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = "hi-IN";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+    console.log("Heard:", transcript);
+
+    if(!commandMode && transcript.includes(WAKE_WORD)) {
+      commandMode = true;
+      orb.classList.add("listening");
+      speak("Haan? Bolo.");
+      showStatus("🎤 Command suno...", "#ff8800");
+      setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 8000);
+      return;
+    }
+
+    if(commandMode) {
+      commandMode = false;
+      orb.classList.remove("listening");
+      showStatus("Processing...", "#00aaff");
+      handleCommand(transcript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.log("Speech error:", e.error);
+    if(e.error !== "no-speech") {
+      setTimeout(startRecognition, 1000);
+    }
+  };
+
+  recognition.onend = () => {
+    setTimeout(startRecognition, 500);
+  };
+
+  recognition.start();
+  isListening = true;
+  showStatus("CODELESS active 🤖");
+  speak("CODELESS ready hai. Mujhe awaz do.");
+}
+
+// Auto start
+window.addEventListener("load", () => {
+  setTimeout(startRecognition, 2000);
+});
+
+orb.addEventListener("click", () => {
+  if(!isListening) {
+    startRecognition();
+  } else {
+    commandMode = true;
+    orb.classList.add("listening");
+    speak("Haan? Bolo.");
+    showStatus("🎤 Command suno...", "#ff8800");
+    setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 8000);
+  }
+});
+</script>
 </body>
 </html>
