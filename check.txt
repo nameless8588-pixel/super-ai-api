@@ -1,0 +1,55 @@
+async function handleCommand(cmd) {
+  cmd = cmd.toLowerCase().trim();
+  const apiKey = document.getElementById("apiKeyInput")?.value || localStorage.getItem("apiKey") || "";
+
+  // Tasks/history command
+  if(cmd.includes("task") || cmd.includes("kya kiya") || cmd.includes("history") || cmd.includes("batao")) {
+    speak("Main aapke completed tasks bata raha hoon.");
+    showStatus("Tasks fetching...");
+    try {
+      const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent("mere sare tasks aur history batao") + "&session=codeless", {
+        headers: {"X-API-Key": apiKey}
+      });
+      const data = await resp.json();
+      speak(data.reply);
+      showStatus("✅ " + data.reply.substring(0,50));
+    } catch(e) {
+      speak("Tasks fetch nahi ho sake.");
+    }
+    return;
+  }
+
+  // Security scan command
+  if(cmd.includes("scan") || cmd.includes("check")) {
+    const domainMatch = cmd.match(/([a-z0-9-]+\.[a-z]{2,})/);
+    if(domainMatch) {
+      speak("Scanning " + domainMatch[1] + " please wait.");
+      showStatus("Scanning " + domainMatch[1]);
+      try {
+        const resp = await fetch(API_BASE + "/sslcheck?domain=" + domainMatch[1], {
+          headers: {"X-API-Key": apiKey}
+        });
+        const data = await resp.json();
+        speak("SSL check complete. " + (data.valid ? "Certificate valid hai, " + data.days_left + " din baaki hain." : "Certificate invalid hai!"));
+      } catch(e) {
+        speak("Scan fail ho gaya.");
+      }
+      return;
+    }
+  }
+
+  // General AI command
+  showStatus("Processing: " + cmd);
+  try {
+    const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent(cmd) + "&session=codeless", {
+      headers: {"X-API-Key": apiKey}
+    });
+    const data = await resp.json();
+    speak(data.reply);
+    showStatus("✅ Done!");
+  } catch(e) {
+    speak("Kuch gadbad ho gayi.");
+  }
+}
+
+function startRecognition() {
