@@ -452,7 +452,7 @@ def chat(request: Request, msg: str, session: str = "default", key: str = Depend
         try:
             import datetime as _dt
             today = _dt.datetime.now().strftime("%d %B %Y")
-            search_result = search_internet(msg + " " + today)
+            search_result = search_internet(msg + " " + today + " latest news")
             if search_result:
                 real_data = search_result
         except:
