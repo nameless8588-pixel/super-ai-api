@@ -450,7 +450,9 @@ def chat(request: Request, msg: str, session: str = "default", key: str = Depend
     # General questions ke liye bhi search karo
     if not real_data and not scan_needed:
         try:
-            search_result = search_internet(msg)
+            import datetime as _dt
+            today = _dt.datetime.now().strftime("%d %B %Y")
+            search_result = search_internet(msg + " " + today)
             if search_result:
                 real_data = search_result
         except:
