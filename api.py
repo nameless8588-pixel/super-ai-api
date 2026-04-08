@@ -916,25 +916,50 @@ def hash_crack(hash_value: str, key: str = Depends(verify_key)):
 
 @app.get("/iprep")
 def ip_reputation(ip: str, key: str = Depends(verify_key)):
+    import requests as _r
     start = time.time()
+    result = {}
     try:
+        resolved_ip = socket.gethostbyname(ip)
+        result["ip"] = resolved_ip
+        # Reverse DNS
         try:
-            resolved_ip = socket.gethostbyname(ip)
+            result["hostname"] = socket.gethostbyaddr(resolved_ip)[0]
         except:
-            resolved_ip = ip
-        suspicious = False
-        reasons = []
-        private_ranges = [("10.", "Private network"), ("192.168.", "Private network"), ("172.16.", "Private network"), ("127.", "Localhost")]
-        for range_start, reason in private_ranges:
-            if resolved_ip.startswith(range_start):
-                suspicious = True
-                reasons.append(reason)
-        try:
-            hostname = socket.gethostbyaddr(resolved_ip)[0]
-        except:
-            hostname = "Not found"
-            reasons.append("No reverse DNS")
-        return {"ip": resolved_ip, "hostname": hostname, "suspicious": suspicious, "reasons": reasons if reasons else ["Clean - koi known issue nahi"], "verdict": "Suspicious" if suspicious else "Clean", "response_time": f"{round(time.time()-start, 2)}s"}
+            result["hostname"] = "Not found"
+        # AbuseIPDB check
+        abuse_key = os.getenv("ABUSEIPDB_KEY", "")
+        if abuse_key:
+            resp = _r.get(
+                "https://api.abuseipdb.com/api/v2/check",
+                headers={"Key": abuse_key, "Accept": "application/json"},
+                params={"ipAddress": resolved_ip, "maxAgeInDays": 90},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json().get("data", {})
+                result["abuse_score"] = data.get("abuseConfidenceScore", 0)
+                result["total_reports"] = data.get("totalReports", 0)
+                result["country"] = data.get("countryCode", "Unknown")
+                result["isp"] = data.get("isp", "Unknown")
+                result["domain"] = data.get("domain", "Unknown")
+                result["is_tor"] = data.get("isTor", False)
+                result["is_public"] = data.get("isPublic", True)
+                score = data.get("abuseConfidenceScore", 0)
+                if score > 80:
+                    result["verdict"] = "CRITICAL - Highly malicious!"
+                elif score > 50:
+                    result["verdict"] = "WARNING - Suspicious!"
+                elif score > 20:
+                    result["verdict"] = "LOW RISK"
+                else:
+                    result["verdict"] = "Clean"
+        else:
+            result["verdict"] = "AbuseIPDB key missing - basic check only"
+            private = ["10.","192.168.","172.16.","127."]
+            result["suspicious"] = any(resolved_ip.startswith(p) for p in private)
+        result["response_time"] = f"{round(time.time()-start, 2)}s"
+        return result
     except Exception as e:
         return {"error": str(e)}
 
