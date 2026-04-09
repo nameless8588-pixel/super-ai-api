@@ -1450,7 +1450,9 @@ function startRecognition() {
   };
 
   recognition.onend = () => {
-    setTimeout(startRecognition, 500);
+    if(isListening) {
+      setTimeout(startRecognition, 3000);
+    }
   };
 
   recognition.start();
