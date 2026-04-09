@@ -44,3 +44,15 @@ google-genai
 openai
 anthropic
 slowapi
+
+langchain
+langchain-groq
+langchain-openai
+openai-whisper
+pillow
+opencv-python-headless
+pandas
+matplotlib
+elevenlabs
+pytesseract
+numpy
