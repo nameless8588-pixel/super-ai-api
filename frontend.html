@@ -1330,8 +1330,12 @@ document.addEventListener("click", unlockSpeech, {once: true});
 document.addEventListener("touchstart", unlockSpeech, {once: true});
 
 function speak(text) {
+  window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "en-IN";
+  utter.lang = "hi-IN";
+  utter.rate = 0.9;
+  utter.volume = 1;
+  console.log("Speaking:", text);
   utter.rate = 1.0;
   utter.pitch = 1.0;
   window.speechSynthesis.cancel();
@@ -1390,7 +1394,7 @@ async function handleCommand(cmd) {
       });
       data = await resp.json();
       const reply = data.ai_summary || data.raw_output || "System info nahi mili.";
-      speak(reply);
+      console.log("Calling speak:", reply); speak(reply);
       showStatus("✅ " + reply.substring(0, 60));
 
     } else if(isFixQuery) {
@@ -1401,7 +1405,7 @@ async function handleCommand(cmd) {
       });
       data = await resp.json();
       const reply = data.reply || data.status || "Fix process shuru ho gayi.";
-      speak(reply);
+      console.log("Calling speak:", reply); speak(reply);
       showStatus("✅ " + reply.substring(0, 60));
 
     } else {
@@ -1411,7 +1415,7 @@ async function handleCommand(cmd) {
       });
       data = await resp.json();
       const reply = data.reply || data.message || data.response || "Koi jawab nahi mila."; console.log("API Response:", data);
-      speak(reply);
+      console.log("Calling speak:", reply); speak(reply);
       showStatus("✅ " + reply.substring(0, 60));
     }
 
@@ -1428,7 +1432,7 @@ function startRecognition() {
   }
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
-  recognition.lang = "en-IN";
+  recognition.lang = "hi-IN";
   recognition.continuous = true;
   recognition.interimResults = false;
 
