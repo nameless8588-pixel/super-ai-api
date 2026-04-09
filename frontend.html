@@ -1353,6 +1353,23 @@ async function handleCommand(cmd) {
   // Smart Router - AI decide karega kya karna hai
   const cmdLower = cmd.toLowerCase();
 
+  // Navigation commands
+  const navMap = {
+    'home': 'home', 'chat': 'chat', 'webscan': 'webscan', 'web scan': 'webscan',
+    'port scan': 'portscan', 'portscan': 'portscan', 'dir scan': 'dirscan',
+    'dirscan': 'dirscan', 'api scan': 'apiscan', 'apiscan': 'apiscan',
+    'full audit': 'fullaudit', 'fullaudit': 'fullaudit', 'ssl': 'sslcheck',
+    'subdomain': 'subdomains', 'xss': 'xss', 'sql': 'sqlinject'
+  };
+  for(const [key, panel] of Object.entries(navMap)) {
+    if(cmdLower.includes(key)) {
+      showPanel(panel);
+      speak(key + ' panel khol diya.');
+      showStatus('Panel: ' + panel, '#00ff88');
+      return;
+    }
+  }
+
   // PC / System info
   const systemKeywords = ["pc", "computer", "system", "processor", "cpu", "ram", "memory", "disk", "storage", "os", "windows", "battery", "network", "ip address", "installed", "software", "hardware", "mera pc", "mere system", "kitni ram", "kitna space"];
   const isSystemQuery = systemKeywords.some(k => cmdLower.includes(k));
@@ -1418,7 +1435,7 @@ function startRecognition() {
   recognition.onresult = (e) => {
     const transcript = e.results[e.results.length-1][0].transcript.trim();
     const transcriptLower = transcript.toLowerCase();
-    console.log("Heard:", transcript);
+    console.log("Heard:", transcript); showStatus("Heard: " + transcript, "#555");
 
     if(!commandMode && transcriptLower.includes(WAKE_WORD)) {
       commandMode = true;
@@ -1451,7 +1468,7 @@ function startRecognition() {
 
   recognition.onend = () => {
     if(isListening) {
-      setTimeout(startRecognition, 3000);
+      try { recognition.start(); } catch(e) { setTimeout(startRecognition, 300); }
     }
   };
 
@@ -1467,6 +1484,11 @@ function startRecognition() {
 window.addEventListener("load", () => {
   setTimeout(startRecognition, 2000);
 });
+// Also start on first tap if not already started
+document.addEventListener("click", () => {
+}, {once: true});
+document.addEventListener("touchstart", () => {
+}, {once: true});
 
 orb.addEventListener("click", () => {
   // Speech unlock on first click
