@@ -1,0 +1,5 @@
+content = open('frontend.html', encoding='utf-8').read()
+idx = content.find('API_BASE')
+print(repr(content[idx:idx+200]))
+idx2 = content.find('WAKE_WORD')
+print(repr(content[idx2:idx2+100]))

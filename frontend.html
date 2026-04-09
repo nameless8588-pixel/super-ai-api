@@ -1337,16 +1337,58 @@ async function handleCommand(cmd) {
   cmd = cmd.trim();
   const apiKey = document.getElementById("apiKeyInput")?.value || localStorage.getItem("apiKey") || "";
   showStatus("🧠 Soch raha hoon...", "#00aaff");
+
+  // Smart Router - AI decide karega kya karna hai
+  const cmdLower = cmd.toLowerCase();
+
+  // PC / System info
+  const systemKeywords = ["pc", "computer", "system", "processor", "cpu", "ram", "memory", "disk", "storage", "os", "windows", "battery", "network", "ip address", "installed", "software", "hardware", "mera pc", "mere system", "kitni ram", "kitna space"];
+  const isSystemQuery = systemKeywords.some(k => cmdLower.includes(k));
+
+  // API fix / self repair
+  const fixKeywords = ["api fix", "api theek", "khud fix", "self fix", "repair", "selfupgrade", "api mein problem", "api problem", "code fix", "endpoint banao", "naya feature"];
+  const isFixQuery = fixKeywords.some(k => cmdLower.includes(k));
+
   try {
-    const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent(cmd) + "&session=codeless", {
-      headers: {"X-API-Key": apiKey}
-    });
-    const data = await resp.json();
-    speak(data.reply);
-    showStatus("✅ " + data.reply.substring(0, 60));
+    let data;
+
+    if(isSystemQuery) {
+      // PC info ke liye /agent use karo
+      showStatus("🖥️ System check kar raha hoon...", "#00aaff");
+      const task = "Get system info: OS, CPU, RAM total and available, disk space, running processes top 5, network info. Print everything clearly.";
+      const resp = await fetch(API_BASE + "/agent?task=" + encodeURIComponent(task), {
+        headers: {"X-API-Key": apiKey}
+      });
+      data = await resp.json();
+      const reply = data.ai_summary || data.raw_output || "System info nahi mili.";
+      speak(reply);
+      showStatus("✅ " + reply.substring(0, 60));
+
+    } else if(isFixQuery) {
+      // API fix ke liye /selfupgrade use karo
+      showStatus("🔧 Fix kar raha hoon...", "#ff8800");
+      const resp = await fetch(API_BASE + "/selfupgrade?instruction=" + encodeURIComponent(cmd) + "&session=voice&confirm=no", {
+        headers: {"X-API-Key": apiKey}
+      });
+      data = await resp.json();
+      const reply = data.reply || data.status || "Fix process shuru ho gayi.";
+      speak(reply);
+      showStatus("✅ " + reply.substring(0, 60));
+
+    } else {
+      // Sab kuch /chat pe bhejo - AI samjhega
+      const resp = await fetch(API_BASE + "/chat?msg=" + encodeURIComponent(cmd) + "&session=codeless", {
+        headers: {"X-API-Key": apiKey}
+      });
+      data = await resp.json();
+      const reply = data.reply || "Koi jawab nahi mila.";
+      speak(reply);
+      showStatus("✅ " + reply.substring(0, 60));
+    }
+
   } catch(e) {
     speak("Kuch gadbad ho gayi, dobara try karo.");
-    showStatus("❌ Error", "red");
+    showStatus("❌ Error: " + e.message, "red");
   }
 }
 
