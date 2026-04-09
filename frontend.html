@@ -1410,7 +1410,7 @@ async function handleCommand(cmd) {
         headers: {"X-API-Key": apiKey}
       });
       data = await resp.json();
-      const reply = data.reply || "Koi jawab nahi mila.";
+      const reply = data.reply || data.message || data.response || "Koi jawab nahi mila."; console.log("API Response:", data);
       speak(reply);
       showStatus("✅ " + reply.substring(0, 60));
     }
@@ -1437,7 +1437,7 @@ function startRecognition() {
     const transcriptLower = transcript.toLowerCase();
     console.log("Heard:", transcript); showStatus("Heard: " + transcript, "#555");
 
-    if(!commandMode && transcriptLower.includes(WAKE_WORD)) {
+    if(!commandMode && (transcriptLower.includes(WAKE_WORD) || transcriptLower.includes("cordless") || transcriptLower.includes("codeless") || transcriptLower.includes("hey code"))) {
       commandMode = true;
       orb.classList.add("listening");
       speak(["Ji, bataiye.","Haan bolo.","Sunn raha hoon.","Ji?","Bolo, main hoon."][Math.floor(Math.random()*5)]);
