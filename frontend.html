@@ -1330,13 +1330,24 @@ document.addEventListener("click", unlockSpeech, {once: true});
 document.addEventListener("touchstart", unlockSpeech, {once: true});
 
 function speak(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "hi-IN";
-  utter.rate = 0.9;
-  utter.pitch = 1.0;
-  utter.volume = 1;
-  console.log("Speaking:", text);
-  window.speechSynthesis.speak(utter);
+  window.speechSynthesis.cancel();
+  setTimeout(() => {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "hi-IN";
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
+    utter.volume = 1;
+    console.log("Speaking:", text);
+    utter.onstart = () => {
+      if(recognition) try { recognition.stop(); } catch(e) {}
+    };
+    utter.onend = () => {
+      setTimeout(() => {
+        if(isListening) try { recognition.start(); } catch(e) { startRecognition(); }
+      }, 500);
+    };
+    window.speechSynthesis.speak(utter);
+  }, 300);
 }
 
 function showStatus(msg, color="#00ff88") {
@@ -1457,7 +1468,7 @@ function startRecognition() {
 
   recognition.onerror = (e) => {
     console.log("Speech error:", e.error);
-    if(e.error === "network") {
+    if(e.error === "network") { isListening = false;  isListening = false; 
       showStatus("⚠️ Network issue - 5s mein retry...", "orange");
       setTimeout(startRecognition, 5000);
     } else if(e.error === "not-allowed") {
