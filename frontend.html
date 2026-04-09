@@ -1331,7 +1331,7 @@ document.addEventListener("touchstart", unlockSpeech, {once: true});
 
 function speak(text) {
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "hi-IN";
+  utter.lang = "en-IN";
   utter.rate = 1.0;
   utter.pitch = 1.0;
   window.speechSynthesis.cancel();
