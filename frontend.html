@@ -1335,7 +1335,7 @@ function showStatus(msg, color="#00ff88") {
 
 async function handleCommand(cmd) {
   cmd = cmd.trim();
-  const apiKey = document.getElementById("apiKeyInput")?.value || localStorage.getItem("apiKey") || "";
+  const apiKey = document.getElementById("global-key")?.value.trim() || "";
   showStatus("🧠 Soch raha hoon...", "#00aaff");
 
   // Smart Router - AI decide karega kya karna hai

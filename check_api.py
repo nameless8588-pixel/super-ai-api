@@ -1,0 +1,5 @@
+content = open('frontend.html', encoding='utf-8').read()
+idx = content.find('API_BASE')
+print(repr(content[idx:idx+100]))
+idx2 = content.find('getKey()')
+print(repr(content[idx2:idx2+200]))
