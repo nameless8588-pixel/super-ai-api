@@ -32,3 +32,5 @@ anthropic
 pandas
 numpy
 pillow
+
+slowapi
