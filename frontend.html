@@ -1452,8 +1452,7 @@ function startRecognition() {
   isListening = true;
   if(!window._codelessStarted) {
     window._codelessStarted = true;
-    showStatus("CODELESS active 🤖");
-    speak("CODELESS ready hai. Mujhe awaz do.");
+    showStatus("CODELESS active 🤖 - Tap to enable voice", "#ff8800");
   }
 }
 
@@ -1463,6 +1462,14 @@ window.addEventListener("load", () => {
 });
 
 orb.addEventListener("click", () => {
+  // Speech unlock on first click
+  if(!window._speechUnlocked) {
+    window._speechUnlocked = true;
+    const u = new SpeechSynthesisUtterance("CODELESS ready hai");
+    window.speechSynthesis.speak(u);
+    showStatus("CODELESS active 🤖");
+    return;
+  }
   if(!isListening) {
     startRecognition();
   } else {
