@@ -1317,6 +1317,18 @@ let isListening = false;
 let recognition;
 let commandMode = false;
 
+// Unlock speech on first user interaction
+let speechUnlocked = false;
+function unlockSpeech() {
+  if(!speechUnlocked) {
+    const u = new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(u);
+    speechUnlocked = true;
+  }
+}
+document.addEventListener("click", unlockSpeech, {once: true});
+document.addEventListener("touchstart", unlockSpeech, {once: true});
+
 function speak(text) {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "hi-IN";
