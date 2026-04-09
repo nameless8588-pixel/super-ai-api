@@ -1439,8 +1439,13 @@ function startRecognition() {
 
   recognition.onerror = (e) => {
     console.log("Speech error:", e.error);
-    if(e.error !== "no-speech") {
-      setTimeout(startRecognition, 1000);
+    if(e.error === "network") {
+      showStatus("⚠️ Network issue - 5s mein retry...", "orange");
+      setTimeout(startRecognition, 5000);
+    } else if(e.error === "not-allowed") {
+      showStatus("❌ Mic permission do!", "red");
+    } else if(e.error !== "no-speech" && e.error !== "aborted") {
+      setTimeout(startRecognition, 2000);
     }
   };
 
