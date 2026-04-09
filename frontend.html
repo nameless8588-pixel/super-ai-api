@@ -1362,10 +1362,11 @@ function startRecognition() {
   recognition.interimResults = false;
 
   recognition.onresult = (e) => {
-    const transcript = e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+    const transcript = e.results[e.results.length-1][0].transcript.trim();
+    const transcriptLower = transcript.toLowerCase();
     console.log("Heard:", transcript);
 
-    if(!commandMode && transcript.includes(WAKE_WORD)) {
+    if(!commandMode && transcriptLower.includes(WAKE_WORD)) {
       commandMode = true;
       orb.classList.add("listening");
       speak(["Ji, bataiye.","Haan bolo.","Sunn raha hoon.","Ji?","Bolo, main hoon."][Math.floor(Math.random()*5)]);
