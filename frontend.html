@@ -1315,6 +1315,7 @@ const orb = document.getElementById("codeless-orb");
 const status = document.getElementById("codeless-status");
 let isListening = false;
 let recognition;
+let isSpeaking = false;
 let commandMode = false;
 
 // Unlock speech on first user interaction
@@ -1339,15 +1340,19 @@ function speak(text) {
     utter.volume = 1;
     console.log("Speaking:", text);
     utter.onstart = () => {
-      if(recognition) try { recognition.stop(); } catch(e) {}
+      isSpeaking = true;
+      if(recognition) try { recognition.abort(); } catch(e) {}
     };
     utter.onend = () => {
-      setTimeout(() => {
-        if(isListening) try { recognition.start(); } catch(e) { startRecognition(); }
-      }, 500);
+      isSpeaking = false;
+      setTimeout(startRecognition, 800);
+    };
+    utter.onerror = (e) => {
+      isSpeaking = false;
+      console.log("Utter error:", e.error);
     };
     window.speechSynthesis.speak(utter);
-  }, 300);
+  }, 500);
 }
 
 function showStatus(msg, color="#00ff88") {
@@ -1479,8 +1484,8 @@ function startRecognition() {
   };
 
   recognition.onend = () => {
-    if(isListening) {
-      try { recognition.start(); } catch(e) { setTimeout(startRecognition, 300); }
+    if(isListening && !isSpeaking) {
+      setTimeout(startRecognition, 500);
     }
   };
 
