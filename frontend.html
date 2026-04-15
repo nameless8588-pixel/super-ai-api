@@ -1341,7 +1341,6 @@ function speak(text) {
     console.log("Speaking:", text);
     utter.onstart = () => {
       isSpeaking = true;
-      if(recognition) try { recognition.abort(); } catch(e) {}
     };
     utter.onend = () => {
       isSpeaking = false;
