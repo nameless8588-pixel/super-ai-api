@@ -2,3 +2,6 @@ fix*.py
 .env
 *.env
 __pycache__/
+.env
+*.pyc
+__pycache__/

@@ -74,6 +74,15 @@ import time
 import threading
 
 load_dotenv()
+
+# ===== PRICING TIERS =====
+PRICING = {
+    'free': {'price': 0, 'requests_per_day': 100},
+    'pro': {'price': 3.0, 'requests_per_day': 5000},
+    'boss': {'price': 40.0, 'requests_per_day': -1}
+}
+
+
 _upgrade_lock = threading.Lock()
 upgrade_sessions = {}  # probing sessions store
 cache = TTLCache(maxsize=100, ttl=3600)
@@ -217,6 +226,40 @@ app.add_middleware(LimitRequestSize)
 # static mount removed
 app.add_middleware(CORSMiddleware, allow_origins=["https://super-ai-api.onrender.com", "https://nameless8588-pixel.github.io", "http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
 VALID_KEYS = {k: v for k, v in {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}.items() if k is not None}
+api_key_header = APIKeyHeader(name="X-API-Key")
+
+def verify_key(key: str = Depends(api_key_header)):
+    if key not in VALID_KEYS:
+        raise HTTPException(status_code=403, detail="Invalid API Key!")
+    return key
+
+def push_to_github(filename, code):
+    url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/{filename}"
+
+
+# ===== PRICING STRUCTURE =====
+PRICING = {
+    'free': {
+        'price': 0,
+        'requests_per_day': 100,
+        'requests_per_month': 1000,
+        'description': 'Free - Limited access'
+    },
+    'pro': {
+        'price': 3.0,
+        'requests_per_day': 5000,
+        'requests_per_month': 50000,
+        'description': 'Pro - $3/month'
+    },
+    'boss': {
+        'price': 40.0,
+        'requests_per_day': -1,
+        'requests_per_month': -1,
+        'description': 'Boss - $40/month (Unlimited)'
+    }
+}
+
+
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 def verify_key(key: str = Depends(api_key_header)):
@@ -2658,6 +2701,69 @@ def rollback(key: str = Depends(verify_key)):
 def frontend():
     with open("frontend.html", encoding="utf-8") as f:
         return f.read()
+
+
+
+# ===== PAYMENT GATEWAY - RAZORPAY =====
+try:
+    import razorpay
+    RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+except:
+    razorpay_client = None
+
+@app.post("/payment/create-order")
+def create_payment_order(tier: str, email: str, key: str = Depends(verify_key)):
+    """Create Razorpay payment order"""
+    if not razorpay_client:
+        raise HTTPException(status_code=400, detail="Payment gateway not configured")
+    
+    if tier not in PRICING:
+        raise HTTPException(status_code=400, detail=f"Invalid tier: {tier}")
+    
+    try:
+        amount = PRICING[tier]['price']
+        amount_paise = int(amount * 100)
+        
+        order = razorpay_client.order.create({
+            'amount': amount_paise,
+            'currency': 'INR',
+            'receipt': f'{tier}_{email}_{int(time.time())}',
+            'notes': {'tier': tier, 'email': email}
+        })
+        
+        return {
+            'status': 'success',
+            'order_id': order['id'],
+            'amount': amount_paise,
+            'tier': tier,
+            'currency': 'INR'
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/payment/verify")
+def verify_payment(order_id: str, payment_id: str, signature: str):
+    """Verify payment signature"""
+    if not razorpay_client:
+        raise HTTPException(status_code=400, detail="Payment gateway not configured")
+    
+    try:
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': order_id,
+            'razorpay_payment_id': payment_id,
+            'razorpay_signature': signature
+        })
+        return {'status': 'success', 'message': 'Payment verified'}
+    except:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+@app.get("/pricing")
+def get_pricing():
+    """Get current pricing"""
+    return {'status': 'success', 'pricing': PRICING, 'currency': 'INR'}
+
 
 if __name__ == "__main__":
     import uvicorn
