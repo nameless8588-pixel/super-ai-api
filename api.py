@@ -225,7 +225,79 @@ class LimitRequestSize(BaseHTTPMiddleware):
 app.add_middleware(LimitRequestSize)
 # static mount removed
 app.add_middleware(CORSMiddleware, allow_origins=["https://super-ai-api.onrender.com", "https://nameless8588-pixel.github.io", "http://localhost:8000", "http://localhost:3000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
-VALID_KEYS = {k: v for k, v in {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}.items() if k is not None}
+USERS_FILE = "users.json"
+
+def load_users():
+    import json as _json
+    try:
+        with open(USERS_FILE, "r") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+def save_users(users):
+    import json as _json
+    with open(USERS_FILE, "w") as f:
+        _json.dump(users, f, indent=2)
+
+def get_or_create_key_for_email(email):
+    import secrets
+    users = load_users()
+    for k, v in users.items():
+        if v.get("email") == email:
+            return k
+    new_key = secrets.token_hex(20)
+    users[new_key] = {"email": email, "tier": "free", "expiry": None}
+    save_users(users)
+    return new_key
+
+def upgrade_user_tier(email, tier, days=30):
+    import secrets
+    users = load_users()
+    found_key = None
+    for k, v in users.items():
+        if v.get("email") == email:
+            found_key = k
+            break
+    if found_key is None:
+        found_key = secrets.token_hex(20)
+        users[found_key] = {}
+    users[found_key]["email"] = email
+    users[found_key]["tier"] = tier
+    users[found_key]["expiry"] = time.time() + days * 86400
+    save_users(users)
+    return found_key
+
+class DynamicKeyStore(dict):
+    def _dynamic_tier(self, key):
+        users = load_users()
+        user = users.get(key)
+        if not user:
+            return None
+        if user.get("expiry") and time.time() > user["expiry"]:
+            return "free"
+        return user.get("tier", "free")
+
+    def __contains__(self, key):
+        if dict.__contains__(self, key):
+            return True
+        return self._dynamic_tier(key) is not None
+
+    def __getitem__(self, key):
+        if dict.__contains__(self, key):
+            return dict.__getitem__(self, key)
+        tier = self._dynamic_tier(key)
+        if tier is None:
+            raise KeyError(key)
+        return tier
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+VALID_KEYS = DynamicKeyStore({k: v for k, v in {os.getenv("API_KEY_FREE"): "free", os.getenv("API_KEY_PRO"): "pro", os.getenv("API_KEY_BOSS"): "boss"}.items() if k is not None})
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 def verify_key(key: str = Depends(api_key_header)):
@@ -2775,12 +2847,22 @@ def verify_payment(order_id: str, payment_id: str, signature: str, key: str = De
     except:
         tier, email = "unknown", "unknown"
     save_successful_payment(order_id, payment_id, tier, email)
-    return {"status": "success", "message": "Payment verified", "tier": tier, "email": email}
+    new_key = None
+    if tier in PRICING and email and email != "unknown":
+        new_key = upgrade_user_tier(email, tier, days=30)
+    return {"status": "success", "message": "Payment verified", "tier": tier, "email": email, "api_key": new_key}
 
 @app.get("/pricing")
 def get_pricing():
     """Get current pricing"""
     return {'status': 'success', 'pricing': PRICING, 'currency': 'INR'}
+
+@app.get("/get-key")
+def get_key(email: str):
+    """Get (or create) a personal API key for an email. Starts on free tier."""
+    key = get_or_create_key_for_email(email)
+    users = load_users()
+    return {"status": "success", "api_key": key, "tier": users[key]["tier"]}
 
 
 

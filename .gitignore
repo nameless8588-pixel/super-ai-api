@@ -13,3 +13,6 @@ __pycache__/
 *.pyc
 *.backup.*
 venv/
+
+users.json
+payments.json
