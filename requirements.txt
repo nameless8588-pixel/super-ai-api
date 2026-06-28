@@ -34,3 +34,4 @@ numpy
 pillow
 
 slowapi
+razorpay
