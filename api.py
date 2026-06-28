@@ -239,6 +239,10 @@ def save_users(users):
     import json as _json
     with open(USERS_FILE, "w") as f:
         _json.dump(users, f, indent=2)
+    try:
+        push_to_github("users.json", _json.dumps(users, indent=2))
+    except Exception as e:
+        print(f"[save_users] could not back up to GitHub: {e}")
 
 def get_or_create_key_for_email(email):
     import secrets
@@ -347,6 +351,23 @@ def push_to_github(filename, code):
     if check.status_code == 200:
         data["sha"] = check.json()["sha"]
     requests.put(url, json=data, headers=headers)
+
+def pull_users_from_github():
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/users.json"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        resp = requests.get(url, headers=headers)
+        if resp.status_code == 200:
+            decoded = base64.b64decode(resp.json()["content"]).decode()
+            with open("users.json", "w") as f:
+                f.write(decoded)
+            print("[startup] users.json restored from GitHub")
+        else:
+            print(f"[startup] no users.json on GitHub yet (status {resp.status_code}), starting fresh")
+    except Exception as e:
+        print(f"[startup] could not restore users.json from GitHub: {e}")
+
+pull_users_from_github()
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def home():

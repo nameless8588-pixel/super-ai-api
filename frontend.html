@@ -1588,7 +1588,13 @@ async function startUpgrade(tier) {
         });
         const verifyData = await verifyResp.json();
         if (verifyData.status === 'success') {
-          resultBox.textContent = '✅ Payment successful! Tier: ' + verifyData.tier;
+          if (verifyData.api_key) {
+            document.getElementById('global-key').value = verifyData.api_key;
+            resultBox.innerHTML = '✅ Payment successful! Tier: ' + verifyData.tier +
+              '<br>Tera naya API key (ise abhi save kar le, ye dobara nahi dikhega):<br><b>' + verifyData.api_key + '</b>';
+          } else {
+            resultBox.textContent = '✅ Payment successful! Tier: ' + verifyData.tier;
+          }
         } else {
           resultBox.classList.add('error');
           resultBox.textContent = '❌ Verification failed: ' + JSON.stringify(verifyData);
