@@ -1,0 +1,12 @@
+{
+  "703a98e44bf0f38e4a8660ec785faa9a0f4b432a": {
+    "email": "test@example.com",
+    "tier": "free",
+    "expiry": null
+  },
+  "1d54a08d447ef59d219b9da24a1851bfb4b06648": {
+    "email": "test2@example.com",
+    "tier": "free",
+    "expiry": null
+  }
+}
