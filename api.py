@@ -2783,6 +2783,121 @@ def get_pricing():
     return {'status': 'success', 'pricing': PRICING, 'currency': 'INR'}
 
 
+
+
+@app.get("/privacy-policy", response_class=HTMLResponse)
+def privacy_policy():
+    return """<!DOCTYPE html><html><head><meta charset='utf-8'><title>Privacy Policy - Super AI</title><style>
+body{background:#0a0e17;color:#e0e0f0;font-family:'Segoe UI',Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.7;}
+h1{color:#00ff88;font-size:28px;}
+h2{color:#00ff88;font-size:18px;margin-top:28px;}
+p,li{color:#c0c0d0;font-size:14px;}
+a{color:#00ff88;}
+.updated{color:#7070a0;font-size:12px;margin-bottom:24px;}
+</style></head><body>
+<h1>Privacy Policy</h1>
+<p class='updated'>Last updated: June 28, 2026</p>
+<p>Super AI ('we', 'us', 'our') respects your privacy. This policy explains what information we collect and how we use it.</p>
+<h2>Information We Collect</h2>
+<ul><li>Email address (used when creating an account or making a payment)</li>
+<li>API usage data (request counts, timestamps, for rate-limiting and billing)</li>
+<li>Payment details are processed entirely by Razorpay - we never see or store your card, UPI, or bank details</li></ul>
+<h2>How We Use Information</h2>
+<ul><li>To provide and maintain the API service</li>
+<li>To process payments and manage subscription tiers</li>
+<li>To enforce usage limits and prevent abuse</li>
+<li>To contact you regarding your account or service updates</li></ul>
+<h2>Third-Party Services</h2>
+<p>We use Razorpay for payment processing. Your payment information is subject to Razorpay's own privacy policy. We do not sell or rent your personal data to any third party.</p>
+<h2>Data Security</h2>
+<p>We take reasonable measures to protect your data, but no online service can guarantee complete security.</p>
+<h2>Your Rights</h2>
+<p>You may request access to or deletion of your personal data by contacting us at <a href='mailto:YOUR_SUPPORT_EMAIL_HERE@example.com'>YOUR_SUPPORT_EMAIL_HERE@example.com</a>.</p>
+<h2>Changes to This Policy</h2>
+<p>We may update this policy from time to time. Continued use of the service after changes means you accept the updated policy.</p>
+<h2>Contact</h2>
+<p>Questions about this policy? Email us at <a href='mailto:YOUR_SUPPORT_EMAIL_HERE@example.com'>YOUR_SUPPORT_EMAIL_HERE@example.com</a>.</p>
+</body></html>"""
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms_conditions():
+    return """<!DOCTYPE html><html><head><meta charset='utf-8'><title>Terms & Conditions - Super AI</title><style>
+body{background:#0a0e17;color:#e0e0f0;font-family:'Segoe UI',Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.7;}
+h1{color:#00ff88;font-size:28px;}
+h2{color:#00ff88;font-size:18px;margin-top:28px;}
+p,li{color:#c0c0d0;font-size:14px;}
+a{color:#00ff88;}
+.updated{color:#7070a0;font-size:12px;margin-bottom:24px;}
+</style></head><body>
+<h1>Terms & Conditions</h1>
+<p class='updated'>Last updated: June 28, 2026</p>
+<p>By accessing or using Super AI's API service, you agree to these terms.</p>
+<h2>Description of Service</h2>
+<p>Super AI provides API-based AI, automation, and security-testing tools, accessible via an API key, under Free, Pro, and Boss tiers.</p>
+<h2>Account & API Keys</h2>
+<p>You are responsible for keeping your API key confidential and for all activity carried out using it.</p>
+<h2>Payment</h2>
+<p>Plan prices are listed in INR (Pro: Rs.299, Boss: Rs.1999) and are charged per purchase via Razorpay. Plans do not auto-renew automatically unless explicitly stated at the time of purchase.</p>
+<h2>Prohibited Use</h2>
+<ul><li>Using the security/scanning tools against systems you do not own or have authorization to test</li>
+<li>Using the service to attack, harm, or disrupt third parties</li>
+<li>Reselling or sharing your API key with others</li>
+<li>Attempting to reverse-engineer or abuse the service</li></ul>
+<h2>Service Availability</h2>
+<p>The service is provided 'as is' and may occasionally experience downtime or interruptions.</p>
+<h2>Limitation of Liability</h2>
+<p>Super AI is not liable for any indirect, incidental, or consequential damages arising from use of the service.</p>
+<h2>Termination</h2>
+<p>We may suspend or terminate access for any account found violating these terms.</p>
+<h2>Governing Law</h2>
+<p>These terms are governed by the laws of India.</p>
+<h2>Contact</h2>
+<p>Questions? Email <a href='mailto:YOUR_SUPPORT_EMAIL_HERE@example.com'>YOUR_SUPPORT_EMAIL_HERE@example.com</a>.</p>
+</body></html>"""
+
+@app.get("/refund-policy", response_class=HTMLResponse)
+def refund_policy():
+    return """<!DOCTYPE html><html><head><meta charset='utf-8'><title>Refund Policy - Super AI</title><style>
+body{background:#0a0e17;color:#e0e0f0;font-family:'Segoe UI',Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.7;}
+h1{color:#00ff88;font-size:28px;}
+h2{color:#00ff88;font-size:18px;margin-top:28px;}
+p,li{color:#c0c0d0;font-size:14px;}
+a{color:#00ff88;}
+.updated{color:#7070a0;font-size:12px;margin-bottom:24px;}
+</style></head><body>
+<h1>Refund Policy</h1>
+<p class='updated'>Last updated: June 28, 2026</p>
+<h2>No Refunds</h2>
+<p>Super AI provides digital, API-based access that is granted instantly upon successful payment. Because of this instant and irrevocable access, all payments are final and non-refundable.</p>
+<h2>Exceptions</h2>
+<p>We may review refund requests on a case-by-case basis in the following situations:</p>
+<ul><li>Duplicate or erroneous charge for the same order</li>
+<li>A verified technical failure that fully prevented you from accessing the service after payment</li></ul>
+<p>Such requests must be raised within 7 days of the transaction, along with your order ID and payment ID.</p>
+<h2>How to Request</h2>
+<p>Email <a href='mailto:YOUR_SUPPORT_EMAIL_HERE@example.com'>YOUR_SUPPORT_EMAIL_HERE@example.com</a> with your order ID, payment ID, and reason for the request.</p>
+<h2>Processing Time</h2>
+<p>If approved, refunds are processed back to your original payment method via Razorpay, which may take 5-7 business days to reflect.</p>
+</body></html>"""
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact_us():
+    return """<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contact Us - Super AI</title><style>
+body{background:#0a0e17;color:#e0e0f0;font-family:'Segoe UI',Arial,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.7;}
+h1{color:#00ff88;font-size:28px;}
+h2{color:#00ff88;font-size:18px;margin-top:28px;}
+p,li{color:#c0c0d0;font-size:14px;}
+a{color:#00ff88;}
+.updated{color:#7070a0;font-size:12px;margin-bottom:24px;}
+</style></head><body>
+<h1>Contact Us</h1>
+<p>For questions about your account, billing, payments, or the Super AI API service, please reach out to us:</p>
+<h2>Email</h2>
+<p><a href='mailto:YOUR_SUPPORT_EMAIL_HERE@example.com'>YOUR_SUPPORT_EMAIL_HERE@example.com</a></p>
+<h2>Response Time</h2>
+<p>We aim to respond to all queries within 24-48 hours.</p>
+</body></html>"""
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
