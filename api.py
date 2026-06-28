@@ -78,8 +78,8 @@ load_dotenv()
 # ===== PRICING TIERS =====
 PRICING = {
     'free': {'price': 0, 'requests_per_day': 100},
-    'pro': {'price': 3.0, 'requests_per_day': 5000},
-    'boss': {'price': 40.0, 'requests_per_day': -1}
+    'pro': {'price': 299.0, 'requests_per_day': 5000},
+    'boss': {'price': 1999.0, 'requests_per_day': -1}
 }
 
 
@@ -246,16 +246,16 @@ PRICING = {
         'description': 'Free - Limited access'
     },
     'pro': {
-        'price': 3.0,
+        'price': 299.0,
         'requests_per_day': 5000,
         'requests_per_month': 50000,
-        'description': 'Pro - $3/month'
+        'description': 'Pro - ₹299/month'
     },
     'boss': {
-        'price': 40.0,
+        'price': 1999.0,
         'requests_per_day': -1,
         'requests_per_month': -1,
-        'description': 'Boss - $40/month (Unlimited)'
+        'description': 'Boss - ₹1999/month (Unlimited)'
     }
 }
 
