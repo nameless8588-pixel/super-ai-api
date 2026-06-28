@@ -2743,21 +2743,39 @@ def create_payment_order(tier: str, email: str, key: str = Depends(verify_key)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+def save_successful_payment(order_id, payment_id, tier, email):
+    import json as _json
+    record = {"order_id": order_id, "payment_id": payment_id, "tier": tier, "email": email, "timestamp": time.time()}
+    try:
+        with open("payments.json", "r") as f:
+            payments = _json.load(f)
+    except:
+        payments = []
+    payments.append(record)
+    with open("payments.json", "w") as f:
+        _json.dump(payments, f, indent=2)
+
 @app.post("/payment/verify")
-def verify_payment(order_id: str, payment_id: str, signature: str):
-    """Verify payment signature"""
+def verify_payment(order_id: str, payment_id: str, signature: str, key: str = Depends(verify_key)):
+    """Verify payment signature aur access grant karo"""
     if not razorpay_client:
         raise HTTPException(status_code=400, detail="Payment gateway not configured")
-    
     try:
         razorpay_client.utility.verify_payment_signature({
             'razorpay_order_id': order_id,
             'razorpay_payment_id': payment_id,
             'razorpay_signature': signature
         })
-        return {'status': 'success', 'message': 'Payment verified'}
     except:
         raise HTTPException(status_code=400, detail="Invalid signature")
+    try:
+        order = razorpay_client.order.fetch(order_id)
+        tier = order.get("notes", {}).get("tier", "unknown")
+        email = order.get("notes", {}).get("email", "unknown")
+    except:
+        tier, email = "unknown", "unknown"
+    save_successful_payment(order_id, payment_id, tier, email)
+    return {"status": "success", "message": "Payment verified", "tier": tier, "email": email}
 
 @app.get("/pricing")
 def get_pricing():
