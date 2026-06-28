@@ -417,6 +417,7 @@
     <div class="nav-item active" onclick="showPanel('home')">🏠 Home</div>
     <div class="nav-item" onclick="showPanel('chat')">💬 Chat</div>
     <div class="nav-item" onclick="showPanel('ask')">❓ Ask AI</div>
+    <div class="nav-item" onclick="showPanel('pricing')">💰 Pricing</div>
 
     <div class="nav-section">Security</div>
     <div class="nav-item" onclick="showPanel('webscan')">🔍 Web Scan</div>
@@ -539,6 +540,27 @@
     </div>
   </div>
 
+  <!-- PRICING -->
+  <div id="panel-pricing" class="panel">
+    <div class="page-title" style="padding:20px 20px 0">Pricing</div>
+    <div class="page-sub" style="padding:0 20px 20px">Apna plan upgrade karo</div>
+    <div style="display:flex; gap:20px; padding:0 20px; flex-wrap:wrap;">
+      <div class="form-card" style="flex:1; min-width:240px;">
+        <div class="page-title" style="font-size:18px;">Pro</div>
+        <div class="form-desc">₹299/month — 5,000 requests/day</div>
+        <div class="form-row"><label for="pricing-email-pro">Email</label><input type="email" id="pricing-email-pro" placeholder="you@example.com"/></div>
+        <button class="btn-run" onclick="startUpgrade('pro')">UPGRADE TO PRO</button>
+        <div class="result-box" id="pricing-pro-result" style="display:none;"></div>
+      </div>
+      <div class="form-card" style="flex:1; min-width:240px;">
+        <div class="page-title" style="font-size:18px;">Boss</div>
+        <div class="form-desc">₹1999/month — Unlimited requests</div>
+        <div class="form-row"><label for="pricing-email-boss">Email</label><input type="email" id="pricing-email-boss" placeholder="you@example.com"/></div>
+        <button class="btn-run btn-boss" onclick="startUpgrade('boss')">UPGRADE TO BOSS</button>
+        <div class="result-box" id="pricing-boss-result" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
   <!-- FULL AUDIT -->
   <div id="panel-fullaudit" class="panel">
     <div class="form-card">
@@ -1525,6 +1547,64 @@ orb.addEventListener("click", () => {
     setTimeout(() => { commandMode = false; orb.classList.remove("listening"); }, 15000);
   }
 });
+</script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+async function startUpgrade(tier) {
+  const emailInput = document.getElementById('pricing-email-' + tier);
+  const email = emailInput.value.trim();
+  const resultBox = document.getElementById('pricing-' + tier + '-result');
+  if (!email) { alert('Email daalo pehle!'); return; }
+
+  resultBox.style.display = 'block';
+  resultBox.classList.remove('error');
+  resultBox.textContent = 'Order create ho raha hai...';
+
+  try {
+    const key = getKey();
+    const orderResp = await fetch(API_BASE + '/payment/create-order?tier=' + tier + '&email=' + encodeURIComponent(email), {
+      method: 'POST',
+      headers: { 'X-API-Key': key }
+    });
+    const orderData = await orderResp.json();
+    if (orderData.status !== 'success') {
+      resultBox.textContent = 'Error: ' + (orderData.detail || JSON.stringify(orderData));
+      resultBox.classList.add('error');
+      return;
+    }
+
+    const options = {
+      key: 'rzp_live_T6uaSgQCHkwKaZ',
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'Super AI',
+      description: tier.toUpperCase() + ' Plan',
+      order_id: orderData.order_id,
+      handler: async function (response) {
+        resultBox.textContent = 'Payment verify ho raha hai...';
+        const verifyResp = await fetch(API_BASE + '/payment/verify?order_id=' + response.razorpay_order_id + '&payment_id=' + response.razorpay_payment_id + '&signature=' + response.razorpay_signature, {
+          method: 'POST',
+          headers: { 'X-API-Key': key }
+        });
+        const verifyData = await verifyResp.json();
+        if (verifyData.status === 'success') {
+          resultBox.textContent = '✅ Payment successful! Tier: ' + verifyData.tier;
+        } else {
+          resultBox.classList.add('error');
+          resultBox.textContent = '❌ Verification failed: ' + JSON.stringify(verifyData);
+        }
+      },
+      prefill: { email: email },
+      theme: { color: '#00ff88' }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch (e) {
+    resultBox.classList.add('error');
+    resultBox.textContent = 'Error: ' + e.message;
+  }
+}
 </script>
 </body>
 </html>
