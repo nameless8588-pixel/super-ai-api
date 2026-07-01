@@ -480,6 +480,11 @@
 
   <!-- HOME -->
   <div id="panel-home" class="panel active" style="padding:20px; overflow-y:auto;">
+    <div style="background:linear-gradient(135deg,#0d2818,#0a0e17);border:1px solid #00ff8855;border-radius:12px;padding:18px 20px;margin-bottom:18px;">
+      <div style="font-size:18px;font-weight:600;color:#00ff88;">AI + Security Testing, ek hi jagah</div>
+      <div style="font-size:13px;color:#aaa;margin-top:6px;">Chat, code generation, aur security-audit tools — UPI/Razorpay se pay karo, koi foreign card nahi chahiye.</div>
+      <div style="font-size:12px;color:#7070a0;margin-top:8px;">🔒 Payments secured by Razorpay · Card details kabhi store nahi hote</div>
+    </div>
     <div class="page-title">Super AI Dashboard</div>
     <div class="page-sub">Select a tool from the sidebar or click below</div>
     <div class="home-grid">
@@ -535,7 +540,13 @@
     <div class="form-card">
       <div class="form-desc">Website ki security check karo — headers, sensitive files, SSL, aur zyada</div>
       <div class="form-row"><label for="webscan-url">URL</label><input type="text" id="webscan-url" placeholder="example.com"/></div>
-      <button class="btn-run btn-danger" onclick="runSingle('webscan','webscan-url','url','/webscan')">SCAN</button>
+<div style="background:#1a1a2a;border:1px solid #ff444433;border-radius:8px;padding:10px 12px;margin:8px 0;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#aaa;cursor:pointer;">
+          <input type="checkbox" id="webscan-auth-agree" style="margin-top:2px;accent-color:#00ff88;"/>
+          <span>Main samajhta/samajhti hoon ki is tool ka misuse illegal hai. Mujhe iss target ko test karne ki poori authorization hai. Kisi bhi galat use ki zimmedari sirf meri hogi — Super AI ki nahi.</span>
+        </label>
+      </div>
+            <button class="btn-run btn-danger" onclick="runSingle('webscan','webscan-url','url','/webscan')">SCAN</button>
       <div class="result-box" id="webscan-result"></div>
     </div>
   </div>
@@ -544,6 +555,17 @@
   <div id="panel-pricing" class="panel">
     <div class="page-title" style="padding:20px 20px 0">Pricing</div>
     <div class="page-sub" style="padding:0 20px 20px">Apna plan upgrade karo</div>
+    <div style="padding:0 20px 16px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;color:#c0c0d0;">
+        <tr style="border-bottom:1px solid #2a2a3a;text-align:left;"><th style="padding:8px;">Feature</th><th style="padding:8px;">Free</th><th style="padding:8px;color:#00ff88;">Pro</th><th style="padding:8px;">Boss</th></tr>
+        <tr style="border-bottom:1px solid #1a1a2a;"><td style="padding:8px;">Price</td><td style="padding:8px;">₹0</td><td style="padding:8px;">₹299/month</td><td style="padding:8px;">₹1999/month</td></tr>
+        <tr style="border-bottom:1px solid #1a1a2a;"><td style="padding:8px;">Requests/day</td><td style="padding:8px;">100</td><td style="padding:8px;">5,000</td><td style="padding:8px;">Unlimited</td></tr>
+        <tr style="border-bottom:1px solid #1a1a2a;"><td style="padding:8px;">AI Chat &amp; Ask</td><td style="padding:8px;">✅</td><td style="padding:8px;">✅</td><td style="padding:8px;">✅</td></tr>
+        <tr style="border-bottom:1px solid #1a1a2a;"><td style="padding:8px;">Security Audit Tools</td><td style="padding:8px;">Limited</td><td style="padding:8px;">✅</td><td style="padding:8px;">✅</td></tr>
+        <tr><td style="padding:8px;">Priority Support</td><td style="padding:8px;">❌</td><td style="padding:8px;">❌</td><td style="padding:8px;">✅</td></tr>
+      </table>
+      <div style="font-size:12px;color:#7070a0;margin-top:10px;">🔒 Payments secured by Razorpay · Card details kabhi store nahi hote</div>
+    </div>
     <div style="display:flex; gap:20px; padding:0 20px; flex-wrap:wrap;">
       <div class="form-card" style="flex:1; min-width:240px;">
         <div class="page-title" style="font-size:18px;">Pro</div>
@@ -566,7 +588,13 @@
     <div class="form-card">
       <div class="form-desc">Complete security audit — SSL, headers, XSS, SQL, ports, files sab ek saath</div>
       <div class="form-row"><label for="fullaudit-domain">Domain</label><input type="text" id="fullaudit-domain" placeholder="example.com"/></div>
-      <button class="btn-run btn-danger" onclick="runSingle('fullaudit','fullaudit-domain','domain','/fullaudit')">FULL AUDIT</button>
+<div style="background:#1a1a2a;border:1px solid #ff444433;border-radius:8px;padding:10px 12px;margin:8px 0;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#aaa;cursor:pointer;">
+          <input type="checkbox" id="fullaudit-auth-agree" style="margin-top:2px;accent-color:#00ff88;"/>
+          <span>Main samajhta/samajhti hoon ki is tool ka misuse illegal hai. Mujhe iss target ko test karne ki poori authorization hai. Kisi bhi galat use ki zimmedari sirf meri hogi — Super AI ki nahi.</span>
+        </label>
+      </div>
+            <button class="btn-run btn-danger" onclick="runSingle('fullaudit','fullaudit-domain','domain','/fullaudit')">FULL AUDIT</button>
       <div class="result-box" id="fullaudit-result"></div>
     </div>
   </div>
@@ -586,7 +614,13 @@
     <div class="form-card">
       <div class="form-desc">Open ports dhundho</div>
       <div class="form-row"><label for="port-domain">Domain</label><input type="text" id="port-domain" placeholder="example.com"/></div>
-      <button class="btn-run btn-danger" onclick="runSingle('portscan','port-domain','domain','/portscan')">SCAN PORTS</button>
+<div style="background:#1a1a2a;border:1px solid #ff444433;border-radius:8px;padding:10px 12px;margin:8px 0;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#aaa;cursor:pointer;">
+          <input type="checkbox" id="portscan-auth-agree" style="margin-top:2px;accent-color:#00ff88;"/>
+          <span>Main samajhta/samajhti hoon ki is tool ka misuse illegal hai. Mujhe iss target ko test karne ki poori authorization hai. Kisi bhi galat use ki zimmedari sirf meri hogi — Super AI ki nahi.</span>
+        </label>
+      </div>
+            <button class="btn-run btn-danger" onclick="runSingle('portscan','port-domain','domain','/portscan')">SCAN PORTS</button>
       <div class="result-box" id="portscan-result"></div>
     </div>
   </div>
@@ -1065,6 +1099,11 @@ async function apiCall(endpoint, params, method='GET', body=null) {
 async function runSingle(panelId, inputId, paramName, endpoint) {
   const val = document.getElementById(inputId).value.trim();
   if (!val) { alert('Value bharo pehle!'); return; }
+  const authCheckbox = document.getElementById(panelId + '-auth-agree');
+  if (authCheckbox && !authCheckbox.checked) {
+    alert('Pehle agreement confirm karo — iss tool ka use karna apni zimmedari pe hoga.');
+    return;
+  }
   const btn = event.target;
   const origLabel = btn.textContent;
   btn.disabled = true;
