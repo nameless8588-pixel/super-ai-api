@@ -312,8 +312,9 @@ def verify_key(key: str = Depends(api_key_header)):
     return key
 
 # API Key based daily rate limiting
-import collections, datetime
-_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
+import collections
+from datetime import date as _date
+_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(_date.today())})
 
 def check_daily_limit(key: str) -> dict:
     tier = VALID_KEYS.get(key, "free")
@@ -321,7 +322,7 @@ def check_daily_limit(key: str) -> dict:
     limit = limits.get(tier, 100)
     if limit == -1:
         return {"allowed": True}
-    today = str(datetime.date.today())
+    today = str(_date.today())
     rec = _daily_counts[key]
     if rec["date"] != today:
         rec["count"] = 0
