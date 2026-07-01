@@ -810,7 +810,13 @@
     <div class="form-card">
       <div class="form-desc">Aggressive deep security audit — SQL, XSS, admin panels, sensitive data sab</div>
       <div class="form-row"><label for="deep-domain">Domain</label><input type="text" id="deep-domain" placeholder="example.com"/></div>
-      <button class="btn-run btn-danger" onclick="runSingle('deep_audit','deep-domain','domain','/deep_audit')">DEEP AUDIT</button>
+      <div style="margin:12px 0; padding:12px; background:rgba(255,51,102,0.08); border:1px solid rgba(255,51,102,0.3); border-radius:4px;">
+        <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12px; color:var(--text2); line-height:1.6;">
+          <input type="checkbox" id="deep-audit-agree" onchange="document.getElementById('deep-audit-btn').disabled=!this.checked" style="margin-top:3px; accent-color:var(--accent2); width:14px; height:14px; flex-shrink:0;"/>
+          <span>Main confirm karta/karti hoon ki main ye tool <strong style="color:var(--accent2)">sirf apne khud ke ya authorized systems pe</strong> use kar raha/rahi hoon. Kisi bhi unauthorized system pe use karna illegal hai. Is tool ke results ki poori zimmedari meri khud ki hai — Super AI, uske developers, ya owners kisi bhi nuksaan, legal issue, ya misuse ke liye zimmedar nahi hain.</span>
+        </label>
+      </div>
+      <button id="deep-audit-btn" class="btn-run btn-danger" onclick="runSingle('deep_audit','deep-domain','domain','/deep_audit')" disabled>DEEP AUDIT</button>
       <div class="result-box" id="deep_audit-result"></div>
     </div>
   </div>

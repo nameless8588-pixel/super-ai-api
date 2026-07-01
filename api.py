@@ -2969,14 +2969,53 @@ a{color:#00ff88;}
 <h2>Payment</h2>
 <p>Plan prices are listed in INR (Pro: Rs.299, Boss: Rs.1999) and are charged per purchase via Razorpay. Plans do not auto-renew automatically unless explicitly stated at the time of purchase.</p>
 <h2>Prohibited Use</h2>
-<ul><li>Using the security/scanning tools against systems you do not own or have authorization to test</li>
-<li>Using the service to attack, harm, or disrupt third parties</li>
-<li>Reselling or sharing your API key with others</li>
-<li>Attempting to reverse-engineer or abuse the service</li></ul>
+<p style="color:#ff3366; font-weight:bold;">⚠️ Ye actions STRICTLY BANNED hain. Violation pe turant action liya jayega.</p>
+<ul>
+<li>Kisi bhi aisi website, server, ya system ko scan/test/attack karna jiska aapke paas ownership ya written authorization NAHI hai — ye ILLEGAL hai (IT Act 2000, Section 43 & 66 India)</li>
+<li>Service ka use kisi ko harm karne, attack karne, ya disrupt karne ke liye karna</li>
+<li>Apni API key kisi aur ko dena, sell karna, ya share karna</li>
+<li>Service ko reverse-engineer, abuse, ya overload karna</li>
+<li>Kisi bhi illegal activity ke liye AI tools, security scanners, ya code generators ka use karna</li>
+<li>Doosron ki private data, credentials, ya systems access karne ki koshish karna</li>
+</ul>
+
+<h2>⚡ Immediate Action Policy</h2>
+<p>Agar aap in rules ka violation karte hain — chahe aap Free user ho, Pro user ho, ya <strong>Boss user hi kyun na ho</strong> — hamara policy ye hai:</p>
+<ul>
+<li>🔴 <strong>Account turant (immediately) delete kar diya jayega</strong> — bina kisi warning ke</li>
+<li>🔴 <strong>Zero refund</strong> — koi bhi paid plan (Pro ya Boss) ka refund nahi milega, chahe plan abhi shuru hua ho</li>
+<li>🔴 <strong>API key blacklist</strong> ho jayegi permanently</li>
+<li>🔴 <strong>Legal action</strong> — hum relevant authorities (cybercrime cell, police) ko report karne ka adhikar rakhte hain, saath mein IP logs, request logs, aur evidence share karenge</li>
+<li>🔴 <strong>Civil liability</strong> — agar hamare through kisi third party ko nuksaan pahuncha, to aap personally legally liable honge</li>
+</ul>
+<p><strong>Ye koi threat nahi, ye policy hai.</strong> Hum logs maintain karte hain. Har request ka record hai.</p>
+
+<h2>User Responsibility & Agreement</h2>
+<p>Is service ko use karke aap confirm karte hain ki:</p>
+<ul>
+<li>Aap sirf apne owned ya authorized systems pe tools use karenge</li>
+<li>Koi bhi illegal use ki poori zimmedari aapki khud ki hai — Super AI, uske developers ya owners ki nahi</li>
+<li>Aap samajhte hain ki unauthorized system scanning India aur globally illegal hai</li>
+<li>Aap in terms se fully agree karte hain aur inka violation hone pe immediate action accept karte hain</li>
+</ul>
 <h2>Service Availability</h2>
 <p>The service is provided 'as is' and may occasionally experience downtime or interruptions.</p>
 <h2>Limitation of Liability</h2>
-<p>Super AI is not liable for any indirect, incidental, or consequential damages arising from use of the service.</p>
+<p>Super AI, its developers, and owners are not liable for any indirect, incidental, special, consequential, or punitive damages arising from use of the service, including but not limited to:</p>
+<ul>
+<li>Any results, outputs, or actions taken based on AI-generated content</li>
+<li>Any damage caused by use of security scanning or testing tools</li>
+<li>Unauthorized use of scanning tools against third-party systems</li>
+<li>Data loss, system damage, or legal consequences arising from misuse</li>
+<li>Any downtime, service interruptions, or data inaccuracies</li>
+</ul>
+<p><strong>The user assumes full and sole responsibility for how they use this service and its outputs.</strong> Super AI tools (including security scanners, AI agents, and code generators) must only be used on systems you own or have explicit written authorization to test. Misuse may be illegal under applicable laws.</p>
+
+<h2>Indemnification</h2>
+<p>You agree to indemnify and hold harmless Super AI, its developers, and owners from any claims, damages, losses, or expenses (including legal fees) arising from your use or misuse of the service, violation of these terms, or violation of any third-party rights.</p>
+
+<h2>Disclaimer of Warranties</h2>
+<p>The service is provided "as is" without warranties of any kind, express or implied. We do not warrant that the service will be error-free, uninterrupted, or that AI outputs will be accurate, complete, or suitable for any particular purpose.</p>
 <h2>Termination</h2>
 <p>We may suspend or terminate access for any account found violating these terms.</p>
 <h2>Governing Law</h2>
