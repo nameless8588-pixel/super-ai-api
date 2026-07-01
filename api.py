@@ -216,45 +216,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# API Key based daily rate limiting
-import collections, datetime
-_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
 
-def check_daily_limit(key: str) -> dict:
-    tier = VALID_KEYS.get(key, "free")
-    limits = {"free": 100, "pro": 5000, "boss": -1}
-    limit = limits.get(tier, 100)
-    if limit == -1:
-        return {"allowed": True}
-    today = str(datetime.date.today())
-    rec = _daily_counts[key]
-    if rec["date"] != today:
-        rec["count"] = 0
-        rec["date"] = today
-    if rec["count"] >= limit:
-        return {"allowed": False, "limit": limit, "tier": tier, "reset": "midnight (IST)"}
-    rec["count"] += 1
-    return {"allowed": True, "count": rec["count"], "limit": limit}
-
-# API Key based daily rate limiting
-import collections, datetime
-_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
-
-def check_daily_limit(key: str) -> dict:
-    tier = VALID_KEYS.get(key, "free")
-    limits = {"free": 100, "pro": 5000, "boss": -1}
-    limit = limits.get(tier, 100)
-    if limit == -1:
-        return {"allowed": True}
-    today = str(datetime.date.today())
-    rec = _daily_counts[key]
-    if rec["date"] != today:
-        rec["count"] = 0
-        rec["date"] = today
-    if rec["count"] >= limit:
-        return {"allowed": False, "limit": limit, "tier": tier, "reset": "midnight (IST)"}
-    rec["count"] += 1
-    return {"allowed": True, "count": rec["count"], "limit": limit}
 
 class LimitRequestSize(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -348,6 +310,26 @@ def verify_key(key: str = Depends(api_key_header)):
     if key not in VALID_KEYS:
         raise HTTPException(status_code=403, detail="Invalid API Key!")
     return key
+
+# API Key based daily rate limiting
+import collections, datetime
+_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
+
+def check_daily_limit(key: str) -> dict:
+    tier = VALID_KEYS.get(key, "free")
+    limits = {"free": 100, "pro": 5000, "boss": -1}
+    limit = limits.get(tier, 100)
+    if limit == -1:
+        return {"allowed": True}
+    today = str(datetime.date.today())
+    rec = _daily_counts[key]
+    if rec["date"] != today:
+        rec["count"] = 0
+        rec["date"] = today
+    if rec["count"] >= limit:
+        return {"allowed": False, "limit": limit, "tier": tier, "reset": "midnight (IST)"}
+    rec["count"] += 1
+    return {"allowed": True, "count": rec["count"], "limit": limit}
 
 def push_to_github(filename, code):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{GITHUB_REPO}/contents/{filename}"
