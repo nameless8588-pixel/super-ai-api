@@ -216,6 +216,46 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# API Key based daily rate limiting
+import collections, datetime
+_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
+
+def check_daily_limit(key: str) -> dict:
+    tier = VALID_KEYS.get(key, "free")
+    limits = {"free": 100, "pro": 5000, "boss": -1}
+    limit = limits.get(tier, 100)
+    if limit == -1:
+        return {"allowed": True}
+    today = str(datetime.date.today())
+    rec = _daily_counts[key]
+    if rec["date"] != today:
+        rec["count"] = 0
+        rec["date"] = today
+    if rec["count"] >= limit:
+        return {"allowed": False, "limit": limit, "tier": tier, "reset": "midnight (IST)"}
+    rec["count"] += 1
+    return {"allowed": True, "count": rec["count"], "limit": limit}
+
+# API Key based daily rate limiting
+import collections, datetime
+_daily_counts = collections.defaultdict(lambda: {"count": 0, "date": str(datetime.date.today())})
+
+def check_daily_limit(key: str) -> dict:
+    tier = VALID_KEYS.get(key, "free")
+    limits = {"free": 100, "pro": 5000, "boss": -1}
+    limit = limits.get(tier, 100)
+    if limit == -1:
+        return {"allowed": True}
+    today = str(datetime.date.today())
+    rec = _daily_counts[key]
+    if rec["date"] != today:
+        rec["count"] = 0
+        rec["date"] = today
+    if rec["count"] >= limit:
+        return {"allowed": False, "limit": limit, "tier": tier, "reset": "midnight (IST)"}
+    rec["count"] += 1
+    return {"allowed": True, "count": rec["count"], "limit": limit}
+
 class LimitRequestSize(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         cl = request.headers.get("content-length")
@@ -380,6 +420,10 @@ def health():
 @app.get("/ask")
 @limiter.limit("20/minute")
 def ask(request: Request, q: str, model: str = "auto", api_key: str = None, key: str = Depends(verify_key)):
+    # Daily rate limit check
+    limit_check = check_daily_limit(key)
+    if not limit_check["allowed"]:
+        raise HTTPException(status_code=429, detail=f"Daily limit reached ({limit_check['limit']} requests). Upgrade to Pro for more. Resets at {limit_check['reset']}.")
     # Cache sirf 10 min ke liye - fresh answers
     import hashlib
     cache_key = hashlib.md5(f"{q}_{model}_{VALID_KEYS[key]}".encode()).hexdigest()
